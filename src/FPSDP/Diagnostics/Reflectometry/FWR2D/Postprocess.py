@@ -170,11 +170,11 @@ def Self_Correlation(ref_output,tstart=None, tend=None):
 
     input: Reflectometer_Output object
     """
-    if( tstart== None and tend == None):
+    if( tstartis None and tend is None):
         M = ref_output.E_out
-    elif(tstart == None):
+    elif(tstart is None):
         M = ref_output.E_out[:,:tend+1,:]
-    elif(tend == None):
+    elif(tend is None):
         M = ref_output.E_out[:,tstart:,:]
     else:
         M = ref_output.E_out[:,tstart:tend+1,:]

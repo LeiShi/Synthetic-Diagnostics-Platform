@@ -202,7 +202,7 @@ class BES:
         self.phiav = np.mean(phi)
         shift = self.phiav
 
-        if radial_mesh == None:
+        if radial_mesh is None:
             self.pos_foc = np.zeros((len(Z),3))                                  #!
             self.pos_foc[:,0] = R*np.cos(phi)
             self.pos_foc[:,1] = R*np.sin(phi)

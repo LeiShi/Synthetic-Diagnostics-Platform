@@ -37,10 +37,10 @@ class Fluctuation(object):
         
     @abstractmethod
     def realize(self, t=None, grid = None):
-        if(t == None):
+        if(t is None):
             t = self.t + self.dt
             self.t = t
-        if(grid == None):
+        if(grid is None):
             grid = self.grid
         #Create the realization Here   
         return self.realize(t,grid)
