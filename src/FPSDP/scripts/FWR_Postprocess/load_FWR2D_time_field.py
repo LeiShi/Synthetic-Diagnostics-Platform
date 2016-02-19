@@ -113,7 +113,7 @@ class Animator:
         self.phase_data = phase_data
         self.plasma_mode = plasma_mode
         self.nt = self.fullwave_data.shape[0]
-        if(t_arr != None):
+        if(t_arr is not None):
             self.t_arr = t_arr
 
         else:

@@ -36,7 +36,7 @@ def get_coh_time(cha = channel):
     return time_array[t_idx]
 
 def get_coh_median_std(cha = channel, window = None):
-    if(window == None):  
+    if(window is None):  
         window = get_coh_time(cha)
 
     cs_exp = nstx_exp.analyser.Coherent_over_time(0.632,0.640,1e-6,window,loader_num = cha)
