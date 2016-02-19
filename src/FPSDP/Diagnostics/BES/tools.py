@@ -1460,7 +1460,7 @@ def compute_scaling_factor(ne_fluc=0.1,T_fluc=0.01,radial=True,Radius=[1.67,0.67
     """
     import FPSDP.Maths.Integration as integ
 
-    if xgc == None:
+    if xgc is None:
         if radial:
             bes = bes_.BES(name,radial_mesh=[Radius[0],Radius[1],Nr])
         else:

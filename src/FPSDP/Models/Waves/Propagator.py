@@ -273,7 +273,6 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         self.direction = direction
         self.tol = tol
         self.unit_system = unitsystem
-
         print('Propagator 1D initialized.', file=sys.stdout)
         
     def _SDP(self, omega):
@@ -670,11 +669,15 @@ solver instead of paraxial solver.')
                          only equilibrium plasma is used. 
         :param bool mute: if True, no intermediate outputs for progress.
         :param bool debug_mode: if True, additional detailed information will 
+<<<<<<< HEAD
                                 be saved for later inspection. 
         :param bool include_main_phase: if True, the calculated E field will 
                                         have contribution from eikonal phase 
                                         term :math:`\exp(i\int k_0 dx)`. 
                                         Default to be False.
+=======
+                                be saved for later inspection.                           
+>>>>>>> master
         
         """ 
 
@@ -1689,7 +1692,7 @@ solver instead of paraxial solver.')
                                         have contribution from eikonal phase 
                                         term :math:`\exp(i\int k_0 dx)`. 
                                         Default to be False.                            
-        
+ 
         """ 
         
         tstart = clock()

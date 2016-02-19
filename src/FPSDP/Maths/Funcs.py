@@ -211,7 +211,7 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     perp[~ind] = -perp[~ind]
     perp = perp/np.sqrt(np.sum(perp**2,axis=1))[:,np.newaxis]
     # in the case of the lens and between the fiber and the lens, we want the opposite case
-    if islens != None:
+    if islens is not None:
         test = pos[:,2] < islens
         ind[test] = ~ind[test]
     
