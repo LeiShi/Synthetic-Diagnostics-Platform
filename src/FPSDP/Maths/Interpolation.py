@@ -2,10 +2,16 @@
 """
 
 import numpy as np
-import scipy.interpolate as interpolate
+from scipy.interpolate import BarycentricInterpolator
 
 class InterpolationError(Exception):
     def __init__(self,value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+class OutofBoundError(InterpolationError, ValueError):
+    def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
@@ -135,3 +141,72 @@ def trilinear_interp(X,Y,Z,F,x, fill_value=0.0):
         return G
     else:
         raise NameError('Error: wrong shape of the position to interpolate')
+        
+
+# BarycentricInterpolator with boundary check
+class BoundaryWarnBarycentricInterpolator(BarycentricInterpolator):
+    """Barycentric Interpolator with Boundary Check. Based on 
+    :py:class:`scipy.interpolate.BarycentricInterpolator`.
+    
+    The boundary is set as minimun x and maximum x. If called with x outside 
+    the available range, a OutofBoundError will be raised.
+    
+    __init__(xi, yi=None, axis=0, bound_error=True, fill_value=0)
+    
+    :param xi: x coordinates for interpolation
+    :type xi: array of float
+    :param yi: Optional, y values on each xi location. If not given, need to be
+               provided later using :py:method`set_yi` method.
+    :type yi: array of float
+    :param int axis: the axis of yi along which the interpolator will be 
+                     created.
+    :param bool bound_error: If True, out of bound interpolation will result a
+                             OutofBoundError. Otherwise fill_value will be used
+                             . Default to be True
+    :param float fill_value: If bound_error is False, out of bound values will
+                             be automatically filled with fill_value.
+    
+    see :py:class:`scipy.interpolate.BarycentricInterpolator` for further 
+    information.                 
+    """
+    
+    def __init__(self, xi, yi=None, axis=0, bound_error=True, fill_value=0):
+        
+        self._xmin = np.min(xi)
+        self._xmax = np.max(xi)
+        self._bound_error = bound_error
+        self._fill_value = fill_value
+        
+        super(BoundaryWarnBarycentricInterpolator, self).__init__(xi, yi, axis)
+        
+            
+        
+    def __call__(self, x):
+        if (self._bound_error):
+            if np.any(x < self._xmin) or np.any(x > self._xmax):
+                raise OutofBoundError('x out of bound! xmin: {}, xmax: {}'.\
+                                       format(self._xmin, self._xmax))
+            return super(BoundaryWarnBarycentricInterpolator, self).__call__(x)
+        else:
+            outbound_idx = np.logical_or(x < self._xmin, x > self._xmax)
+            result = np.empty_like(x)
+            result[~outbound_idx] = super(BoundaryWarnBarycentricInterpolator, 
+                                          self).__call__(x[~outbound_idx]) 
+            result[outbound_idx] = self._fill_value
+            return result
+            
+
+    def add_xi(self, xi, yi=None):
+        super(BoundaryWarnBarycentricInterpolator, self).add_xi(xi, yi)
+        self._xmin = np.min( [np.min(xi), self._xmin] )
+        self._xmax = np.max( [np.max(xi), self._xmax] )
+        
+    
+    def set_yi(self, yi, axis=None):
+        yi = np.array(yi)
+        if not self._bound_error:
+            assert yi.ndim == 1
+        super(BoundaryWarnBarycentricInterpolator, self).set_yi(yi, axis)
+        
+
+            
