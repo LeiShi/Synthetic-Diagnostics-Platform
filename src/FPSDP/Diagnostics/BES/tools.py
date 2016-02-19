@@ -1353,7 +1353,7 @@ def compute_beam_config(Rsource,phisource, Rtan,R=np.array([])):
 
 
 
-def interpolation_toroidal_plane(phi=-2.38,t=130,Nr=1000,Nz=1000,R=[1.82,2.3],Z=[-0.25,0.25]):
+def interpolation_toroidal_plane(phi=-2.38,t=130,Nr=1000,Nz=1000,R=(1.82,2.3),Z=(-0.25,0.25)):
     """ Create a R-Z mesh and interpolate the data on it.
     Is useful for checking if the data are well interpolated
 
@@ -1442,7 +1442,7 @@ def solid_angle_evolution(Rmax=2,Zmax=0.1,Nr=80,Nz=100,fib=4,v=40):
 
 
 
-def compute_scaling_factor(ne_fluc=0.1,T_fluc=0.01,radial=True,Radius=[1.67,0.67],Nr=100,graph=True,xgc=None):
+def compute_scaling_factor(ne_fluc=0.1,T_fluc=0.01,radial=True,Radius=(1.67,0.67),Nr=100,graph=True,xgc=None):
     r"""
     Compute the scaling factor relating the density fluctuations to the BES fluctuations: :math:`C\frac{\tilde{I}}{I}=\frac{\tilde{n}_e}{n_e}`
     This code is more or less a copy of the BES code, therefore it should be changed if the main code is changed
