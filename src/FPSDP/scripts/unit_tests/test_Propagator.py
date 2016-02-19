@@ -42,6 +42,7 @@ gb = lb.GaussianBeam(2*np.pi*3e10/omega, 260, 0, 1, tilt_h=0, P_total=1)
 
 E_start = gb([Z2D, Y2D, X2D])
 
+
 def prop1d(mode, dielectric, max_harmonic, max_power,
 		   has_main_phase=False):    
     propagator1d = prop.ParaxialPerpendicularPropagator1D(p1d, 
@@ -52,6 +53,7 @@ def prop1d(mode, dielectric, max_harmonic, max_power,
 
     E = propagator1d.propagate(omega, x_start, x_end, nx, E_start, 
                          Y1D, Z1D, mute=False, debug_mode=True, 
+
 			 include_main_phase=has_main_phase)
     return (E, propagator1d)
     
@@ -202,7 +204,6 @@ def error_2d(nx_power_min, nx_power_max, nx_power_step, mode='O',
 def benchmark_1d2d(nx_power_min, nx_power_max, nx_step, mode='O',
                    dielectric=dt.ColdElectronColdIon, max_harmonic=2, 
                    max_power=2, has_main_phase=False):
-
     """calculate error convergence against x step size
     
     :param float nx_min: log2(nx) minimum, start point of log mesh of total x 
@@ -238,14 +239,11 @@ def benchmark_1d2d(nx_power_min, nx_power_max, nx_step, mode='O',
     
     for i, ni in enumerate(nx_array):
         
-        E1 = p1.propagate(omega, x_start, x_end, ni, E_start, 
-<<<<<<< HEAD
-                          Y1D, Z1D, )
-=======
-                          Y1D, Z1D)
->>>>>>> ca6e2222e078bd846c0ebd2239debbfbcb065d30
+        E1 = p1.propagate(omega, x_start, x_end, ni, E_start,
+				     Y1D, Z1D, include_main_phase=has_main_phase)
+
         E2 = p2.propagate(omega, x_start, x_end, ni, E_start, 
-                          Y1D, Z1D)
+                                     Y1D, Z1D, include_main_phase=has_main_phase)
         
         abs_err = np.abs(E2 - E1)
         max_abs_err[i] = np.max(abs_err)

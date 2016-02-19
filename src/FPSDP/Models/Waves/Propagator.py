@@ -15,6 +15,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq
 from scipy.integrate import cumtrapz, quadrature
+from scipy.interpolate import interp1d
 
 from ...Plasma.DielectricTensor import HotDielectric, Dielectric, \
                                        ColdElectronColdIon, ResonanceError 
@@ -27,7 +28,7 @@ class Propagator(object):
     __metaclass__ = ABCMeta
     
     @abstractmethod
-    def propagate(self, E_start, x_start, x_end, dx):
+    def propagate(self, omega, x_start, x_end, nx, E_start, Y1D, Z1D):
         pass
     
 
@@ -272,25 +273,85 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         self.direction = direction
         self.tol = tol
         self.unit_system = unitsystem
-        
-        # Prepare the cold plasma 
-        x_fine = self.plasma.grid.X1D
-        eps0_fine = self.main_dielectric.epsilon([x_fine], omega, True)
-        S = np.real(eps0[0,0])
-        D = np.imag(eps0[1,0])
-        P = np.real(eps0[2,2])
-        self._S =
-
         print('Propagator 1D initialized.', file=sys.stdout)
         
+    def _SDP(self, omega):
+        
+        # Prepare the cold plasma dielectric components
+        x_fine = self.main_dielectric.plasma.grid.X1D
+        eps0_fine = self.main_dielectric.epsilon([x_fine], omega, True)
+        S = np.real(eps0_fine[0,0])
+        D = np.imag(eps0_fine[1,0])
+        P = np.real(eps0_fine[2,2])
+        self._S = interp1d(x_fine, S)
+        self._D = interp1d(x_fine, D)
+        self._P = interp1d(x_fine, P)
+    
+
     def _k0(self, x):
         """ evaluate main wave vector at specified x locations
         
         This function is mainly used to carry out the main phase integral with
         increased accuracy.
         """
+        c = cgs['c']
+        
         if self.polarization == 'O':
-            n
+            try:
+                n2 = self._P(x)
+            except ValueError as e:
+                print('x out of boundary. Please provide a Plasma Profile \
+containing larger plasma area.')
+                raise e
+        else:
+            try:
+                S = self._S(x)
+                D = self._D(x)
+            except ValueError as e:
+                print('x out of boundary. Please provide a Plasma Profile \
+containing larger plasma area.', file=sys.stderr)
+                raise e
+            try:
+                n2 = (S*S - D*D)/S
+            except ZeroDivisionError as e:
+                raise ResonanceError('Cold X-mode resonance encountered. \
+Paraxial Propagators can not handle this situation properly. Please try to \
+avoid this.') 
+        
+        if np.any( n2 <= 0):
+            raise ResonanceError('Cold cutoff encountered. Paraxial \
+Propagators can not handle this situation properly. Please try to avoid this.')
+
+        return self.direction * np.sqrt(n2)*self.omega/c
+        
+    
+    def _generate_main_phase(self, mute=True):
+        r""" Integrate k_0 along x, and return the phase at self.x_coordinates
+        """
+        tstart = clock()
+        try:
+            omega = self.omega
+            self._SDP(omega)
+            self.main_phase = np.empty_like(self.x_coords)
+            self._main_phase_err = np.empty_like(self.x_coords)
+            # Initial phase is set to 0            
+            self.main_phase[0] = 0
+            self._main_phase_err[0] = 0
+            # The rest of the phases are numerically integrated over k_0
+            for i, xi in enumerate(self.x_coords[:-1]):
+                xi_n = self.x_coords[i+1]
+                self.main_phase[i+1], self._main_phase_err[i+1] = \
+                                                quadrature(self._k0, xi, xi_n)
+                self.main_phase[i+1] += self.main_phase[i]
+                self._main_phase_err[i+1] += self._main_phase_err[i]
+        except AttributeError as e:
+            print('Main phase function can only be called AFTER propagate \
+function is called.', file=sys.stderr)
+            raise e
+            
+        tend = clock()
+        if not mute:
+            print('Main phase generated. Time used: {:.3}'.format(tend-tstart))
         
         
     def _generate_epsilon0(self, mute=True):
@@ -561,9 +622,11 @@ solver instead of paraxial solver.')
 
         tstart = clock()        
         
-        #self.main_phase = cumtrapz(self.k_0, x=self.x_coords, initial=0)
-        #self.E_k = self.E_k0 * np.exp(1j*self.main_phase)
-        self.E_k = self.E_k0        
+        if self._include_main_phase:
+            self._generate_main_phase(mute=mute)
+            self.E_k = self.E_k0 * np.exp(1j*self.main_phase)
+        else:
+            self.E_k = self.E_k0        
         self.E = np.fft.ifft2(self.E_k, axes=(0,1))
         
         tend = clock()
@@ -574,7 +637,8 @@ solver instead of paraxial solver.')
             
        
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
-                  z_E, x_coords=None, time=None, mute=True, debug_mode=False):
+                  z_E, x_coords=None, time=None, mute=True, debug_mode=False, 
+                  include_main_phase=False):
         r"""propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None)
         
@@ -605,7 +669,15 @@ solver instead of paraxial solver.')
                          only equilibrium plasma is used. 
         :param bool mute: if True, no intermediate outputs for progress.
         :param bool debug_mode: if True, additional detailed information will 
+<<<<<<< HEAD
+                                be saved for later inspection. 
+        :param bool include_main_phase: if True, the calculated E field will 
+                                        have contribution from eikonal phase 
+                                        term :math:`\exp(i\int k_0 dx)`. 
+                                        Default to be False.
+=======
                                 be saved for later inspection.                           
+>>>>>>> master
         
         """ 
 
@@ -622,6 +694,7 @@ solver instead of paraxial solver.')
             self.eq_only = False
             self.time = time
         self._debug = debug_mode
+        self._include_main_phase = include_main_phase
         
         self.omega = omega
         
@@ -969,6 +1042,86 @@ class ParaxialPerpendicularPropagator2D(Propagator):
         self.unit_system = unitsystem
         
         print('Propagator 2D initialized.', file=sys.stdout)
+    
+
+    def _SDP(self, omega):
+        
+        # Prepare the cold plasma dielectric components
+        x_fine = self.main_dielectric.plasma.grid.R1D
+        y_fine = self.ray_y + np.zeros_like(x_fine)
+        eps0_fine = self.main_dielectric.epsilon([y_fine, x_fine], omega, True)
+        S = np.real(eps0_fine[0,0])
+        D = np.imag(eps0_fine[1,0])
+        P = np.real(eps0_fine[2,2])
+        self._S = interp1d(x_fine, S)
+        self._D = interp1d(x_fine, D)
+        self._P = interp1d(x_fine, P)
+    
+    
+    def _k0(self, x):
+        """ evaluate main wave vector at specified x locations
+        
+        This function is mainly used to carry out the main phase integral with
+        increased accuracy.
+        """
+        c = cgs['c']
+        
+        if self.polarization == 'O':
+            try:
+                n2 = self._P(x)
+            except ValueError as e:
+                print('x out of boundary. Please provide a Plasma Profile \
+containing larger plasma area.')
+                raise e
+        else:
+            try:
+                S = self._S(x)
+                D = self._D(x)
+            except ValueError as e:
+                print('x out of boundary. Please provide a Plasma Profile \
+containing larger plasma area.', file=sys.stderr)
+                raise e
+            try:
+                n2 = (S*S - D*D)/S
+            except ZeroDivisionError as e:
+                raise ResonanceError('Cold X-mode resonance encountered. \
+Paraxial Propagators can not handle this situation properly. Please try to \
+avoid this.') 
+        
+        if np.any( n2 <= 0):
+            raise ResonanceError('Cold cutoff encountered. Paraxial \
+Propagators can not handle this situation properly. Please try to avoid this.')
+
+        return self.direction * np.sqrt(n2)*self.omega/c
+
+
+    def _generate_main_phase(self, mute=True):
+        r""" Integrate k_0 along x, and return the phase at self.x_coordinates
+        """
+        tstart = clock()
+        try:
+            omega = self.omega
+            self._SDP(omega)
+            self.main_phase = np.empty_like(self.calc_x_coords)
+            self._main_phase_err = np.empty_like(self.calc_x_coords)
+            # Initial phase is set to 0            
+            self.main_phase[0] = 0
+            self._main_phase_err[0] = 0
+            # The rest of the phases are numerically integrated over k_0
+            for i, xi in enumerate(self.calc_x_coords[:-1]):
+                xi_n = self.calc_x_coords[i+1]
+                self.main_phase[i+1], self._main_phase_err[i+1] = \
+                                                quadrature(self._k0, xi, xi_n)
+                self.main_phase[i+1] += self.main_phase[i]
+                self._main_phase_err[i+1] += self._main_phase_err[i]
+        except AttributeError as e:
+            print('Main phase function can only be called AFTER propagate \
+function is called.', file=sys.stderr)
+            raise e
+            
+        tend = clock()
+        if not mute:
+            print('Main phase generated. Time used: {:.3}'.format(tend-tstart))
         
         
     def _generate_epsilon(self, mute=True):
@@ -1488,8 +1641,9 @@ solver instead of paraxial solver.')
         tstart = clock()        
         
         self._generate_phase_kz()
-        #self.main_phase = cumtrapz(self.k_0, x=self.calc_x_coords, initial=0)
-        #self.Fk = self.Fk * np.exp(1j * self.main_phase)
+        if self._include_main_phase:        
+            self._generate_main_phase(mute=mute) 
+            self.Fk = self.Fk * np.exp(1j * self.main_phase)
         self.Fk = self.Fk * np.exp(1j * self.phase_kz)
         self.F = np.fft.ifft(self.Fk, axis=0)
         self.E = self.F / np.sqrt(np.abs(self.k_0))
@@ -1502,7 +1656,7 @@ solver instead of paraxial solver.')
        
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None, 
-                  mute=True, debug_mode=False):
+                  mute=True, debug_mode=False, include_main_phase=False):
         r"""propagate(self, time, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None)
         
@@ -1515,7 +1669,6 @@ solver instead of paraxial solver.')
         See :py:class:`ParaxialPerpendicularPropagator1D` for detailed 
         description of the method and assumptions.
         
-        :param int time: chosen time step of perturbation in plasma.
         :param float omega: angular frequency of the wave, omega must be 
                             positive.
         :param E_start: complex amplitude of the electric field at x_start,
@@ -1530,8 +1683,16 @@ solver instead of paraxial solver.')
         :param x_coords: *Optional*, x coordinates to use for propagation, if
                          given, *x_start*, *x_end*, and *nx* are ignored.
         :type x_coords: 1d array of float. Must be monotonic.
-                                    
-        
+        :param int time: chosen time step of perturbation in plasma. If None, 
+                         only equilibrium plasma is used. 
+        :param bool mute: if True, no intermediate outputs for progress.
+        :param bool debug_mode: if True, additional detailed information will 
+                                be saved for later inspection. 
+        :param bool include_main_phase: if True, the calculated E field will 
+                                        have contribution from eikonal phase 
+                                        term :math:`\exp(i\int k_0 dx)`. 
+                                        Default to be False.                            
+ 
         """ 
         
         tstart = clock()
@@ -1546,7 +1707,8 @@ solver instead of paraxial solver.')
         else:
             self.eq_only = False            
             self.time = time  
-        self._debug = debug_mode            
+        self._debug = debug_mode
+        self._include_main_phase = include_main_phase            
             
         self.omega = omega
         
