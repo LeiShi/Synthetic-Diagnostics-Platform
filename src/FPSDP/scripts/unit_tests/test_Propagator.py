@@ -192,7 +192,7 @@ def error_2d(nx_power_min, nx_power_max, nx_power_step, mode='O',
     
 def benchmark_1d2d(nx_power_min, nx_power_max, nx_step, mode='O',
                    dielectric=dt.ColdElectronColdIon, max_harmonic=2, 
-                   max_power=2):
+                   max_power=2, has_main_phase=False):
     """calculate error convergence against x step size
     
     :param float nx_min: log2(nx) minimum, start point of log mesh of total x 
@@ -229,7 +229,7 @@ def benchmark_1d2d(nx_power_min, nx_power_max, nx_step, mode='O',
     for i, ni in enumerate(nx_array):
         
         E1 = p1.propagate(omega, x_start, x_end, ni, E_start, 
-                          Y1D, Z1D)
+                          Y1D, Z1D, )
         E2 = p2.propagate(omega, x_start, x_end, ni, E_start, 
                           Y1D, Z1D)
         
