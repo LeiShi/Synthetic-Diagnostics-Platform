@@ -181,15 +181,15 @@ class Cauchy_Spec(Power_Spectrum):
         A_given = False
         rho_given = False
         arg_count = 0        
-        if (gamma != None):
+        if (gamma is not None):
             self.gamma = gamma
             gamma_given = True
             arg_count += 1
-        if (A != None):
+        if (A is not None):
             self.A = A
             A_given = True
             arg_count += 1
-        if (rho != None):
+        if (rho is not None):
             self.rho = rho
             rho_given = True
             arg_count +=1
@@ -354,7 +354,7 @@ class Turbulence(Fluctuation):
         self.acf_pol = acf_pol
         self.acf_tor = acf_tor
         self._rseed = random_seed
-        if(grid != None):
+        if(grid is not None):
             assert isinstance(grid,AnalyticGrid)
         self.grid = grid
             
@@ -363,9 +363,9 @@ class Turbulence(Fluctuation):
         self.ps_tor = self.acf_tor.power_spectrum()
         
     def realize(self, grid = None):
-        if(grid == None):
+        if(grid is None):
             grid = self.grid
-        if(grid == None):
+        if(grid is None):
             raise Turbulence_Generation_Error('Default grid not set. Please set a default grid before generating turbulence without a specific grid.')
         rgrid = self.grid.r1d
         

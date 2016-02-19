@@ -42,7 +42,8 @@ gb = lb.GaussianBeam(2*np.pi*3e10/omega, 260, 0, 1, tilt_h=0, P_total=1)
 
 E_start = gb([Z2D, Y2D, X2D])
 
-def prop1d(mode, dielectric, max_harmonic, max_power):    
+def prop1d(mode, dielectric, max_harmonic, max_power,
+		   has_main_phase=False):    
     propagator1d = prop.ParaxialPerpendicularPropagator1D(p1d, 
                                                      dielectric, 
                                                      mode, direction=-1,
@@ -50,11 +51,13 @@ def prop1d(mode, dielectric, max_harmonic, max_power):
                                                      max_power=max_power)
 
     E = propagator1d.propagate(omega, x_start, x_end, nx, E_start, 
-                         Y1D, Z1D, mute=False, debug_mode=True)
+                         Y1D, Z1D, mute=False, debug_mode=True, 
+			 include_main_phase=has_main_phase)
     return (E, propagator1d)
     
     
-def prop2d(mode, dielectric, max_harmonic, max_power):    
+def prop2d(mode, dielectric, max_harmonic, max_power, 
+	           has_main_phase=False):    
     propagator = prop.ParaxialPerpendicularPropagator2D(p2d, dielectric, 
                                                         mode, direction = -1, 
                                                         ray_y=0, 
@@ -63,12 +66,14 @@ def prop2d(mode, dielectric, max_harmonic, max_power):
     
     
     E = propagator.propagate(omega, x_start, x_end, nx, E_start, 
-                             Y1D, Z1D, mute=False, debug_mode=True)
+                             Y1D, Z1D, mute=False, debug_mode=True, 
+			     include_main_phase=has_main_phase)
                              
     return (E, propagator)
     
 
-def prop2d_uni(mode, dielectric, max_harmonic, max_power):    
+def prop2d_uni(mode, dielectric, max_harmonic, max_power,
+			  has_main_phase=False):    
     propagator = prop.ParaxialPerpendicularPropagator2D(p2d_uni, dielectric, 
                                                         mode, direction = -1, 
                                                         ray_y=0, 
@@ -77,12 +82,14 @@ def prop2d_uni(mode, dielectric, max_harmonic, max_power):
     
     
     E = propagator.propagate(omega, x_start, x_end, nx, E_start, 
-                             Y1D, Z1D, mute=False, debug_mode=True)
+                             Y1D, Z1D, mute=False, debug_mode=True,
+			     include_main_phase=has_main_phase)
                              
     return (E, propagator)
                              
 
-def compare_1d2d(mode, dielectric, max_harmonic, max_power):
+def compare_1d2d(mode, dielectric, max_harmonic, max_power,
+				has_main_phase=False):
 
     propagator1d = prop.ParaxialPerpendicularPropagator1D(p1d, 
                                                      dielectric, 
@@ -91,7 +98,7 @@ def compare_1d2d(mode, dielectric, max_harmonic, max_power):
                                                      max_power=max_power)
 
     E1 = propagator1d.propagate(omega, x_start, x_end, nx, E_start, 
-                         Y1D, Z1D)
+                         Y1D, Z1D, include_main_phase=has_main_phase)
         
     propagator2d_uni = prop.ParaxialPerpendicularPropagator2D(p2d_uni, 
                                                               dielectric, 
@@ -102,13 +109,14 @@ def compare_1d2d(mode, dielectric, max_harmonic, max_power):
     
     
     E2d_uni = propagator2d_uni.propagate(omega, x_start, x_end, nx, E_start, 
-                             Y1D, Z1D)
+                             Y1D, Z1D, include_main_phase=has_main_phase)
                              
     return (E1, propagator1d, E2d_uni, propagator2d_uni)
     
 
 def error_1d(nx_power_min, nx_power_max, nx_power_step, mode='O', 
-             dielectric=dt.ColdElectronColdIon, max_harmonic=2, max_power=2):
+             dielectric=dt.ColdElectronColdIon, max_harmonic=2, max_power=2,
+	     has_main_phase=False):
     """
     nx_step: the step size in nx power
     """
@@ -127,12 +135,12 @@ def error_1d(nx_power_min, nx_power_max, nx_power_step, mode='O',
     tstart = time.clock()    
     
     E_mark = p1.propagate(omega, x_start, x_end, nx_array[-1], E_start, Y1D, 
-                          Z1D)    
+                          Z1D, include_main_phase=has_main_phase)    
     
     for i, ni in enumerate(nx_array[:-1]):
         
         Ei = p1.propagate(omega, x_start, x_end, ni, E_start, 
-                          Y1D, Z1D)
+                          Y1D, Z1D,include_main_phase=has_main_phase)
         
         step = nx_array[-1]/nx_array[i]        
         E_marki = E_mark[..., ::step]
@@ -149,7 +157,8 @@ def error_1d(nx_power_min, nx_power_max, nx_power_step, mode='O',
     
     
 def error_2d(nx_power_min, nx_power_max, nx_power_step, mode='O', 
-             dielectric=dt.ColdElectronColdIon, max_harmonic=2, max_power=2):
+             dielectric=dt.ColdElectronColdIon, max_harmonic=2, max_power=2,
+	     has_main_phase=False):
     """
     nx_step: the step size in nx power
     """
@@ -169,12 +178,12 @@ def error_2d(nx_power_min, nx_power_max, nx_power_step, mode='O',
     tstart = time.clock()    
     
     E_mark = p2.propagate(omega, x_start, x_end, nx_array[-1], E_start, Y1D, 
-                          Z1D)    
+                          Z1D, include_main_phase=has_main_phase)    
     
     for i, ni in enumerate(nx_array[:-1]):
         
         Ei = p2.propagate(omega, x_start, x_end, ni, E_start, 
-                          Y1D, Z1D)
+                          Y1D, Z1D, include_main_phase=has_main_phase)
         
         step = nx_array[-1]/nx_array[i]        
         E_marki = E_mark[..., ::step]
@@ -193,6 +202,7 @@ def error_2d(nx_power_min, nx_power_max, nx_power_step, mode='O',
 def benchmark_1d2d(nx_power_min, nx_power_max, nx_step, mode='O',
                    dielectric=dt.ColdElectronColdIon, max_harmonic=2, 
                    max_power=2, has_main_phase=False):
+
     """calculate error convergence against x step size
     
     :param float nx_min: log2(nx) minimum, start point of log mesh of total x 
@@ -229,7 +239,11 @@ def benchmark_1d2d(nx_power_min, nx_power_max, nx_step, mode='O',
     for i, ni in enumerate(nx_array):
         
         E1 = p1.propagate(omega, x_start, x_end, ni, E_start, 
+<<<<<<< HEAD
                           Y1D, Z1D, )
+=======
+                          Y1D, Z1D)
+>>>>>>> ca6e2222e078bd846c0ebd2239debbfbcb065d30
         E2 = p2.propagate(omega, x_start, x_end, ni, E_start, 
                           Y1D, Z1D)
         
