@@ -341,7 +341,8 @@ Propagators can not handle this situation properly. Please try to avoid this.')
             for i, xi in enumerate(self.x_coords[:-1]):
                 xi_n = self.x_coords[i+1]
                 self.main_phase[i+1], self._main_phase_err[i+1] = \
-                                                quadrature(self._k0, xi, xi_n)
+                     quadrature(self._k0, xi, xi_n, 
+                                tol=1e-2/len(self.x_coords))
                 self.main_phase[i+1] += self.main_phase[i]
                 self._main_phase_err[i+1] += self._main_phase_err[i]
         except AttributeError as e:
@@ -351,7 +352,7 @@ function is called.', file=sys.stderr)
             
         tend = clock()
         if not mute:
-            print('Main phase generated. Time used: {:.3}'.format(tend-tstart))
+            print('Main phase generated. Time used: {:.3}s'.format(tend-tstart))
         
         
     def _generate_epsilon0(self, mute=True):
@@ -1111,7 +1112,8 @@ Propagators can not handle this situation properly. Please try to avoid this.')
             for i, xi in enumerate(self.calc_x_coords[:-1]):
                 xi_n = self.calc_x_coords[i+1]
                 self.main_phase[i+1], self._main_phase_err[i+1] = \
-                                                quadrature(self._k0, xi, xi_n)
+                                quadrature(self._k0, xi, xi_n,
+                                           tol=1e-2/len(self.calc_x_coords))
                 self.main_phase[i+1] += self.main_phase[i]
                 self._main_phase_err[i+1] += self._main_phase_err[i]
         except AttributeError as e:
@@ -1121,7 +1123,7 @@ function is called.', file=sys.stderr)
             
         tend = clock()
         if not mute:
-            print('Main phase generated. Time used: {:.3}'.format(tend-tstart))
+            print('Main phase generated. Time used: {:.3}s'.format(tend-tstart))
         
         
     def _generate_epsilon(self, mute=True):
@@ -1160,7 +1162,7 @@ function is called.', file=sys.stderr)
         tend = clock()
         
         if not mute:                   
-            print('Epsilon0 generated. Time used: {:.3}'.format(tend-tstart), 
+            print('Epsilon0 generated. Time used: {:.3}s'.format(tend-tstart), 
                   file=sys.stdout)
  
                                 
@@ -1268,7 +1270,7 @@ solver instead of paraxial solver.')
         tend = clock()
         
         if not mute:
-            print('k0, kz generated. Time used: {:.3}'.format(tend-tstart), 
+            print('k0, kz generated. Time used: {:.3}s'.format(tend-tstart), 
                   file=sys.stdout)
         
                                  
@@ -1317,7 +1319,7 @@ solver instead of paraxial solver.')
         tend = clock()        
         
         if not mute:                        
-            print('Delta epsilon generated. Time used: {:.3}'.\
+            print('Delta epsilon generated. Time used: {:.3}s'.\
                    format(tend-tstart), file=sys.stdout)
                                                           
     
@@ -1361,7 +1363,7 @@ solver instead of paraxial solver.')
         tend = clock()        
         
         if not mute:
-            print('Polarization eigen-vector generated. Time used: {:.3}'.\
+            print('Polarization eigen-vector generated. Time used: {:.3}s'.\
                   format(tend-tstart), file=sys.stdout)
        
     
@@ -1416,7 +1418,7 @@ solver instead of paraxial solver.')
         tend = clock()        
         
         if not mute:
-            print('Operator C generated. Time used: {:.3}'.format(tend-tstart),
+            print('Operator C generated. Time used: {:.3}s'.format(tend-tstart),
                   file=sys.stdout)
     
     
@@ -1478,7 +1480,7 @@ solver instead of paraxial solver.')
         
         tend = clock()
         if not mute:
-            print('F field calculated. Time used: {:.3}'.format(tend-tstart),
+            print('F field calculated. Time used: {:.3}s'.format(tend-tstart),
                   file=sys.stdout)
             
             
@@ -1610,7 +1612,7 @@ solver instead of paraxial solver.')
         
         tend = clock()        
         if not mute:                                   
-            print('Phase related to kz generated. Time used: {:.3}'.\
+            print('Phase related to kz generated. Time used: {:.3}s'.\
                   format(tend-tstart), file=sys.stdout)
                                            
         
@@ -1650,7 +1652,7 @@ solver instead of paraxial solver.')
         
         tend = clock()
         if not mute:
-            print('E field calculated. Time used: {:.3}'.format(tend-tstart), 
+            print('E field calculated. Time used: {:.3}s'.format(tend-tstart), 
                   file=sys.stdout)
             
        
@@ -1735,7 +1737,7 @@ solver instead of paraxial solver.')
         
         if not mute:
             print('2D Propagation Finish! Check the returned E field. More \
-infomation is available in Propagator object. Total time used: {:.3}'.\
+infomation is available in Propagator object. Total time used: {:.3}s'.\
                    format(tend-tstart), file=sys.stdout)
         
         return self.E[...,::2]
