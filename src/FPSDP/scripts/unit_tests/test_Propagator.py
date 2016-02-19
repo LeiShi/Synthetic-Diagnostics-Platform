@@ -42,7 +42,7 @@ gb = lb.GaussianBeam(2*np.pi*3e10/omega, 260, 0, 1, tilt_h=0, P_total=1)
 
 E_start = gb([Z2D, Y2D, X2D])
 
-def prop1d(mode, dielectric, max_harmonic, max_power):    
+def prop1d(mode, dielectric, max_harmonic, max_power, has_main_phase=False):    
     propagator1d = prop.ParaxialPerpendicularPropagator1D(p1d, 
                                                      dielectric, 
                                                      mode, direction=-1,
@@ -50,11 +50,12 @@ def prop1d(mode, dielectric, max_harmonic, max_power):
                                                      max_power=max_power)
 
     E = propagator1d.propagate(omega, x_start, x_end, nx, E_start, 
-                         Y1D, Z1D, mute=False, debug_mode=True)
+                         Y1D, Z1D, mute=False, debug_mode=True, 
+                         include_main_phase=has_main_phase)
     return (E, propagator1d)
     
     
-def prop2d(mode, dielectric, max_harmonic, max_power):    
+def prop2d(mode, dielectric, max_harmonic, max_power, has_main_phase=False):    
     propagator = prop.ParaxialPerpendicularPropagator2D(p2d, dielectric, 
                                                         mode, direction = -1, 
                                                         ray_y=0, 
@@ -63,7 +64,8 @@ def prop2d(mode, dielectric, max_harmonic, max_power):
     
     
     E = propagator.propagate(omega, x_start, x_end, nx, E_start, 
-                             Y1D, Z1D, mute=False, debug_mode=True)
+                             Y1D, Z1D, mute=False, debug_mode=True, 
+                             include_main_phase=has_main_phase)
                              
     return (E, propagator)
     
