@@ -38,7 +38,7 @@ Z2D,Y2D = start_plane.get_ndmesh()
 X2D = np.ones_like(Y2D)*x_start
 
 omega = 8e11
-gb = lb.GaussianBeam(2*np.pi*3e10/omega, 260, 0, 1, tilt_h=0, P_total=1)
+gb = lb.GaussianBeam(2*np.pi*3e10/omega, 260, 0, 2, tilt_h=0, P_total=1)
 
 E_start = gb([Z2D, Y2D, X2D])
 
