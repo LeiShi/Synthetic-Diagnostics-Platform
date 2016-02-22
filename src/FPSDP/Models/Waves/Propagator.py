@@ -14,7 +14,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq
-from scipy.integrate import cumtrapz, quadrature
+from scipy.integrate import cumtrapz, quadrature, trapz
 from scipy.interpolate import interp1d
 
 from ...Plasma.DielectricTensor import HotDielectric, Dielectric, \
@@ -29,6 +29,10 @@ class Propagator(object):
     
     @abstractmethod
     def propagate(self, omega, x_start, x_end, nx, E_start, Y1D, Z1D):
+        pass
+
+    @abstractproperty
+    def power_flow(self):
         pass
     
 
@@ -722,6 +726,25 @@ infomation is available in Propagator object.\nTotal Time used: {:.3}s\n'.\
                   format(tend-tstart), file=sys.stdout)
         
         return self.E
+
+
+    @property
+    def power_flow(self):
+        """Calculates the total power flow going through y-z plane.
+        Normalized with the local velocity, so the value should be
+        conserved in lossless plasma region.
+        """
+
+        E2 = np.real(np.conj(self.E) * self.E)
+        c = cgs['c']
+        E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
+        E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+
+        return power_norm
+
+        
+        
         
         
 class ParaxialPerpendicularPropagator2D(Propagator):
@@ -1739,4 +1762,20 @@ infomation is available in Propagator object. Total time used: {:.3}'.\
                    format(tend-tstart), file=sys.stdout)
         
         return self.E[...,::2]
+
+
+    @property
+    def power_flow(self):
+        """Calculates the total power flow going through y-z plane.
+        Normalized with the local velocity, so the value should be
+        conserved in lossless plasma region.
+        """
+
+        E2 = np.real(np.conj(self.E) * self.E)
+        c = cgs['c']
+        E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
+        E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+
+        return power_norm
     
