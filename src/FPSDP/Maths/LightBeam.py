@@ -205,7 +205,7 @@ class GaussianBeam(LightBeam):
     relation between :math:`E_0` and :math:`P_{total}`:
     
     .. math::
-        E_0 = \sqrt{\frac{8 P_{total}}{c}}
+        E_0 = \sqrt{\frac{16 P_{total}}{c w_{0x} w_{0y}}}
         
     We choose :math:`E_0` to be real for simplicity.
     
@@ -253,7 +253,7 @@ class GaussianBeam(LightBeam):
         self.E0 = E0
         if (P_total is not None):
             self.P_total = P_total
-            self.E0 = np.sqrt(8*P_total/cgs['c']) 
+            self.E0 = np.sqrt(16*P_total/(cgs['c']*self.w_0z*self.w_0y)) 
     
     @property    
     def reighlay_range(self):
