@@ -14,7 +14,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq
-from scipy.integrate import cumtrapz, quadrature
+from scipy.integrate import cumtrapz, quadrature, trapz
 from scipy.interpolate import interp1d
 
 from ...Plasma.DielectricTensor import HotDielectric, Dielectric, \
@@ -29,6 +29,10 @@ class Propagator(object):
     
     @abstractmethod
     def propagate(self, omega, x_start, x_end, nx, E_start, Y1D, Z1D):
+        pass
+
+    @abstractproperty
+    def power_flow(self):
         pass
     
 
@@ -341,8 +345,7 @@ Propagators can not handle this situation properly. Please try to avoid this.')
             for i, xi in enumerate(self.x_coords[:-1]):
                 xi_n = self.x_coords[i+1]
                 self.main_phase[i+1], self._main_phase_err[i+1] = \
-                     quadrature(self._k0, xi, xi_n, 
-                                tol=1e-2/len(self.x_coords))
+                                                quadrature(self._k0, xi, xi_n)
                 self.main_phase[i+1] += self.main_phase[i]
                 self._main_phase_err[i+1] += self._main_phase_err[i]
         except AttributeError as e:
@@ -352,7 +355,7 @@ function is called.', file=sys.stderr)
             
         tend = clock()
         if not mute:
-            print('Main phase generated. Time used: {:.3}s'.format(tend-tstart))
+            print('Main phase generated. Time used: {:.3}'.format(tend-tstart))
         
         
     def _generate_epsilon0(self, mute=True):
@@ -723,6 +726,25 @@ infomation is available in Propagator object.\nTotal Time used: {:.3}s\n'.\
                   format(tend-tstart), file=sys.stdout)
         
         return self.E
+
+
+    @property
+    def power_flow(self):
+        """Calculates the total power flow going through y-z plane.
+        Normalized with the local velocity, so the value should be
+        conserved in lossless plasma region.
+        """
+
+        E2 = np.real(np.conj(self.E) * self.E)
+        c = cgs['c']
+        E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
+        E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+
+        return power_norm
+
+        
+        
         
         
 class ParaxialPerpendicularPropagator2D(Propagator):
@@ -1112,8 +1134,7 @@ Propagators can not handle this situation properly. Please try to avoid this.')
             for i, xi in enumerate(self.calc_x_coords[:-1]):
                 xi_n = self.calc_x_coords[i+1]
                 self.main_phase[i+1], self._main_phase_err[i+1] = \
-                                quadrature(self._k0, xi, xi_n,
-                                           tol=1e-2/len(self.calc_x_coords))
+                                                quadrature(self._k0, xi, xi_n)
                 self.main_phase[i+1] += self.main_phase[i]
                 self._main_phase_err[i+1] += self._main_phase_err[i]
         except AttributeError as e:
@@ -1123,7 +1144,7 @@ function is called.', file=sys.stderr)
             
         tend = clock()
         if not mute:
-            print('Main phase generated. Time used: {:.3}s'.format(tend-tstart))
+            print('Main phase generated. Time used: {:.3}'.format(tend-tstart))
         
         
     def _generate_epsilon(self, mute=True):
@@ -1162,7 +1183,7 @@ function is called.', file=sys.stderr)
         tend = clock()
         
         if not mute:                   
-            print('Epsilon0 generated. Time used: {:.3}s'.format(tend-tstart), 
+            print('Epsilon0 generated. Time used: {:.3}'.format(tend-tstart), 
                   file=sys.stdout)
  
                                 
@@ -1270,7 +1291,7 @@ solver instead of paraxial solver.')
         tend = clock()
         
         if not mute:
-            print('k0, kz generated. Time used: {:.3}s'.format(tend-tstart), 
+            print('k0, kz generated. Time used: {:.3}'.format(tend-tstart), 
                   file=sys.stdout)
         
                                  
@@ -1319,7 +1340,7 @@ solver instead of paraxial solver.')
         tend = clock()        
         
         if not mute:                        
-            print('Delta epsilon generated. Time used: {:.3}s'.\
+            print('Delta epsilon generated. Time used: {:.3}'.\
                    format(tend-tstart), file=sys.stdout)
                                                           
     
@@ -1363,7 +1384,7 @@ solver instead of paraxial solver.')
         tend = clock()        
         
         if not mute:
-            print('Polarization eigen-vector generated. Time used: {:.3}s'.\
+            print('Polarization eigen-vector generated. Time used: {:.3}'.\
                   format(tend-tstart), file=sys.stdout)
        
     
@@ -1418,7 +1439,7 @@ solver instead of paraxial solver.')
         tend = clock()        
         
         if not mute:
-            print('Operator C generated. Time used: {:.3}s'.format(tend-tstart),
+            print('Operator C generated. Time used: {:.3}'.format(tend-tstart),
                   file=sys.stdout)
     
     
@@ -1480,7 +1501,7 @@ solver instead of paraxial solver.')
         
         tend = clock()
         if not mute:
-            print('F field calculated. Time used: {:.3}s'.format(tend-tstart),
+            print('F field calculated. Time used: {:.3}'.format(tend-tstart),
                   file=sys.stdout)
             
             
@@ -1612,7 +1633,7 @@ solver instead of paraxial solver.')
         
         tend = clock()        
         if not mute:                                   
-            print('Phase related to kz generated. Time used: {:.3}s'.\
+            print('Phase related to kz generated. Time used: {:.3}'.\
                   format(tend-tstart), file=sys.stdout)
                                            
         
@@ -1652,7 +1673,7 @@ solver instead of paraxial solver.')
         
         tend = clock()
         if not mute:
-            print('E field calculated. Time used: {:.3}s'.format(tend-tstart), 
+            print('E field calculated. Time used: {:.3}'.format(tend-tstart), 
                   file=sys.stdout)
             
        
@@ -1737,8 +1758,24 @@ solver instead of paraxial solver.')
         
         if not mute:
             print('2D Propagation Finish! Check the returned E field. More \
-infomation is available in Propagator object. Total time used: {:.3}s'.\
+infomation is available in Propagator object. Total time used: {:.3}'.\
                    format(tend-tstart), file=sys.stdout)
         
         return self.E[...,::2]
+
+
+    @property
+    def power_flow(self):
+        """Calculates the total power flow going through y-z plane.
+        Normalized with the local velocity, so the value should be
+        conserved in lossless plasma region.
+        """
+
+        E2 = np.real(np.conj(self.E) * self.E)
+        c = cgs['c']
+        E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
+        E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+
+        return power_norm
     
