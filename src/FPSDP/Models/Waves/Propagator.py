@@ -565,9 +565,20 @@ solver instead of paraxial solver.')
             de_O = self.deps[2, 2, ... ]
             # de_kO = np.fft.fft2(de_O, axes=(0,1))
             F_k0 = self.E_k_start * np.sqrt(np.abs(self.k_0[0]))
-            self.delta_phase = cumtrapz((omega2/c2*de_O-ky*ky- \
+            if(self._debug):
+                self.dphi_eps = cumtrapz(omega2/c2*de_O/(2*self.k_0), 
+                                         x=self.x_coords, initial=0)
+                self.dphi_ky = cumtrapz(-ky*ky/(2*self.k_0), 
+                                        x=self.x_coords, initial=0)
+                self.dphi_kz = cumtrapz(-P*kz*kz/(2*self.k_0), 
+                                        x=self.x_coords, initial=0)
+                self.delta_phase = self.dphi_eps + self.dphi_ky + self.dphi_kz
+            
+            else:
+                self.delta_phase = cumtrapz((omega2/c2*de_O-ky*ky- \
                                          P*kz*kz)/(2*self.k_0), 
-                                           x=self.x_coords, initial=0)
+                                           x=self.x_coords, initial=0)         
+            
             self.E_k0 = np.exp(1j*self.delta_phase)*F_k0[..., np.newaxis] /\
                        np.sqrt(np.abs(self.k_0))
                      
