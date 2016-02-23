@@ -243,7 +243,7 @@ def benchmark_1d2d(nx_power_min, nx_power_max, nx_step, mode='O',
 				     Y1D, Z1D, include_main_phase=has_main_phase)
 
         E2 = p2.propagate(omega, x_start, x_end, ni, E_start, 
-                                     Y1D, Z1D, include_main_phase=has_main_phase)
+                          Y1D, Z1D, include_main_phase=has_main_phase)
         
         abs_err = np.abs(E2 - E1)
         max_abs_err[i] = np.max(abs_err)
