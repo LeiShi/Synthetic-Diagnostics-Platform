@@ -260,7 +260,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
 
     def __init__(self, plasma, dielectric_class, polarization, 
                  direction, unitsystem=cgs, tol=1e-14, max_harmonic=4, 
-                 max_power=4):
+                 max_power=4, mute=True):
         assert isinstance(plasma, PlasmaProfile) 
         assert issubclass(dielectric_class, Dielectric)
         assert polarization in ['X','O']
@@ -277,7 +277,9 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         self.direction = direction
         self.tol = tol
         self.unit_system = unitsystem
-        print('Propagator 1D initialized.', file=sys.stdout)
+        self.mute = mute
+        if not mute:
+            print('Propagator 1D initialized.', file=sys.stdout)
         
     def _SDP(self, omega):
         
