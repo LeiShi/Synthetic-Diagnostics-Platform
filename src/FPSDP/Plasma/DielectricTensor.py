@@ -208,11 +208,11 @@ The following regimes are implemented in this module:
         a_{pn} (p+n) \lambda^{p+n-1} \mathcal{F}'_{p+n+5/2}
         
         \chi_{zz} = -\frac{\mu \omega^2_p}{\omega^2}
-        \sum\limits_{N=-\infty}^{\infty}\sum\limits_{p=0}^{\infty} a_{pn} 
+        \sum\limits_{n=-\infty}^{\infty}\sum\limits_{p=0}^{\infty} a_{pn} 
         \lambda^{p+n} (\mathcal{F}_{p+n+5/2}+ 2\psi^2 \mathcal{F}''_{p+n+7/2} )
         
-    where :math:`n\equiv |N|`, :math:`\lambda \equiv (k_\perp v_t/\omega_c)^2`,
-    :math:`\mathcal{F}_q = \mathcal{F}_q(\phi, \psi)` is the weakly 
+    where :math:`n\equiv |N|, :math:`\lambda \equiv (k_\perp v_t/\omega_c)^2`,
+    `:math:`\mathcal{F}_q = \mathcal{F}_q(\phi, \psi)` is the weakly 
     relativistic plasma dispersion function defined in [5]_, and implemented in
     [4]_. :math:`\psi = k_\parallel c^2/\omega v_t \sqrt{2}`,  
     :math:`\phi^2 = \psi^2 - \mu \delta`, :math:`\mu \equiv c^2/v_t^2`, and 
@@ -1503,7 +1503,8 @@ sure this is what you wanted.')
                 T = self.plasma.get_Ti0(coordinates)
                 
         # Now we calculate the tensor elements
-                
+# TODO Check the value of mu, and if mu is out of the validity region of weakly
+# relativistic expression, use cold expression instead.
         # First, calculate some useful quantities
         vt = np.sqrt(T/m)
         c2 = c * c
