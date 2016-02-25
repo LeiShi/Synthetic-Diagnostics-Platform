@@ -1571,6 +1571,8 @@ sure this is what you wanted.')
             # order as other elements
                 
                 # So, we first add p=0 terms for other elements
+                                
+                lambd_pn1 = lambd**(i_mod-1)                    
                 
                 a0n = a_pn(0,i_mod)
                 Fn32 = Fq_list[2*i_mod+3](phi,psi)
