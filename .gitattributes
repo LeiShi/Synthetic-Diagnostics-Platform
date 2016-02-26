@@ -18,3 +18,5 @@
 *.npz filter=lfs diff=lfs merge=lfs -text
 .\src\FPSDP\Maths\data\ filter=lfs diff=lfs merge=lfs -text
 .\src\FPSDP\Maths\data\pdf_data_file.npz filter=lfs diff=lfs merge=lfs -text
+.\Demo\Plots\ filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
