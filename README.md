@@ -2,4 +2,4 @@
 
 Beta version. 
 
-Under GNU General Public Lisence V3.0
+Under Revised BSD License.
