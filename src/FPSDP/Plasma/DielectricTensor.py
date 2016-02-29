@@ -1503,7 +1503,8 @@ sure this is what you wanted.')
                 T = self.plasma.get_Ti0(coordinates)
                 
         # Now we calculate the tensor elements
-                
+# TODO Check the value of mu, and if mu is out of the validity region of weakly
+# relativistic expression, use cold expression instead.
         # First, calculate some useful quantities
         vt = np.sqrt(T/m)
         c2 = c * c
@@ -1570,6 +1571,8 @@ sure this is what you wanted.')
             # order as other elements
                 
                 # So, we first add p=0 terms for other elements
+                                
+                lambd_pn1 = lambd**(i_mod-1)                    
                 
                 a0n = a_pn(0,i_mod)
                 Fn32 = Fq_list[2*i_mod+3](phi,psi)

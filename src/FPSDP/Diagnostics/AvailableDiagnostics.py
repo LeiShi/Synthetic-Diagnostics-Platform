@@ -18,7 +18,7 @@ from .ECEI import ECEI1D
 from . import BES
 
 
-Avaliable_Diagnostics = ['FWR2D','FWR3D','ECEI1D','BES']
+Available_Diagnostics = ['FWR2D','FWR3D','ECEI1D','BES']
 
 Entry_Modules = {'FWR2D':FWR2D, 'FWR3D':FWR3D, 'ECEI1D':ECEI1D, 'BES':BES}
 

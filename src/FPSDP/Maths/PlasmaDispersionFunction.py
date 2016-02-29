@@ -1112,12 +1112,12 @@ _data_file = 'data/pdf_data_file.npz'
 _max_power = 5
 
 # range of mudelta and psi mesh
-# This mesh is chosen based on a abserr and relerr < 0.01 for F_(5/2). Higher
+# This mesh is chosen based on a abserr and relerr < 0.001 for F_(5/2). Higher
 # order functions may have a slightly higher relative error. 
-_mudelta_range = (-150, 150)
-_mudelta_grid_num = 201
-_psi_range = (-100, 100)
-_psi_grid_num = 201
+_mudelta_range = (-1500, 1500)
+_mudelta_grid_num = 1001
+_psi_range = (-1000, 1000)
+_psi_grid_num = 1001
 
 # private function that generate the required data file
 def _generate_data_file(filename=_data_file, max_power=_max_power, 
@@ -1141,8 +1141,9 @@ def _generate_data_file(filename=_data_file, max_power=_max_power,
         F1q_data[i] = Fmq(phi, psi, 1, 2*i+7)
         F2q_data[i] = Fmq(phi, psi, 2, 2*i+7)
     if(not test):    
-        np.savez(data_file, mudelta_mesh=mudelta_mesh, psi_mesh=psi_mesh, 
-                 Fq_data=Fq_data, F1q_data=F1q_data, F2q_data=F2q_data)
+        np.savez_compressed(data_file, mudelta_mesh=mudelta_mesh, 
+                            psi_mesh=psi_mesh, Fq_data=Fq_data, 
+                            F1q_data=F1q_data, F2q_data=F2q_data)
     else:
         return mudelta_mesh, psi_mesh, Fq_data, F1q_data, F2q_data
 
