@@ -529,8 +529,8 @@ electron density perturbation data available.')
     def get_B(self, coordinates, eq_only=True, time=None):
         """wrapper for getting magnetic field strength
         
-        If eq_only is True, only equilibirum density is returned
-        otherwise, the total density is returned.
+        If eq_only is True, only equilibirum B is returned
+        otherwise, the total B is returned.
         
         if time is None, all available time steps for perturbations are 
         returned. Otherwise the given time steps are returned.
@@ -549,11 +549,16 @@ electron density perturbation data available.')
                time=None):
         """wrapper for getting electron densities
         
-        If eq_only is True, only equilibirum density is returned
-        otherwise, the total density is returned.
+        If eq_only is True, only equilibirum Te is returned
+        otherwise, the total Te is returned.
+        
+        if perpendicular is True, perturbed perpendicular Te is added.
+        Otherwise, perturbed parallel Te is added.        
         
         if time is None, all available time steps for perturbations are 
         returned. Otherwise the given time steps are returned.
+        
+        
         """
         if eq_only:
             return self.get_Te0(coordinates)
@@ -571,7 +576,7 @@ perpendicular=True but no electron perpendicular temperature perturbation data\
                        self.get_dTe_para(coordinates, time)
             else:
                 raise ValueError('get_Te is called with eq_only=False, \
-perpendicular=True but no electron perpendicular temperature perturbation data\
+perpendicular=False but no electron parallel temperature perturbation data\
  available.')
 
 

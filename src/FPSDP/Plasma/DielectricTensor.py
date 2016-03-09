@@ -8,7 +8,7 @@ This module is dedicated to evaluating plasma dielectric tensor
 :math:`\epsilon(\omega, \vec{k})`. 
 
 Coordinate System
-=================
+******************
 
 Coordinate system is chosen to be such that :math:`\hat{z}` is in background
 magnetic field :math:`\vec{B}` direction, and wave vector 
@@ -21,7 +21,7 @@ magnetic field :math:`\vec{B}` direction, and wave vector
     components with various wave vectors. 
 
 General Form of Dielectric Tensor
-=================================
+*********************************
     
 Plasma dielectric tensor can be, in general, written as
 
@@ -35,7 +35,7 @@ In particular, for high frequency waves, i.e. :math:`\omega > |\Omega_e|`,
 ion susceptibility effects are negligible, only electron term is retained. 
 
 Expression for Susceptibility Tensor
-====================================
+*************************************
 
 In different paramter regimes, different assumptions can be used to 
 significantly simplify the calculation of susceptibility tensor.
@@ -222,7 +222,7 @@ The following regimes are implemented in this module:
         
         
 References
-==========
+***********
 
 .. [1] "Waves in Plasmas", Chapter 1-3, T.H.Stix, 1992, American Inst. of 
        Physics
@@ -277,7 +277,7 @@ class ModelInvalidError(Exception):
     def __str__(self):
         return self.message
 
-class Susceptilibity(object):
+class Susceptibility(object):
     r"""Abstract base class for susceptibility tensor classes
     
     Methods
@@ -319,10 +319,10 @@ class Susceptilibity(object):
     
     @abstractmethod
     def __str__(self):
-        return '{}:\n    {}'.format(self._name, self._model)
+        return '{0}:\n    {1}'.format(self._name, self._model)
     
     
-class SusceptCold(Susceptilibity):
+class SusceptCold(Susceptibility):
     r"""Cold plasma susceptibility tensor
     
     Initialization
@@ -539,7 +539,7 @@ Plasma:{}\nSpecies:{}\nSpeciesID:{}'.format(self.plasma, self.species,
         return result
             
         
-class SusceptWarm(Susceptilibity):
+class SusceptWarm(Susceptibility):
     r"""Warm plasma susceptibility tensor
     
     Initialization
@@ -837,7 +837,16 @@ Plasma:{}\nSpecies:{}\nSpeciesID:{}'.format(self.plasma, self.species,
         return result        
         
 
-class SusceptNonrelativistic(Susceptilibity):
+class HotSusceptibility(Susceptibility):
+    """Abstract base class for susceptibility tensors with hot electrons or 
+    ions.
+    
+    Specifically, derived classes will be initialized with additional 
+    `max_harmonic` and `max_power` keyword arguments.
+    """
+    __metaclass__ = ABCMeta
+
+class SusceptNonrelativistic(HotSusceptibility):
     r""" Susceptibility tensor using non-relativistic kinetic formula
     
     Initialization
@@ -972,7 +981,8 @@ class SusceptNonrelativistic(Susceptilibity):
                
     """                
     
-    def __init__(self, plasma, species, species_id=0, max_harmonic=4):
+    def __init__(self, plasma, species, species_id=0, max_harmonic=4, 
+                 max_power=None):
         assert isinstance(plasma, PlasmaProfile)        
         assert species in ['e','i']
         if species == 'i':        
@@ -1226,7 +1236,7 @@ Non-relativistic model may not be valid. Try relativistic models instead.')
         return result
       
       
-class SusceptRelativistic(Susceptilibity):
+class SusceptRelativistic(HotSusceptibility):
     r""" Susceptibility tensor using weakly-relativistic kinetic formula
     
     Initialization
