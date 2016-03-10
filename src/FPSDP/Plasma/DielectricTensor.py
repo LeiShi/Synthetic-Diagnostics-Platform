@@ -283,11 +283,11 @@ class Susceptibility(object):
     Methods
     =======
     
-    __call__(self, coordinates):
+    __call__:
         Calculates susceptilibity tensor elements of the particular species 
         at given coordinates.
         
-    __str__(self):
+    __str__:
         returns a description of the model used.
             
     Attributes
@@ -314,10 +314,10 @@ class Susceptibility(object):
     """
     
     @abstractmethod
-    def __call__(self, plasma, coordinates, species, species_id=0):
+    def __call__(self, coordinates, omega, k_para=None, k_perp=None, 
+                 eq_only=True, time = 0, tol=1e-14):
         pass
     
-    @abstractmethod
     def __str__(self):
         return '{0}:\n    {1}'.format(self._name, self._model)
     
@@ -1627,7 +1627,30 @@ sure this is what you wanted.')
         
         return result
             
+
+def conjugate_suscept(hot_suscept_class):
+    """return the conjugated version of the hot susceptibility tensor class
+    """
+    class conj_suscept(hot_suscept_class):
+        def __init__(self, plasma, species, species_id=0, max_harmonic=4, 
+                     max_power=4):
+            super(conj_suscept, self).__init__(plasma, species, species_id=0, 
+                                               max_harmonic=4, max_power=4)
+                                               
+        def __call__(self, coordinates, omega, k_para, k_perp, 
+                     eq_only=True, time = 0, tol=1e-14):
+            chi_e = super(conj_suscept, self).__call__(coordinates, omega, 
+                                                       -k_para, -k_perp, 
+                                                       eq_only=True, time = 0,
+                                                       tol=1e-14)
+                                                       
+            transpose_axes = np.arange(chi_e.ndim)
+            transpose_axes[0] = 1
+            transpose_axes[1] = 0
             
+            return np.transpose(chi_e, axes=transpose_axes)
+            
+    return conj_suscept
             
             
             
@@ -2261,8 +2284,8 @@ class RelElectronColdIon(HotDielectric):
 Maximum harmonic = {}, maximum power = {}'.format(max_harmonic,max_power)
         self._plasma = plasma
         self._Chi_e_model = SusceptRelativistic(plasma,'e', 
-                                                   max_harmonic=max_harmonic,
-                                                   max_power=max_power)
+                                                max_harmonic=max_harmonic,
+                                                max_power=max_power)
         if ion_species is not None:
             self.has_ion = True
             self.ion_species = ion_species
@@ -2271,5 +2294,89 @@ Maximum harmonic = {}, maximum power = {}'.format(max_harmonic,max_power)
                 self._Chi_i_model.append(SusceptCold(plasma,'i', s))
         else:
             self.has_ion = False
+            
+class ConjHotElectronColdIon(HotDielectric):
+    r"""Class evaluating hot(non-relativistic) electron + cold ion  
+    dielectric tensor in Conjugated Plasma:
     
+    .. math::
+        \mathbf{\epsilon^T}(\omega, \vec{k}) \equiv \epsilon^T(\omega,-\vec{k})
     
+    Non-relativistic electron susceptibility tensor depends on *k_para* and 
+    *k_perp*, we need to use their information.
+    
+    Initialization
+    ==============
+    :param plasma: plasma profile containing at least ne and B data
+    :type plasma: :py:class:`PlasmaProfile` object
+    :param ion_species: Ion species ids used in calculating dielectric tensor. 
+                        If None, no ion is added, only electrons contribute.
+    :type ion_species: None, or int, or list of int. 
+                       Optional, default to be None.
+    :param int max_harmonic: Optional, default is 4. The highest order of 
+                             harmonic to keep.
+    :param int max_power: NOT USED IN THIS MODEL
+    """
+    
+    def __init__(self, plasma, ion_species=None, max_harmonic=4, 
+                 max_power=None):
+        self._name = 'Warm Electron + Cold Ion Plasma Dielectric Tensor'
+        self._description = 'Hot(non-relativistic) electrons and optional cold\
+ ions. Maximum harmonic = {}'.format(max_harmonic)
+        self._plasma = plasma
+        self._Chi_e_model = conjugate_suscept(SusceptNonrelativistic)(plasma,
+                                                                      'e', 
+                                                   max_harmonic=max_harmonic)
+        if ion_species is not None:
+            self.has_ion = True
+            self.ion_species = ion_species
+            self._Chi_i_model = []
+            for s in ion_species:
+                self._Chi_i_model.append(conjugate_suscept(SusceptCold)(plasma,
+                                                                       'i', s))
+        else:
+            self.has_ion = False
+    
+
+class ConjRelElectronColdIon(HotDielectric):        
+    r"""Class evaluating Relativistic electron + cold ion  
+    dielectric tensor in Conjugate Plasma
+    
+    .. math::
+        \mathbf{\epsilon^T}(\omega, \vec{k}) \equiv \epsilon^T(\omega,-\vec{k})
+    
+    Relativistic electron susceptibility tensor depends on *k_para* and 
+    *k_perp*, we need to use their information.
+    
+    Initialization
+    ==============
+    :param plasma: plasma profile containing at least ne and B data
+    :type plasma: :py:class:`PlasmaProfile` object
+    :param ion_species: Ion species ids used in calculating dielectric tensor. 
+                        If None, no ion is added, only electrons contribute.
+    :type ion_species: None, or int, or list of int. 
+                       Optional, default to be None.
+    :param int max_harmonic: Optional, default is 4. The highest order of 
+                             harmonic to keep.
+    :param int max_power: Optional, default is 4. The highest power of lambda
+                          to keep in the formula. If it's smaller than 
+                          *max_harmonic*, then it's changed to *max_harmonic*.
+    """
+    
+    def __init__(self, plasma, ion_species=None, max_harmonic=4, max_power=4):
+        self._name ='Relativistic Electron + Cold Ion Plasma Dielectric Tensor'
+        self._description = 'Relativistic) electrons and optional cold ions. \
+Maximum harmonic = {}, maximum power = {}'.format(max_harmonic,max_power)
+        self._plasma = plasma
+        self._Chi_e_model = conjugate_suscept(SusceptRelativistic)(plasma,'e', 
+                                                max_harmonic=max_harmonic,
+                                                max_power=max_power)
+        if ion_species is not None:
+            self.has_ion = True
+            self.ion_species = ion_species
+            self._Chi_i_model = []
+            for s in ion_species:
+                self._Chi_i_model.append(conjugate_suscept(SusceptCold)(plasma,
+                                                                       'i', s))
+        else:
+            self.has_ion = False    
