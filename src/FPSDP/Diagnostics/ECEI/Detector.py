@@ -8,11 +8,6 @@ Created on Wed Mar 09 17:59:41 2016
 """
 from abc import ABCMeta, abstractproperty, abstractmethod
 
-from .ECEI2D.Detector2D import Detector2D, GaussianAntenna
-from .ECEI1D.Detector1D import Detector1D
-
-__all__ = [GaussianAntenna]
-
 class Detector(object):
     """abstract base class for Detectors
     """

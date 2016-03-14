@@ -1635,7 +1635,8 @@ def conjugate_suscept(hot_suscept_class):
         def __init__(self, plasma, species, species_id=0, max_harmonic=4, 
                      max_power=4):
             super(conj_suscept, self).__init__(plasma, species, species_id=0, 
-                                               max_harmonic=4, max_power=4)
+                                               max_harmonic=max_harmonic, 
+                                               max_power=max_power)
                                                
         def __call__(self, coordinates, omega, k_para, k_perp, 
                      eq_only=True, time = 0, tol=1e-14):

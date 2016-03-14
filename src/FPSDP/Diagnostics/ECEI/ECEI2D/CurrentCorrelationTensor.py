@@ -128,5 +128,5 @@ class IsotropicMaxwellian(SourceCurrentCorrelationTensor):
         trans_index[1]=0
         chi_ea = (chi_e - np.conj(np.transpose(chi_e, axes=trans_index)))/2j
         
-        return 4*Te*chi_ea/np.pi 
+        return 4*omega*Te*chi_ea/np.pi 
     

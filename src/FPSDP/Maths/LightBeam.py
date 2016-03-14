@@ -241,7 +241,7 @@ class GaussianBeam(LightBeam):
                  w_0z=None, tilt_v=0, tilt_h=0, rotation=0, E0=1, 
                  P_total=None):
         self.wave_length = wave_length
-        self.waist_loc = [waist_x, waist_y, waist_z]
+        self.waist_loc = [waist_z, waist_y, waist_x]
         self.w_0y = w_0y
         if w_0z is not None:
             self.w_0z = w_0z
@@ -304,9 +304,9 @@ class GaussianBeam(LightBeam):
         
         # step 1, move to beam frame origin
         
-        xn = xn-self.waist_loc[0]
+        xn = xn-self.waist_loc[2]
         yn = yn-self.waist_loc[1]
-        zn = zn-self.waist_loc[2]
+        zn = zn-self.waist_loc[0]
         
         # step 2, rotate along y' axis
         

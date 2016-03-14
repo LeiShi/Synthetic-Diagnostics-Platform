@@ -565,7 +565,6 @@ solver instead of paraxial solver.')
         
         if self.polarization == 'O':
             de_O = self.deps[2, 2, ... ]
-            # de_kO = np.fft.fft2(de_O, axes=(0,1))
             F_k0 = self.E_k_start * np.sqrt(np.abs(self.k_0[0]))
             if(self._debug):
                 self.dphi_eps = cumtrapz(omega2/c2*de_O/(2*self.k_0), 
@@ -606,7 +605,6 @@ solver instead of paraxial solver.')
             de_X = ex_conj*dexx*ex + ex_conj*dexy*ey + ey_conj*deyx*ex + \
                    ey_conj*deyy*ey
             de_X = de_X * np.ones((nz,ny,1))
-            # de_kX = np.fft.fft2(de_X, axes=(0,1))
             F_k0 =self.E_k_start * np.sqrt(np.abs(self.k_0[0]))
 
             if(self._debug):
@@ -778,8 +776,12 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     :param direction: propagation direction. 1 means propagating along positive
                       x direction, -1 along negative x direction.
     :type direction: int, either 1 or -1.
+    :param float ray_y: y coordinate of central ray.   
+    :param unitsystem: Unit System to be used. Optional, for now, only cgs is 
+                       supported.
     :param float tol: the tolerance for testing zero components and determining
                       resonance and cutoff. Default to be 1e-14
+    
                       
     :param int max_harmonic: highest order harmonic to keep. 
                              Only used in hot electron models.
@@ -1681,7 +1683,10 @@ solver instead of paraxial solver.')
             self._generate_main_phase(mute=mute) 
             self.Fk = self.Fk * np.exp(1j * self.main_phase)
         self.Fk = self.Fk * np.exp(1j * self.phase_kz)
-        self.F = np.fft.ifft(self.Fk, axis=0)
+        if self._keepFFTz:
+            self.F = self.Fk
+        else:
+            self.F = np.fft.ifft(self.Fk, axis=0)
         self.E = self.F / np.sqrt(np.abs(self.k_0))
         
         tend = clock()
@@ -1692,7 +1697,8 @@ solver instead of paraxial solver.')
        
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None, 
-                  mute=True, debug_mode=False, include_main_phase=False):
+                  mute=True, debug_mode=False, include_main_phase=False,
+                  keepFFTz=False):
         r"""propagate(self, time, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None)
         
@@ -1727,7 +1733,10 @@ solver instead of paraxial solver.')
         :param bool include_main_phase: if True, the calculated E field will 
                                         have contribution from eikonal phase 
                                         term :math:`\exp(i\int k_0 dx)`. 
-                                        Default to be False.                            
+                                        Default to be False. 
+        :param bool keepFFTz: if True, the result E field will keep Fourier 
+                              components in z-direction, both in returned value
+                              , and stored self.E attribute. Default is False.
  
         """ 
         
@@ -1744,7 +1753,8 @@ solver instead of paraxial solver.')
             self.eq_only = False            
             self.time = time  
         self._debug = debug_mode
-        self._include_main_phase = include_main_phase            
+        self._include_main_phase = include_main_phase 
+        self._keepFFTz = keepFFTz           
             
         self.omega = omega
         
@@ -1786,7 +1796,13 @@ infomation is available in Propagator object. Total time used: {:.3}'.\
 
         E2 = np.real(np.conj(self.E) * self.E)
         c = cgs['c']
-        E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
+        if self._keepFFTz:
+            dz = self.z_coords[1]-self.z_coords[0]
+            E2_integrate_z = trapz(np.fft.fftshift(E2, axes=0), 
+                                   x=np.fft.fftshift(self.kz[:,0,0]), axis=0)\
+                             * dz*dz/(2*np.pi) 
+        else:
+            E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
         E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
         power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
 
