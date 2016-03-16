@@ -49,6 +49,8 @@ from ....Plasma.DielectricTensor import ConjRelElectronColdIon,\
     ConjHotElectronColdIon,SusceptRelativistic, SusceptNonrelativistic
 from .CurrentCorrelationTensor import SourceCurrentCorrelationTensor, \
                                       IsotropicMaxwellian
+from ....Geometry.Grid import Cartesian1D, FinePatch1D
+from ....GeneralSettings.UnitSystem import cgs
 
 class ECE2D(object):
     """single channel ECE diagnostic
@@ -116,6 +118,7 @@ class ECE2D(object):
         else:
             # TODO finish non-isotropic current correlation tensor part
             raise NotImplementedError
+        self._set_propagator()
             
     def set_coords(self, coords):
         """setup Cartesian coordinates for calculation
@@ -141,17 +144,13 @@ class ECE2D(object):
         self.X2D = np.zeros((self.NY, self.NX)) + self.X1D
         self.Y2D = np.zeros_like(self.X2D) + self.Y1D[:, np.newaxis]
         self.dZ = self.Z1D[1]-self.Z1D[0]
+        self._set_detector()
+        self._auto_coords_adjusted = False
         
-    def diagnose(self, time=None, debug=False):
-        """launch propagation in conjugate plasma
-        
-        Calculates E_0, and keep record of kz
+    
+    def _set_propagator(self):
+        """setup propagator for diagnostic
         """
-        if time is None:
-            eq_only = True
-        else:
-            eq_only = False
-            
         self.propagator = \
             ParaxialPerpendicularPropagator2D(self.plasma, 
                                               self.dielectric, 
@@ -160,15 +159,167 @@ class ECE2D(object):
                                 ray_y=self.detector.central_beam.waist_loc[1],
                                               max_harmonic=self.max_harmonic,
                                               max_power=self.max_power)
-                                              
+        
+    def _set_detector(self):
+        """setup incidental field mesh for detector 
+        """
         try:
             self.detector.set_inc_coords(self.x_start, self.Y1D, self.Z1D)
         except AttributeError:
             print('Calculation mesh not set yet! Call set_coords() to setup\
 before running ECE.', file=sys.stderr)
-            return None
+    
+    def auto_adjust_coordinates(self, fine_coeff=1):
         
-        E_inc_list = self.detector.E_inc_list
+        if self._auto_coords_adjusted:
+            if fine_coeff == self._fine_coeff:
+                return
+            else:
+                self._auto_coords_adjusted = False
+                self.auto_adjust_coordinates(fine_coeff)
+        else:
+            # run propagation at cental frequency once to obtain the local 
+            # emission pattern
+            try:
+                x_coord = self.x_coord
+            except AttributeError:
+                
+                omega = self.detector.central_omega
+                E_inc = self.detector.central_E_inc
+                E0 = self.propagator.propagate(omega,  x_start=None, 
+                                               x_end=None, nx=None, 
+                                               E_start=E_inc, y_E=self.Y1D,
+                                               z_E = self.Z1D, 
+                                               x_coords=self.X1D,
+                                               keepFFTz=True) * self.dZ
+                                               
+                kz = self.propagator.kz[:,0,0]
+                k0 = self.propagator.k_0[::2]
+                K_k = np.empty( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
+                for j, x in enumerate(self.X1D):
+                    X = x + np.zeros_like(self.Y1D)
+                    K_k[..., j] = self.scct([self.Y1D, X], omega, kz, k0[j], 
+                                            eq_only=True)
+                if self.polarization == 'X':
+                    e = np.asarray( [self.propagator.e_x[::2], 
+                                     self.propagator.e_y[::2]] )  
+                    e_conj = np.conj(e)
+                    # inner tensor product with unit polarization vector and K_k
+                    eK_ke = 0
+                    for l in xrange(2):
+                        for m in xrange(2):
+                            eK_ke += e[l] * K_k[l, m, ...] * e_conj[m]
+                elif self.polarization == 'O':
+                    eK_ke = K_k[2,2]
+                integrand = eK_ke * E0 * np.conj(E0)/(32*np.pi)
+                # integrate over kz dimension         
+                intkz = np.sum(integrand, axis=0)*(kz[1]-kz[0])
+                # integrate over y dimension
+                inty = trapz(intkz, x=self.Y1D, axis=0)
+                max_int = np.max(np.abs(inty))
+                self._max_idx = np.argmax(np.abs(inty))
+                self._x = self.X1D[self._max_idx]
+                self._max_idy = np.argmax(np.abs(intkz[:,self._max_idx]))        
+                self._y = self.Y1D[self._max_idy]
+                self._max_idz =np.argmax(np.abs(np.fft.ifft(\
+                                        (eK_ke*E0)[:,self._max_idy,self._max_idx])\
+                                       * np.conj(np.fft.ifft(\
+                                         E0[:,self._max_idy, self._max_idx]))))
+                self._z = self.Z1D[self._max_idz]
+                patch_array = np.abs(inty) >= np.exp(-9)*max_int
+                #create patched x coordinates
+                wave_length = 2*np.pi*cgs['c']/omega
+                self.x_coord = FinePatch1D(self.X1D[0], self.X1D[-1], 
+                                           ResX=5*wave_length/fine_coeff)
+                # search and add patches
+                in_patch = False
+                for i, patch_flag in enumerate(patch_array):
+                    if not in_patch:
+                        if not patch_flag:
+                            continue
+                        else:
+                            x_start = self.X1D[i]
+                            in_patch = True
+                            continue
+                    else:
+                        if not patch_flag or (i == len(patch_array)):
+                            x_end = self.X1D[i]
+                            patch = Cartesian1D(x_start, x_end,
+                                                ResX=0.5*wave_length/fine_coeff)
+                            self.x_coord.add_patch(patch)
+                            in_patch = False
+                        else:
+                            continue
+                self._fine_coeff = fine_coeff
+                self._auto_coords_adjusted = True
+                self.set_coords([self.Z1D, self.Y1D, self.x_coord.X1D])
+                print('Automatic coordinates adjustment performed! To reset your \
+mesh, call set_coords() again.')
+                return
+            coeff_ratio = self._fine_coeff/np.float(fine_coeff)
+            if not x_coord.reversed:
+                Xmin = x_coord.Xmin
+                Xmax = x_coord.Xmax
+            else:
+                Xmin = x_coord.Xmax
+                Xmax = x_coord.Xmin
+                
+            self.x_coord = FinePatch1D(Xmin, Xmax, 
+                                       ResX=x_coord.ResX*coeff_ratio)
+            
+            for p in x_coord.patch_list:
+                if not p.reversed:
+                    Xmin = p.Xmin
+                    Xmax = p.Xmax
+                else:
+                    Xmin = p.Xmax
+                    Xmax = p.Xmin
+                self.x_coord.add_patch(Cartesian1D(Xmin, Xmax, 
+                                                   ResX=p.ResX*coeff_ratio))
+            self.set_coords([self.Z1D, self.Y1D, self.x_coord.X1D])
+            print('Automatic coordinates adjustment performed! To reset your \
+mesh, call set_coords() again.')
+            self._auto_coords_adjusted = True
+            
+        
+    
+    def diagnose(self, time=None, debug=False, auto_patch=False):
+        r"""Calculates the received power by antenna.
+        
+        Propagate wave in conjugate plasma, and integrate over the whole space
+        to obtain the power using the formula [shi16]_:
+        
+        .. math::
+            P_e(\omega) = \frac{1}{32\pi} \int \,dk_z \,dx \,dy \; 
+            \vec{E}_0(x, y, k_z,\omega) 
+            \cdot  \hat{K}_k(x, y, k_z; \omega)
+            \cdot \vec{E}^*_0(x, y, k_z,\omega)
+
+        where :math:`\hat{K}_k(x, y, k_z; \omega)` is the current correlation 
+        tensor calculated in 
+        :py:module:`FPSDP.Diagnostics.ECEI.ECEI2D.CurrentCorrelationTensor`.
+
+        :param int time: time step in plasma profile chosen for diagnose. if 
+                         not given, only equilibrium will be used.
+        :param bool debug: debug mode flag. if True, more information will be 
+                           kept for examining.
+        :param bool auto_patch: if True, program will automatically detect the 
+                                significant range of x where emission power is
+                                originated, and add finer grid patch to that 
+                                region. This may cause a decrease of speed, but
+                                can improve the accuracy. Default is False, the
+                                programmer is responsible to set proper x mesh.
+        """
+        if time is None:
+            eq_only = True
+        else:
+            eq_only = False
+        
+        try:
+            E_inc_list = self.detector.E_inc_list
+        except AttributeError:
+            print('coordinates need to be setup before diagnose. Call \
+set_coords() first.')
         if debug: 
             self.E_inc_list = E_inc_list
             self.E0_list = []
@@ -179,6 +330,13 @@ before running ECE.', file=sys.stderr)
             self.integrand_list = []
         Ps_list = np.empty((len(self.detector.omega_list)), 
                                 dtype='complex')
+                                
+        if auto_patch:
+            if not self._auto_coords_adjusted:
+                self.auto_adjust_coordinates()
+            else:
+                pass
+            
         for i, omega in enumerate(self.detector.omega_list):
             E_inc = E_inc_list[i]
             E0 = self.propagator.propagate(omega, x_start=None, 
@@ -229,15 +387,43 @@ before running ECE.', file=sys.stderr)
         else:
             # detector has only one omega
             self.Ps = Ps_list[0]
-        return np.real(self.Ps)
+        return np.real(self.Ps) * 2*np.pi
         
     @property 
     def Te(self):
+        """measured electron temperature
+        """
         try:
             return 2*np.pi*np.real(self.Ps)
         except AttributeError:
-            print('Diagnostic has not run! call diagnostic() before retrieving\
+            print('Diagnostic has not run! call diagnose() before retrieving\
  measured temperature.', file=sys.stderr)
+ 
+    @property
+    def diag_x(self):
+        """list of x coordinates where significant emission came from, as well 
+        as width around each points
+        """
+        try:
+            self.x_coord.patch_list
+        except AttributeError:
+            self.auto_adjust_coordinates()
+        x_list=[]
+        dx_list=[]
+        for patch in self.x_coord.patch_list:
+            x_list.append((patch.Xmin + patch.Xmax)/2)
+            dx_list.append(np.abs(patch.Xmax - patch.Xmin)/6)
+        return (x_list, dx_list)
+        
+    @property
+    def view_point(self):
+        try:
+            return (self._z, self._y, self._x)
+        except AttributeError:
+            self.auto_adjust_coordinates()
+            return (self._z, self._y, self._x)
+            
+        
                 
                 
             
