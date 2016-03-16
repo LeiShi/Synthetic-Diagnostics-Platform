@@ -53,22 +53,35 @@ class Cartesian1D(ExpGrid):
             raise GridError('Either NX and ResX must be given!')
         if( NX is not None and ResX is not None):
             raise GridError('Only one of NX and ResX should be given!')
-        
-        self.Xmin = Xmin
-        self.Xmax = Xmax 
         self.dimension = 1
+        if (Xmax < Xmin):
+            self.reversed = True
+            self.Xmin = Xmax
+            self.Xmax = Xmin
+        else:
+            self.reversed = False
+            self.Xmin = Xmin
+            self.Xmax = Xmax
+        
         if (NX is not None):
             self.NX = NX
-            self.ResX = float(Xmax-Xmin)/NX
-            self.X1D = np.linspace(Xmin, Xmax, NX)
-            self.shape = self.X1D.shape
+            self.ResX = float(self.Xmax-self.Xmin)/NX
+            self._X1D_ordered = np.linspace(self.Xmin, self.Xmax, NX)
+            self.shape = self._X1D_ordered.shape
         else:
-            self.NX = np.floor((Xmax-Xmin)/float(ResX))+2
-            self.ResX = float(Xmax-Xmin)/self.NX
+            self.NX = int(np.floor((self.Xmax-self.Xmin)/float(ResX))+2)
+            self.ResX = float(self.Xmax-self.Xmin)/(self.NX-1)
             assert np.abs(self.ResX) <= np.abs(ResX)
-            self.X1D = np.linspace(Xmin,Xmax, NX)
-            self.shape = self.X1D.shape
+            self._X1D_ordered = np.linspace(self.Xmin, self.Xmax, self.NX)
+            self.shape = self._X1D_ordered.shape
             
+    @property
+    def X1D(self):
+        if self.reversed:
+            return self._X1D_ordered[::-1]
+        else:
+            return self._X1D_ordered
+        
     def get_mesh(self):
         return (self.X1D,)
         
@@ -82,7 +95,108 @@ class Cartesian1D(ExpGrid):
         info += 'NX,ResX :' + str( (self.NX,self.ResX) ) +'\n'
         return info
             
+
+class FinePatch1D(Cartesian1D):
+    """1D grid providing local patches of finer mesh
+    
+    initialize with the coarse grid range, and fine patch specifics. A finer 
+    patch is assumed uniform. Overlap patches must be given in the right order,
+    such that a later patch is expected to overwrite former patches.
+    
+    :param float Xmin, Xmax: range of the coarse mesh
+    :param int NX: grid number in coarse mesh
+    :param patches: list of patches add on to coarse mesh
+    :type patches: list of :py:class:`FPSDP.Geometry.Grid.Cartesian1D` object
+    
+    Methods:
+    
+        add_patch(patch, layer=None): 
+            insert a new patch into patches list before
+            layer location, default to be the last
+        remove_patch(layer=None): 
+            remove patch from location layer, default last
+        get_mesh(): return 1D grid with all patches applied
+        get_ndmesh(): same as get_mesh for 1D
+    """
+    
+    def __init__(self, Xmin, Xmax, NX=None, ResX=None, patches=None):
+        super(FinePatch1D, self).__init__(Xmin=Xmin, Xmax=Xmax, NX=NX, 
+                                          ResX=ResX)
+        if patches is None:
+            self.patch_list = []
+        else:
+            self.patch_list = patches
             
+    def add_patch(self, patch, layer=None):
+        """insert a new patch into patches list after layer location, default 
+        to be the last
+           
+        :param patch: coordinate patch to be added
+        :type patch: :py:class:`FPSDP.Geometry.Grid.Cartesian1D` object
+        :param int layer: location to add the patch. The patch will be added 
+                          **before** the `layer` item. If not given, patch 
+                          will be added at the end of patch_list.
+            
+        """
+        assert isinstance(patch, Cartesian1D)
+        if layer is None:
+            self.patch_list.append(patch)
+        else:
+            self.patch_list.insert(layer, patch)
+            
+    def remove_patch(self, patch=None, layer=None):
+        """remove a patch from patch_list based on the given value or its 
+        location.
+        
+        :param patch: the patch to be removed. This must be a reference to the
+                      exact patch that is stored in patch_list, a new patch 
+                      with same parameters won't work, and will raise a 
+                      ValueError exception.
+        :type patch: :py:class:`Cartesian1D` object
+        :param int layer: the location of the patch to be removed. Default to 
+                          be the last if neither patch nor layer is given.
+                          
+        :raise ValueError: if patch is given, but none in patch_list references
+                           patch. 
+        
+        """
+        if patch is not None:
+            self.patch_list.remove(patch)
+        elif layer is None:
+            self.patch_list.pop()
+        else:
+            self.patch_list.pop(layer)
+            
+    @property
+    def X1D(self):
+        """1D mesh with all patches applied.
+        """
+        temp_X1D = self._X1D_ordered
+        for p in self.patch_list:
+            xmin = p.Xmin
+            xmax = p.Xmax
+            minidx = np.searchsorted(temp_X1D, xmin)
+            maxidx = np.searchsorted(temp_X1D, xmax, side='right')
+            temp_X1D= np.delete(temp_X1D, slice(minidx, maxidx))
+            temp_X1D = np.insert(temp_X1D, minidx, p._X1D_ordered)
+        if self.reversed:
+            return temp_X1D[::-1]
+        else:
+            return temp_X1D  
+            
+    def patch_info(self):
+        info = 'Patches:\n'
+        for p in self.patch_list:
+            info += str(p)
+            info += '\n'
+        return info
+        
+    def __str__(self):
+        info = 'FinePatch1D:\n\nMain Mesh:\n   '
+        info = super(FinePatch1D, self).__str__()
+        info += '\n'
+        info += self.patch_info()
+        return info
         
 
 class Cartesian2D(ExpGrid):
