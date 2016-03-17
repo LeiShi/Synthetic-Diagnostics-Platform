@@ -122,10 +122,11 @@ class GaussianAntenna(Detector2D):
     __str__(self):
         return information string about the current parameters
     """
-    def __init__(self, omega_list, power_list, waist_x, waist_y, w_0y, 
+    def __init__(self, omega_list, k_list, power_list, waist_x, waist_y, w_0y, 
                  waist_z=0, w_0z=None, tilt_v=0, tilt_h=0, rotation=0):
                      
         self._omega_list = np.asarray(omega_list)
+        self._k_list = np.asarray(k_list)
         self._power_list = np.asarray(power_list)
         self._central_index = np.argmax(self._power_list)
         # normalize central power to be 1
@@ -139,8 +140,9 @@ class GaussianAntenna(Detector2D):
         self._beam_parameter['tilt_v'] = tilt_v
         self._beam_parameter['tilt_h'] = tilt_h
         self._beam_parameter['rotation'] = rotation
-        self._beams = [GaussianBeam(wave_length=cgs['c']*2*np.pi/omega,
+        self._beams = [GaussianBeam(wave_length=2*np.pi/k_list[i],
                                     P_total=self._power_list[i],
+                                    omega=omega,
                                     **self._beam_parameter) \
                        for i, omega in enumerate(self._omega_list)]
                          
