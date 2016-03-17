@@ -174,7 +174,8 @@ class ParaxialPerpendicularPropagator1D(Propagator):
     X-mode:
     
     .. math::
-        2\mathrm{i}(kE_0' + \frac{1}{2}k'E_0) + 
+        2\mathrm{i}\left[k\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)' + 
+        \frac{1}{2}k'\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)\right] + 
         \left[ \frac{\partial^2}{\partial y^2} + 
         \left( \frac{S^2+D^2}{S^2}- \frac{(S^2-D^2)D^2}{(S-P)S^2}\right)
         \frac{\partial^2}{\partial z^2}\right] E_0 + 
@@ -184,14 +185,16 @@ class ParaxialPerpendicularPropagator1D(Propagator):
     :math:`\hat{E}_0`.
     
     .. math::
-        2\mathrm{i}(k\hat{E}_0' + \frac{1}{2}k'\hat{E}_0) - 
+         2\mathrm{i}\left[k\left(\frac{S}{(S^2+D^2)^{1/2}}\hat{E}_0\right)' + 
+        \frac{1}{2}k'\left(\frac{S}{(S^2+D^2)^{1/2}}\hat{E}_0\right)\right] - 
         \left[ k_y^2 + \left( \frac{S^2+D^2}{S^2}- 
         \frac{(S^2-D^2)D^2}{(S-P)S^2}\right) k_z^2 \right] \hat{E}_0 + 
         \frac{S^2+D^2}{S^2} \frac{\omega^2}{c^2}\delta \epsilon_{XX} \hat{E}_0 
         = 0,
     
     
-    Letting :math:`F \equiv |k|^{1/2}\hat{E}_0` we have
+    Letting :math:`F \equiv |k|^{1/2}\frac{S}{(S^2+D^2)^{1/2}}\hat{E}_0`
+    we have
     
     .. math::
     
@@ -602,10 +605,12 @@ solver instead of paraxial solver.')
             ey = self.e_y
             ex_conj = np.conj(ex)
             ey_conj = np.conj(ey)
+            ey_mod = np.sqrt(ey*ey_conj)
             de_X = ex_conj*dexx*ex + ex_conj*dexy*ey + ey_conj*deyx*ex + \
                    ey_conj*deyy*ey
             de_X = de_X * np.ones((nz,ny,1))
-            F_k0 =self.E_k_start * np.sqrt(np.abs(self.k_0[0]))
+            F_k0 =self.E_k_start * np.sqrt(np.abs(self.k_0[0])) * ey_mod[0]
+                  
 
             if(self._debug):
                 self.pe = (S2+D2)/S2* omega2/c2 *de_X /\
@@ -623,7 +628,7 @@ solver instead of paraxial solver.')
                                             ky*ky-C*kz*kz)/(2*self.k_0), 
                                             x=self.x_coords, initial=0)
             self.E_k0 = np.exp(1j*self.delta_phase)*F_k0[..., np.newaxis] / \
-                       np.sqrt(np.abs(self.k_0))
+                       np.sqrt(np.abs(self.k_0)) / ey_mod
                        
         tend = clock()
         
@@ -641,9 +646,13 @@ solver instead of paraxial solver.')
             self._generate_main_phase(mute=mute)
             self.E_k = self.E_k0 * np.exp(1j*self.main_phase)
         else:
-            self.E_k = self.E_k0        
-        self.E = np.fft.ifft2(self.E_k, axes=(0,1))
+            self.E_k = self.E_k0 
         
+        if self._keepFFTz:
+            self.E = self.E_k
+        else:
+            self.E = np.fft.ifft2(self.E_k, axes=(0,1))
+            
         tend = clock()
         
         if not mute:
@@ -653,7 +662,7 @@ solver instead of paraxial solver.')
        
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, time=None, mute=True, debug_mode=False, 
-                  include_main_phase=False):
+                  include_main_phase=False, keepFFTz=False, normalize_E=False):
         r"""propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None)
         
@@ -684,16 +693,19 @@ solver instead of paraxial solver.')
                          only equilibrium plasma is used. 
         :param bool mute: if True, no intermediate outputs for progress.
         :param bool debug_mode: if True, additional detailed information will 
-<<<<<<< HEAD
                                 be saved for later inspection. 
         :param bool include_main_phase: if True, the calculated E field will 
                                         have contribution from eikonal phase 
                                         term :math:`\exp(i\int k_0 dx)`. 
                                         Default to be False.
-=======
-                                be saved for later inspection.                           
->>>>>>> master
-        
+        :param bool keepFFTz: if True, result E field won't take inverse fft in
+                              z direction, thus still represent components in 
+                              kz space. Default is False.
+        :param bool normalize_E: if True, maximum incidental E field will be 
+                                 normalized to 1 before propagation, and be
+                                 rescaled back afterwards. This may be good for 
+                                 extreme amplitude incidental waves. Default is
+                                 False.
         """ 
 
         tstart = clock()        
@@ -710,10 +722,16 @@ solver instead of paraxial solver.')
             self.time = time
         self._debug = debug_mode
         self._include_main_phase = include_main_phase
+        self._keepFFTz = keepFFTz
+        self._normalize_E = normalize_E
         
         self.omega = omega
         
-        self.E_start = E_start            
+        if self._normalize_E:
+            self.E_norm = np.max(np.abs(E_start))
+            self.E_start = E_start/self.E_norm
+        else:
+            self.E_start = E_start            
         self.y_coords = np.copy(y_E)
         self.z_coords = np.copy(z_E)
          
@@ -728,6 +746,9 @@ solver instead of paraxial solver.')
         self._generate_eOX(mute=mute)
         self._generate_F(mute=mute)
         self._generate_E(mute=mute)
+        
+        if self._normalize_E:
+            self.E *= self.E_norm
         
         tend = clock()
         
@@ -750,7 +771,8 @@ infomation is available in Propagator object.\nTotal Time used: {:.3}s\n'.\
         c = cgs['c']
         E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
         E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
-        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega) *\
+                     (self.e_y*np.conj(self.e_y) + self.e_z*np.conj(self.e_z))
 
         return power_norm
 
@@ -920,14 +942,15 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     
     
     .. math::
-        2\mathrm{i}(kE_0' + \frac{1}{2}k'E_0) + 
+        2\mathrm{i}\left[k\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)' + 
+        \frac{1}{2}k'\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)\right] + 
         \left[ \frac{\partial^2}{\partial y^2} + 
         \left( \frac{S^2+D^2}{S^2}- \frac{(S^2-D^2)D^2}{(S-P)S^2}\right)
         \frac{\partial^2}{\partial z^2}\right] E_0 + \frac{S^2+D^2}{S^2}
         \frac{\omega^2}{c^2}\delta \epsilon_{XX} E_0 = 0,
     
-    Letting :math:`F \equiv k^{1/2}E_0`, and Fourier transform along z 
-    direction, we have
+    Letting :math:`F \equiv k^{1/2}\frac{S}{(S^2+D^2)^{1/2}} E_0`, and Fourier 
+    transform along z direction, we have
     
     .. math::
     
@@ -1291,7 +1314,7 @@ solver instead of paraxial solver.')
         # find the y index of the peak
         myarg = marg % self.ny
         Ekmax = np.max(np.abs(self.E_k_start))
-        E_margin = Ekmax*np.exp(-mask_order)
+        E_margin = Ekmax*np.exp(-mask_order**2/2)
         # create the mask for components smaller than our marginal E
         mask = np.abs(self.E_k_start[:,myarg]) < E_margin
         # choose the largest kz in not masked part as the marginal kz
@@ -1395,6 +1418,7 @@ solver instead of paraxial solver.')
             self.e_x = -exy * norm
             self.e_y = exx * norm
             self.e_z = 0
+            self._ey_mod = np.sqrt(self.e_y * np.conj(self.e_y))
         
         tend = clock()        
         
@@ -1482,9 +1506,9 @@ solver instead of paraxial solver.')
         """
         
         tstart = clock()
-
         # F = sqrt(k)*E
-        self.F_k_start = np.sqrt(np.abs(self.k_0[0]))*self.E_k_start
+        self.F_k_start = np.sqrt(np.abs(self.k_0[0])) * self._ey_mod[0] *\
+                         self.E_k_start
         self.Fk = np.empty((self.nz, self.ny, self.nx_calc), dtype='complex')
         self.Fk[:,:,0] = self.F_k_start
         
@@ -1687,7 +1711,7 @@ solver instead of paraxial solver.')
             self.F = self.Fk
         else:
             self.F = np.fft.ifft(self.Fk, axis=0)
-        self.E = self.F / np.sqrt(np.abs(self.k_0))
+        self.E = self.F / (np.sqrt(np.abs(self.k_0)) * self._ey_mod)
         
         tend = clock()
         if not mute:
@@ -1698,7 +1722,7 @@ solver instead of paraxial solver.')
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None, 
                   mute=True, debug_mode=False, include_main_phase=False,
-                  keepFFTz=False):
+                  keepFFTz=False, normalize_E=True):
         r"""propagate(self, time, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None)
         
@@ -1737,6 +1761,10 @@ solver instead of paraxial solver.')
         :param bool keepFFTz: if True, the result E field will keep Fourier 
                               components in z-direction, both in returned value
                               , and stored self.E attribute. Default is False.
+        :param bool normalize_E: if True, incidental E field will be normalized
+                                 so that the maximum amplitude is 1, before
+                                 propagation, and rescaled back after 
+                                 propagation. Default is True.
  
         """ 
         
@@ -1754,11 +1782,16 @@ solver instead of paraxial solver.')
             self.time = time  
         self._debug = debug_mode
         self._include_main_phase = include_main_phase 
-        self._keepFFTz = keepFFTz           
+        self._keepFFTz = keepFFTz 
+        self._normalize_E = normalize_E          
             
         self.omega = omega
         
-        self.E_start = E_start            
+        if (self._normalize_E):
+            self._E_norm = np.max(np.abs(E_start))
+            self.E_start = E_start/self._E_norm
+        else:
+            self.E_start = E_start            
         self.y_coords = np.copy(y_E)
         self.ny = len(self.y_coords)
         self.z_coords = np.copy(z_E)
@@ -1777,6 +1810,9 @@ solver instead of paraxial solver.')
         self._generate_F(mute=mute)
         self._generate_E(mute=mute)
         
+        if(self._normalize_E):
+            self.E *= self._E_norm
+        
         tend = clock()
         
         if not mute:
@@ -1789,11 +1825,18 @@ infomation is available in Propagator object. Total time used: {:.3}'.\
 
     @property
     def power_flow(self):
-        """Calculates the total power flow going through y-z plane.
+        r"""Calculates the total power flow going through y-z plane.
         Normalized with the local velocity, so the value should be
         conserved in lossless plasma region.
+        
+        Poynting flux is shown to be [stix92]_:
+        
+        .. math::
+            P_x = \frac{c^2k}{8\pi\omega} (|E_y|^2 + |E_z|^2)
+            
+        .. [stix92] Waves in Plamsas, T.H.Stix, American Physics Inst.
         """
-
+        e2 = np.real(np.conj(self.e_y)*self.e_y + np.conj(self.e_z)*self.e_z)
         E2 = np.real(np.conj(self.E) * self.E)
         c = cgs['c']
         if self._keepFFTz:
@@ -1804,7 +1847,7 @@ infomation is available in Propagator object. Total time used: {:.3}'.\
         else:
             E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
         E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
-        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega) *e2
 
         return power_norm
     
