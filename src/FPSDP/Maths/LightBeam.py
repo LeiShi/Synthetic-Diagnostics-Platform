@@ -186,26 +186,31 @@ class GaussianBeam(LightBeam):
     .. math::
         S_m = \frac{c}{8\pi}E_m \times B_m^*,
     
-    where :math:`E_m` and :math:`B_m` are the magnitude of the field.    
+    where :math:`E_m` and :math:`B_m` are the magnitude of the field.   
     
-    For our Gaussian beam at waist plane, :math:`E_m = B_m` and they are 
-    perfectly in phase. So, 
+    For our Gaussian beam at waist plane, assuming linear and constant 
+    dielectric, :math:`B_m = N E_m` and they are perfectly in phase. So, 
     
     .. math::
-        S_m = \frac{c}{8\pi}|E_m|^2.
-        
+        S_m = \frac{Nc}{8\pi}|E_m|^2.
+    
+    where :math:`N \equiv ck/\omega` the refractive index, 
+    :math:`k=2\pi/\lambda`.
+    
     The total power is then
     
     .. math::
         P_{total} = \int\int S_m \mathrm{d}x \, \mathrm{d}y 
-                = \frac{c}{8\pi}|E_0|^2\int\int \exp\left(-\frac{x^2}{w_{0x}^2}
-                    - \frac{y^2}{w_{0y}^2}\right) \mathrm{d}x \,\mathrm{d}y.
-                    
-    The Gaussian integration over x and y gives us :math:`\pi`, so we have the 
-    relation between :math:`E_0` and :math:`P_{total}`:
+                = \frac{Nc}{8\pi}|E_0|^2\int\int 
+                \exp\left(-\frac{2x^2}{w_{0x}^2}
+                - \frac{2y^2}{w_{0y}^2}\right) \mathrm{d}x \,\mathrm{d}y.
+    
+                
+    The Gaussian integration over x and y gives us :math:`\pi w_{0x} w_{0y}/2`,
+    so we have the relation between :math:`E_0` and :math:`P_{total}`:
     
     .. math::
-        E_0 = \sqrt{\frac{16 P_{total}}{c w_{0x} w_{0y}}}
+        E_0 = \sqrt{\frac{8 \lambda \omega P_{total}}{\pi c^2 w_{0x} w_{0y}}}
         
     We choose :math:`E_0` to be real for simplicity.
     
@@ -239,7 +244,7 @@ class GaussianBeam(LightBeam):
     
     def __init__(self, wave_length, waist_x, waist_y, w_0y, waist_z=0, 
                  w_0z=None, tilt_v=0, tilt_h=0, rotation=0, E0=1, 
-                 P_total=None):
+                 P_total=None, omega=None):
         self.wave_length = wave_length
         self.waist_loc = [waist_z, waist_y, waist_x]
         self.w_0y = w_0y
@@ -252,8 +257,12 @@ class GaussianBeam(LightBeam):
         self.rotation = rotation
         self.E0 = E0
         if (P_total is not None):
+            # when power is specified, wave frequency is needed to determine 
+            # the local dispersion and group velocity
+            assert omega is not None
             self.P_total = P_total
-            self.E0 = np.sqrt(16*P_total/(cgs['c']*self.w_0z*self.w_0y)) 
+            self.E0 = np.sqrt(8*self.wave_length*omega*P_total / \
+                              (cgs['c']**2 *np.pi*self.w_0z*self.w_0y)) 
     
     @property    
     def reighlay_range(self):
