@@ -78,7 +78,7 @@ class IsotropicMaxwellian(SourceCurrentCorrelationTensor):
     
     .. math::
     
-        \hat{K}_k = \frac{4}{\pi} \omega T_e \chi_e^a
+        \hat{K}_k = \frac{\omega T_e}{\pi^2}  \chi_e^a
         
     where
     
@@ -128,5 +128,5 @@ class IsotropicMaxwellian(SourceCurrentCorrelationTensor):
         trans_index[1]=0
         chi_ea = (chi_e - np.conj(np.transpose(chi_e, axes=trans_index)))/2j
         
-        return 4*omega*Te*chi_ea/np.pi 
+        return omega*Te*chi_ea/np.pi**2 
     
