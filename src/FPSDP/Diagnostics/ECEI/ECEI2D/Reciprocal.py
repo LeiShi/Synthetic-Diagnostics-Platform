@@ -200,10 +200,14 @@ before running ECE.', file=sys.stderr)
                     X = x + np.zeros_like(self.Y1D)
                     K_k[..., j] = self.scct([self.Y1D, X], omega, kz, k0[j], 
                                             eq_only=True)
-                if self.polarization == 'X':
+                if self.polarization == 'X':                    
                     e = np.asarray( [self.propagator.e_x[::2], 
                                      self.propagator.e_y[::2]] )  
                     e_conj = np.conj(e)
+                    # For X mode, normalization of Poynting vector has an extra
+                    # |e_y|^2 term that is not included in detector power 
+                    # normalization
+                    E0 /= np.sqrt(e[1]*e_conj[1]) 
                     # inner tensor product with unit polarization vector and K_k
                     eK_ke = 0
                     for l in xrange(2):
@@ -357,6 +361,10 @@ set_coords() first.')
                 e = np.asarray( [self.propagator.e_x[::2], 
                                  self.propagator.e_y[::2]] )  
                 e_conj = np.conj(e)
+                # For X mode, normalization of Poynting vector has an extra
+                # |e_y|^2 term that is not included in detector power 
+                # normalization
+                E0 /= np.sqrt(e[1,0]*e_conj[1,0])
                 # inner tensor product with unit polarization vector and K_k
                 eK_ke = 0
                 for l in xrange(2):
