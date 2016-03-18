@@ -169,14 +169,21 @@ class ECE2D(object):
             print('Calculation mesh not set yet! Call set_coords() to setup\
 before running ECE.', file=sys.stderr)
     
-    def auto_adjust_coordinates(self, fine_coeff=1):
+    def auto_adjust_mesh(self, fine_coeff=1):
+        
+        try:
+            _aca = self._auto_coords_adjusted
+        except AttributeError:
+            print('Base coordinates not set! Call set_coords() first.', 
+                  file=sys.stderr)
+            return
         
         if self._auto_coords_adjusted:
             if fine_coeff == self._fine_coeff:
                 return
             else:
                 self._auto_coords_adjusted = False
-                self.auto_adjust_coordinates(fine_coeff)
+                self.auto_adjust_mesh(fine_coeff)
         else:
             # run propagation at cental frequency once to obtain the local 
             # emission pattern
@@ -249,16 +256,16 @@ before running ECE.', file=sys.stderr)
                         if not patch_flag or (i == len(patch_array)):
                             x_end = self.X1D[i]
                             patch = Cartesian1D(x_start, x_end,
-                                                ResX=0.5*wave_length/fine_coeff)
+                                               ResX=0.5*wave_length/fine_coeff)
                             self.x_coord.add_patch(patch)
                             in_patch = False
                         else:
                             continue
                 self._fine_coeff = fine_coeff
-                self._auto_coords_adjusted = True
                 self.set_coords([self.Z1D, self.Y1D, self.x_coord.X1D])
                 print('Automatic coordinates adjustment performed! To reset your \
 mesh, call set_coords() again.')
+                self._auto_coords_adjusted = True
                 return
             coeff_ratio = self._fine_coeff/np.float(fine_coeff)
             if not x_coord.reversed:
@@ -283,6 +290,7 @@ mesh, call set_coords() again.')
             self.set_coords([self.Z1D, self.Y1D, self.x_coord.X1D])
             print('Automatic coordinates adjustment performed! To reset your \
 mesh, call set_coords() again.')
+            self._fine_coeff = fine_coeff
             self._auto_coords_adjusted = True
             
         
@@ -336,10 +344,15 @@ set_coords() first.')
                                 dtype='complex')
                                 
         if auto_patch:
-            if not self._auto_coords_adjusted:
-                self.auto_adjust_coordinates()
-            else:
-                pass
+            try:
+                if not self._auto_coords_adjusted:
+                    self.auto_adjust_mesh()
+                else:
+                    pass
+            except AttributeError:
+                print('Base coordinates not set! Call set_coords() first.', 
+                      file=sys.stderr)
+                return
             
         for i, omega in enumerate(self.detector.omega_list):
             E_inc = E_inc_list[i]
@@ -415,7 +428,7 @@ set_coords() first.')
         try:
             self.x_coord.patch_list
         except AttributeError:
-            self.auto_adjust_coordinates()
+            self.auto_adjust_mesh()
         x_list=[]
         dx_list=[]
         for patch in self.x_coord.patch_list:
@@ -428,7 +441,7 @@ set_coords() first.')
         try:
             return (self._z, self._y, self._x)
         except AttributeError:
-            self.auto_adjust_coordinates()
+            self.auto_adjust_mesh()
             return (self._z, self._y, self._x)
             
         

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 
 from FPSDP.GeneralSettings.UnitSystem import cgs
-import FPSDP.Diagnostics.ECEI.ECEI2D.Reciprocal as rcp
+import FPSDP.Diagnostics.ECEI.ECEI2D.Reciprocity as rcp
 from FPSDP.Diagnostics.ECEI.ECEI2D.Detector2D import GaussianAntenna
 import FPSDP.Plasma.Analytical_Profiles.TestParameter as tp
 
