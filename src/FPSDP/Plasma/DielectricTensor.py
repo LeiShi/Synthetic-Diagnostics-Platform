@@ -258,24 +258,8 @@ from ..Maths.PlasmaDispersionFunction import Fq_list, F1q_list, F2q_list
 from ..Maths.PlasmaDispersionFunction import Z, a_pn
 from .PlasmaProfile import PlasmaProfile
 from ..GeneralSettings.UnitSystem import UnitSystem, cgs
+from ..GeneralSettings.Exceptions import ModelInvalidError, ResonanceError
 
-
-
-class ResonanceError(Exception):
-    
-    def __init__(self, s):
-        self.message = s
-        
-    def __str__(self):
-        return self.message
-        
-class ModelInvalidError(Exception):
-    
-    def __init__(self, s):
-        self.message = s
-        
-    def __str__(self):
-        return self.message
 
 class Susceptibility(object):
     r"""Abstract base class for susceptibility tensor classes
@@ -998,7 +982,7 @@ non-relativistic limit. Resonance allowed. Max_harmonic = {}'.format(\
         self.species_id = species_id
         self.max_harmonic = max_harmonic
         
-    def __call__(self, coordinates, omega, k_para, k_perp=None, 
+    def __call__(self, coordinates, omega, k_para, k_perp, 
                  eq_only=True, time = 0, tol=1e-14):
         """Calculates non-relativistic susceptibility tensor at each coordinate
         given by coordinates.
@@ -1012,11 +996,8 @@ non-relativistic limit. Resonance allowed. Max_harmonic = {}'.format(\
         :type omega: array of float with shape (Nf, )
         :param k_para: parallel wave vectors of the waves under study
         :type k_para: array of float with shape (Nk_para, )
-        :param k_perp: perpendicular wave vectors. NOT USED IN WARM FORMULA,
-                       default to be None.
-        :type k_perp: None or array of float with shape (Nk_perp, )
-        
-        
+        :param k_perp: perpendicular wave vectors. 
+        :type k_perp: array of float with shape (Nk_perp, )
         :param eq_only: if True, only equilibrium quantities in ``plasma`` will
                         be used.
         :type eq_only: bool
@@ -1215,17 +1196,26 @@ Non-relativistic model may not be valid. Try relativistic models instead.')
                     *Z(zeta)) / (k_para * omega * T_para)
                     
                 result[0,0] += i*i*I*Ai
-                result[1,1] += ((i*i/lambd + 2*lambd)*I - 2*lambd*I_p)*Ai
-                result[2,2] += 2*(omega-i*Omega)*I*Bi
                 result[0,1] += -1j*i*(I-I_p)*Ai
                 result[0,2] += i*I*Bi
+                
+                result[1,1] += ((i*i/lambd + 2*lambd)*I - 2*lambd*I_p)*Ai
                 result[1,2] += 1j*(I-I_p)*Bi
+                
+                result[2,2] += 2*(omega-i*Omega)*I*Bi
+                
+                
         
         # now, multiply with each common factors            
         result[0,0] *= 1/lambd
         result[2,2] *= 1/(k_para*w_perp2)
         result[0,2] *= k_perp/(Omega*lambd)
-        result[1,2] *= k_perp/lambd
+        result[1,2] *= k_perp/Omega
+        
+        # fit in the lower triangle terms based on their relation to upper half
+        result[1,0] = -result[0,1]
+        result[2,0] = result[0,2]
+        result[2,1] = -result[1,2]
         
         # multiply with the all common factor omega_pe^2/omega * exp(-lambd)
         result *= 4*pi*n*q*q/(m*omega) * np.exp(-lambd)
