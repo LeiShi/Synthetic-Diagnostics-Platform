@@ -48,7 +48,8 @@ from ....Plasma.PlasmaProfile import ECEI_Profile
 from ....Plasma.DielectricTensor import ConjRelElectronColdIon,\
     ConjHotElectronColdIon,SusceptRelativistic, SusceptNonrelativistic
 from .CurrentCorrelationTensor import SourceCurrentCorrelationTensor, \
-                                      IsotropicMaxwellian
+                                      IsotropicMaxwellian, \
+                                      AnisotropicNonrelativisticMaxwellian
 from ....Geometry.Grid import Cartesian1D, FinePatch1D
 from ....GeneralSettings.UnitSystem import cgs
 
@@ -65,15 +66,17 @@ class ECE2D(object):
     :param detector: receiving antenna 
     :type detector: 
         :py:class`FPSDP.Diagnostics.ECEI.ECEI2D.Detector2D.Detector2D` object
-    :param dielectric_class: chosen formulism for calculating conjugate plasma
-                             dielectric tensor
-    :type dielectric_class: subclass of :py:class:`FPSDP.Plasma.
-                            DielectricTensor.Dielectric`.
-    :param source_current_correlation_class:
-        chosen formulism for source current correlation tensor calculation
-    :type source_current_correlation_class:
-        subclass of :py:class:`FPSDP.Diagnostics.ECEI.ECEI2D.
-        CurrentCorrelationTensor.SourceCurrentCorrelationTensor`.
+    :param string polarization: either 'O' or 'X', the chosen polarization.
+    :param bool weakly_relativistic: model selection for both dielectric and 
+                                     current correlation tensor. If True, 
+                                     weakly relativistic formula will be used, 
+                                     otherwise non-relativistic formula is 
+                                     used. Default is True.
+    :param bool isotropic: model selection for current correlation tensor. If 
+                           True, isotropic Maxwillian is assumed, and current
+                           correlation tensor can be directly obtained from 
+                           anti-Hermitian dielectric tensor. Otherwise, 
+                           anisotropic formula is needed. Default is True.
     
     
     Method
@@ -116,8 +119,14 @@ class ECE2D(object):
                                             max_harmonic=max_harmonic,
                                             max_power=max_power)
         else:
-            # TODO finish non-isotropic current correlation tensor part
-            raise NotImplementedError
+            if weakly_relativistic:
+                # anisotropic weakly relativistic current correlation tensor
+                # has not been implemented. Theoretical work is needed.
+                raise NotImplementedError
+            else:
+                # anisotropic non-relativistic tensor
+                self.scct = AnisotropicNonrelativisticMaxwellian(self.plasma, 
+                                                  max_harmonic=max_harmonic)
         self._set_propagator()
             
     def set_coords(self, coords):
@@ -172,7 +181,8 @@ before running ECE.', file=sys.stderr)
     def auto_adjust_mesh(self, fine_coeff=1):
         
         try:
-            _aca = self._auto_coords_adjusted
+            # test if set_coords() has been called.
+            self._auto_coords_adjusted
         except AttributeError:
             print('Base coordinates not set! Call set_coords() first.', 
                   file=sys.stderr)
@@ -193,14 +203,18 @@ before running ECE.', file=sys.stderr)
                 
                 omega = self.detector.central_omega
                 E_inc = self.detector.central_E_inc
+                tilt_h = self.detector.tilt_h
+                tilt_v = self.detector.tilt_v
                 E0 = self.propagator.propagate(omega,  x_start=None, 
                                                x_end=None, nx=None, 
                                                E_start=E_inc, y_E=self.Y1D,
                                                z_E = self.Z1D, 
                                                x_coords=self.X1D,
+                                               tilt_h=tilt_h, tilt_v=tilt_v,
                                                keepFFTz=True) * self.dZ
                                                
-                kz = self.propagator.kz[:,0,0]
+                kz = self.propagator.masked_kz[:,0,0]
+                dkz = self.propagator.kz[1]-self.propagator.kz[0]
                 k0 = self.propagator.k_0[::2]
                 K_k = np.empty( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
                 for j, x in enumerate(self.X1D):
@@ -224,7 +238,7 @@ before running ECE.', file=sys.stderr)
                     eK_ke = K_k[2,2]
                 integrand = eK_ke * E0 * np.conj(E0)/(32*np.pi)
                 # integrate over kz dimension         
-                intkz = np.sum(integrand, axis=0)*(kz[1]-kz[0])
+                intkz = np.sum(integrand, axis=0)*(dkz)
                 # integrate over y dimension
                 inty = trapz(intkz, x=self.Y1D, axis=0)
                 max_int = np.max(np.abs(inty))
@@ -233,7 +247,7 @@ before running ECE.', file=sys.stderr)
                 self._max_idy = np.argmax(np.abs(intkz[:,self._max_idx]))        
                 self._y = self.Y1D[self._max_idy]
                 self._max_idz =np.argmax(np.abs(np.fft.ifft(\
-                                        (eK_ke*E0)[:,self._max_idy,self._max_idx])\
+                                    (eK_ke*E0)[:,self._max_idy,self._max_idx])\
                                        * np.conj(np.fft.ifft(\
                                          E0[:,self._max_idy, self._max_idx]))))
                 self._z = self.Z1D[self._max_idz]
@@ -263,8 +277,8 @@ before running ECE.', file=sys.stderr)
                             continue
                 self._fine_coeff = fine_coeff
                 self.set_coords([self.Z1D, self.Y1D, self.x_coord.X1D])
-                print('Automatic coordinates adjustment performed! To reset your \
-mesh, call set_coords() again.')
+                print('Automatic coordinates adjustment performed! To reset \
+your mesh, call set_coords() with initial mesh again.')
                 self._auto_coords_adjusted = True
                 return
             coeff_ratio = self._fine_coeff/np.float(fine_coeff)
@@ -289,7 +303,7 @@ mesh, call set_coords() again.')
                                                    ResX=p.ResX*coeff_ratio))
             self.set_coords([self.Z1D, self.Y1D, self.x_coord.X1D])
             print('Automatic coordinates adjustment performed! To reset your \
-mesh, call set_coords() again.')
+mesh, call set_coords() with initial mesh again.')
             self._fine_coeff = fine_coeff
             self._auto_coords_adjusted = True
             
@@ -356,14 +370,18 @@ set_coords() first.')
             
         for i, omega in enumerate(self.detector.omega_list):
             E_inc = E_inc_list[i]
+            tilt_h = self.detector.tilt_h
+            tilt_v = self.detector.tilt_v
             E0 = self.propagator.propagate(omega, x_start=None, 
                                            x_end=None, nx=None, 
                                            E_start=E_inc, y_E=self.Y1D,
                                            z_E = self.Z1D, 
                                            x_coords=self.X1D, time=time,
+                                           tilt_h=tilt_h, tilt_v=tilt_v,
                                            keepFFTz=True) * self.dZ
             #E0 = np.fft.fftshift(E0, axes=0)
-            kz = self.propagator.kz[:,0,0]
+            kz = self.propagator.masked_kz[:,0,0]
+            dkz = self.propagator.kz[1]-self.propagator.kz[0]
             k0 = self.propagator.k_0[::2]
             K_k = np.empty( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
             for j, x in enumerate(self.X1D):
@@ -387,7 +405,7 @@ set_coords() first.')
                 eK_ke = K_k[2,2]
             integrand = eK_ke * E0 * np.conj(E0)/(32*np.pi)
             # integrate over kz dimension         
-            intkz = np.sum(integrand, axis=0)*(kz[1]-kz[0])
+            intkz = np.sum(integrand, axis=0)*(dkz)
             # integrate over y dimension
             inty = trapz(intkz, x=self.Y1D, axis=0)
             # integrate over x dimension

@@ -145,7 +145,7 @@ class GaussianAntenna(Detector2D):
                                     omega=omega,
                                     **self._beam_parameter) \
                        for i, omega in enumerate(self._omega_list)]
-                         
+                           
     @property    
     def central_omega(self):
         """central angular frequency of the antenna emission"""
@@ -160,6 +160,18 @@ class GaussianAntenna(Detector2D):
         central frequency
         """
         return self._beams[self._central_index]
+        
+    @property
+    def tilt_h(self):
+        """horizontal tilted angle
+        """
+        return self._beam_parameter['tilt_h']
+        
+    @property
+    def tilt_v(self):
+        """vertical tilted angle
+        """
+        return self._beam_parameter['tilt_v']
             
     @property
     def omega_list(self):
