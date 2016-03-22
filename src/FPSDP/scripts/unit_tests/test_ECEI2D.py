@@ -28,7 +28,7 @@ e = cgs['e']
 me = cgs['m_e']
 
 tp.set_parameter2D(Te_0 = 10*keV, Te_shape='uniform', ne_shape='Hmode', 
-                   dte_te=0.1, dne_ne=0, dB_B=0, NR=100, NZ=40, 
+                   dte_te=0.2, dne_ne=0.1, dB_B=0, NR=100, NZ=40, 
                    DownLeft=(-40, 100), UpRight=(40, 300), 
                    timesteps=np.arange(5) )
 p2d = tp.create_profile2D(random_fluctuation=True)

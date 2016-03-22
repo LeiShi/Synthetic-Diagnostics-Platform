@@ -12,8 +12,9 @@ Created on Fri Mar 18 11:07:24 2016
 
 @author: lei
 """
-
+from __future__ import print_function
 from os import path
+import sys
 import json
 
 import numpy as np
@@ -133,6 +134,8 @@ class ECEImagingSystem(object):
                              isotropic=isotropic, max_harmonic=max_harmonic,
                              max_power=max_power) for detector in detectors]
                              
+        self._debug_mode = np.zeros((self._ND,), dtype='bool')
+                             
         
     def set_coords(self, coordinates, channelID='all'):
         """setup initial calculation mesh in Z,Y,X for chosen channels
@@ -197,6 +200,7 @@ class ECEImagingSystem(object):
                 channelID = np.arange(self._ND)
             
             for channel_idx in channelID:
+                self._debug_mode[channel_idx] = debug
                 self.Te[channel_idx] = self.channels[channel_idx].\
                                          diagnose(time=time, debug=debug, 
                                                   auto_patch=auto_patch)
@@ -210,12 +214,22 @@ implemented.')
         """ actual viewing location for each channel
         """
         return tuple([c.view_point for c in self.channels])
+    
+    @property
+    def view_spots(self):
+        if np.any(~self._debug_mode):
+            print('Some of the channels didn\'t run in debug mode. view_spot \
+is not available. Call diagnose(debug=True) before accessing this property.', 
+                   file=sys.stderr)
+        else:
+            return tuple([c.view_spot for c in self.channels])
                 
     def direct_map(self):
         """create an interpolator of Te based on actual viewing locations
         """
         
         pass
+    
         
         
                              

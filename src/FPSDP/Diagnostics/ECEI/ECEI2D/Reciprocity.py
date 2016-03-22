@@ -456,11 +456,25 @@ set_coords() first.')
         
     @property
     def view_point(self):
+        """(Z,Y,X) coordinates of the maximum emission intensity"""
         try:
             return (self._z, self._y, self._x)
         except AttributeError:
             self.auto_adjust_mesh()
             return (self._z, self._y, self._x)
+            
+    @property
+    def view_spot(self):
+        """observed emission intensity distribution in Y-X plane 
+        """
+        try:
+            integ = self.integrand_list[self.detector._central_index]
+        except AttributeError:
+            print('view_spot is only available for debug mode runs.\
+Call diagnose(debug=True) first.', file=sys.stderr)
+
+        return np.sum(np.abs(integ), axis=0)
+        
             
         
                 
