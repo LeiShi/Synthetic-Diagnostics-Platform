@@ -1141,12 +1141,12 @@ sure this is what you wanted.')
         w_para2 = 2*T_para/m
         w_para = np.sqrt(w_para2)
         
-        res_width = k_para*w_para
+        res_width = np.abs(k_para*w_para)
         # check if k_para*w_para is too small for non-relativistic model to be
         # good, also eliminates the potential zero denominator problems
-    
-        if np.any(res_width < omega*(T_para+T_perp)/(2*m*c*c)) or \
-        np.any(res_width < tol):
+        omega_over_mu = omega*(T_para+T_perp)/(2*m*c*c)
+        idx_violate = res_width < omega_over_mu
+        if np.any(idx_violate) or np.any(res_width < tol):
             raise  ModelInvalidError('k_para*w_para is too small. \
 Non-relativistic model may not be valid. Try relativistic models instead.')    
         
@@ -1468,7 +1468,7 @@ weakly-relativistic limit. Resonance allowed. Max_harmonic = {}'.format(\
                 B = self.plasma.get_B(coordinates, False, time=time)
                 # need to use parallel Te perturbation here
                 T = self.plasma.get_Te(coordinates, eq_only=False, 
-                                            perpendicular=True, time=time)
+                                       perpendicular=True, time=time)
                 
             else:
                 n = self.plasma.get_ne(coordinates, True)
@@ -1495,7 +1495,7 @@ sure this is what you wanted.')
                 n = self.plasma.get_ni(coordinates, False, time)
                 B = self.plasma.get_B(coordinates, False, time)
                 T = self.plams.get_Ti(coordinates, eq_only=False,
-                                           perpendicular=True, time=time)
+                                      perpendicular=True, time=time)
                 
             else:
                 n = self.plasma.get_ni(coordinates, True)
