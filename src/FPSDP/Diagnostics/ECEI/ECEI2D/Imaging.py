@@ -209,6 +209,8 @@ class ECEImagingSystem(object):
             raise NotImplementedError('Parallel diangose is currently not \
 implemented.')
 
+        return self.Te
+
     @property
     def view_points(self):
         """ actual viewing location for each channel
