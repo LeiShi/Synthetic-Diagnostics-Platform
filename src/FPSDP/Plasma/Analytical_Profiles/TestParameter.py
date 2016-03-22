@@ -234,14 +234,18 @@ are {}'.format(tshp, ShapeTable.keys()))
         d_shape = [len(time), XGrid.shape[0]]
         if fluc_level is None:
             dne = 2*Parameter1D['dne_ne']*profile['ne']*(random(d_shape)-0.5)
-            dTe = 2*Parameter1D['dte_te']*profile['Te']*(random(d_shape)-0.5)
+            dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
+                       (random(d_shape)-0.5)
+            dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
+                       (random(d_shape)-0.5)
             dB = 2*Parameter1D['dB_B']*profile['B']*(random(d_shape)-0.5)
         else:
             dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
-            dTe = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+            dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+            dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
             dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                        profile['B'], time, dne, dTe, dTe, dB)
+                        profile['B'], time, dne, dTe_para, dTe_perp, dB)
     else:
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
                         profile['B'])
@@ -329,14 +333,18 @@ are {}'.format(tshp, ShapeTable.keys()))
         d_shape.extend([i for i in RZGrid.R2D.shape])
         if fluc_level is None:
             dne = 2*Parameter2D['dne_ne']*profile['ne']*(random(d_shape)-0.5)
-            dTe = 2*Parameter2D['dte_te']*profile['Te']*(random(d_shape)-0.5)
+            dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
+                       (random(d_shape)-0.5)
+            dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
+                       (random(d_shape)-0.5)
             dB = 2*Parameter2D['dB_B']*profile['B']*(random(d_shape)-0.5)
         else:
             dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
-            dTe = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+            dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+            dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
             dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                        profile['B'], time, dne, dTe, dTe, dB)
+                        profile['B'], time, dne, dTe_para, dTe_perp, dB)
     else:
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
                         profile['B'])
