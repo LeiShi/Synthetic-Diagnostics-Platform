@@ -634,6 +634,10 @@ solver instead of paraxial solver.')
             de_X = de_X * np.ones((nz,ny,1))
             F_k0 =self.E_k_start * np.sqrt(np.abs(self.k_0[0])) * ey_mod[0]
                   
+            if self._oblique_correction:
+                oblique_coeff = np.abs(cos(self.tilt_h)*cos(self.tilt_v))
+            else:
+                oblique_coeff = 1
 
             if(self._debug):
                 self.pe = (S2+D2)/S2* omega2/c2 *de_X /\
@@ -642,8 +646,7 @@ solver instead of paraxial solver.')
                 self.dphi_eps = cumtrapz(np.real(self.pe), 
                                          x=self.x_coords, initial=0) + \
                                 1j*cumtrapz(np.imag(self.pe), x=self.x_coords, 
-                                            initial=0)/\
-                                np.abs((cos(self.tilt_h)*cos(self.tilt_v)))
+                                            initial=0) / oblique_coeff
                 self.dphi_ky = cumtrapz(-ky*ky/(2*self.k_0), 
                                         x=self.x_coords, initial=0)
                 self.dphi_kz = cumtrapz(-C*kz*kz/(2*self.k_0), 
@@ -656,8 +659,7 @@ solver instead of paraxial solver.')
                                             ky*ky-C*kz*kz)/(2*self.k_0), 
                                             x=self.x_coords, initial=0) +\
                         1j*cumtrapz(((S2+D2)/S2* omega2/c2 *np.imag(de_X)),\
-                                    x=self.x_coords, initial=0)/\
-                                    np.abs((cos(self.tilt_h)*cos(self.tilt_v)))
+                                    x=self.x_coords, initial=0) / oblique_coeff
             self.E_k0 = np.exp(1j*self.delta_phase)*F_k0[..., np.newaxis] / \
                        np.sqrt(np.abs(self.k_0)) / ey_mod
                        
@@ -694,7 +696,8 @@ solver instead of paraxial solver.')
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, time=None, tilt_v=0, tilt_h=0, mute=True,
                   debug_mode=False, include_main_phase=False, keepFFTz=False, 
-                  normalize_E=False, kz_mask_order=4, tolrel=1e-3):
+                  normalize_E=False, kz_mask_order=4, oblique_correction=True,
+                  tolrel=1e-3):
         r"""propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None)
         
@@ -755,6 +758,11 @@ solver instead of paraxial solver.')
                               deviation away from central kz will be masked out
                               . Default is 4, which means kzs where 
                               E(kz) < 3e-4 Emax will be ignored.
+        :param oblique_correction: if True, correction to oblique incident
+                                   wave will be added. The decay part will have
+                                   :math:`\cos(\theta_h)\cos(\theta_v)` term.
+                                   Default is True.
+        :type oblique_correction: bool
         """ 
 
         tstart = clock()        
@@ -773,15 +781,20 @@ solver instead of paraxial solver.')
         self._include_main_phase = include_main_phase
         self._keepFFTz = keepFFTz
         self._normalize_E = normalize_E
+        self._oblique_correction = oblique_correction
         
         self.omega = omega
         self.tilt_v = tilt_v
         self.tilt_h = tilt_h
         if (abs(cos(tilt_v)*cos(tilt_h)-1) > tolrel):
-            warnings.warn('Tilted angle beyond relative error tolerance! The \
-phase of the result won\'t be as accurate as expected. However, the decay of \
-the wave is corrected.')
-        
+            if self._oblique_correction:
+                warnings.warn('Tilted angle beyond relative error tolerance! \
+{0:.3}, The phase of the result won\'t be as accurate as expected. However, \
+the decay of the wave is corrected.'.format(tolrel))
+            else:
+                warnings.warn('Tilted angle beyond relative error tolerance \
+{0:.3}! The phase and amplitude of the result won\'t be as accurate as \
+expected.'.format(tolrel))
         if self._normalize_E:
             self.E_norm = np.max(np.abs(E_start))
             self.E_start = E_start/self.E_norm
@@ -1656,8 +1669,12 @@ solver instead of paraxial solver.')
             dx = self.calc_x_coords[i]-self.calc_x_coords[i-1]
         
         C = self.C[...,i]
+        if self._oblique_correction:
+            oblique_coeff = np.abs(cos(self.tilt_h)*cos(self.tilt_v))
+        else:
+            oblique_coeff = 1
         phase = dx* (np.real(C) + \
-                 1j*np.imag(C)/np.abs(cos(self.tilt_v)*cos(self.tilt_h))) / \
+                 1j*np.imag(C)/oblique_coeff) / \
                 (2*self.k_0[i])
         
         if self._debug:
@@ -1805,7 +1822,7 @@ solver instead of paraxial solver.')
                   z_E, x_coords=None, time=None, tilt_v=0, tilt_h=0, 
                   regular_E_mesh=True,  mute=True, debug_mode=False, 
                   include_main_phase=False, keepFFTz=False, normalize_E=True, 
-                  kz_mask_order=4):
+                  kz_mask_order=4, oblique_correction=True, tolrel=1e-3):
         r"""propagate(self, time, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None)
         
@@ -1865,7 +1882,15 @@ solver instead of paraxial solver.')
                               deviation away from central kz will be masked out
                               . Default is 4, which means kzs where 
                               E(kz) < 3e-4 Emax will be ignored.
- 
+        :type kz_mask_order: int
+        :param oblique_correction: if True, correction to oblique incident
+                                   wave will be added. The decay part will have
+                                   :math:`\cos(\theta_h)\cos(\theta_v)` term.
+                                   Default is True.
+        :type oblique_correction: bool  
+        :param float tolrel: Optional, a relative error tolarence for oblique
+                             effect. If (kz*ky/k0)^2 exceeds tolrel, a warning
+                             will be generated.                                     
         """ 
         
         tstart = clock()
@@ -1883,11 +1908,22 @@ solver instead of paraxial solver.')
         self._debug = debug_mode
         self._include_main_phase = include_main_phase 
         self._keepFFTz = keepFFTz 
-        self._normalize_E = normalize_E          
+        self._normalize_E = normalize_E
+        self._oblique_correction = oblique_correction          
             
         self.omega = omega
         self.tilt_h = tilt_h
         self.tilt_v = tilt_v
+        
+        if (abs(cos(tilt_v)*cos(tilt_h)-1) > tolrel):
+            if self._oblique_correction:
+                warnings.warn('Tilted angle beyond relative error tolerance! \
+{0:.3}, The phase of the result won\'t be as accurate as expected. However, \
+the decay of the wave is corrected.'.format(tolrel))
+            else:
+                warnings.warn('Tilted angle beyond relative error tolerance \
+{0:.3}! The phase and amplitude of the result won\'t be as accurate as \
+expected.'.format(tolrel))
         
         if (self._normalize_E):
             self._E_norm = np.max(np.abs(E_start))

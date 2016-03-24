@@ -68,6 +68,14 @@ class PlasmaProfile(object):
         self.unit_system = unitsystem
         self._name = 'General plasma profile'
         
+    @property
+    def class_name(self):
+        return 'PlasmaProfile'
+        
+    @property
+    def parameters(self):
+        return dict(grid=self.grid, unitsystem=self.unit_system)
+        
     def physical_quantities(self):
         return 'none'
         
@@ -88,7 +96,6 @@ class ECEI_Profile(PlasmaProfile):
     :var Te_para:  *optional*, fluctuated electron temperature parallel to B
     :var Te_perp: *optional*, fluctuatied electron temperature perpendicular 
                   to B
-    :var
     
     These should all be passed in compatible with the ``grid`` specification.
     :raises AssertionError: if any of the above quantities are not compatible
@@ -144,6 +151,33 @@ class ECEI_Profile(PlasmaProfile):
         self.ne0 = ne0
         self.Te0 = Te0
         self.B0 = B0
+        
+    @property
+    def class_name(self):
+        """return the name of the class as a string"""
+        return 'ECEI_Profile'
+       
+    @property   
+    def parameters(self):
+        """return a whole parameter dictionary that can initialize the profile
+        """
+        params = dict(grid=self.grid, ne0=self.ne0, Te0=self.Te0, B0=self.B0,
+                      unitsystem=self.unit_system)
+        if self.has_dB:
+            params['time'] = self.time
+            params['dB'] = self.dB
+        if self.has_dne:
+            params['time'] = self.time
+            params['dne'] = self.dne
+        if self.has_dTe_para:
+            params['time'] = self.time
+            params['dTe_para'] = self.dTe_para
+        if self.has_dTe_perp:
+            params['time'] = self.time
+            params['dTe_perp'] = self.dTe_perp
+        
+        return params
+        
         
         
     def setup_interps(self, equilibrium_only = False):

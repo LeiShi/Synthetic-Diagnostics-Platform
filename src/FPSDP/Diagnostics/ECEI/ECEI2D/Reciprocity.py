@@ -53,6 +53,32 @@ from .CurrentCorrelationTensor import SourceCurrentCorrelationTensor, \
 from ....Geometry.Grid import Cartesian1D, FinePatch1D
 from ....GeneralSettings.UnitSystem import cgs
 
+class ECE2D_property(object):
+    """Serializable container for main ECE2D properties
+    
+    This is mainly used for parallel runs when transfering ECE2D objects 
+    directly doesn't work.
+    
+    Initialize with a ECEI2D object    
+    
+    Attributes:
+        
+        plasma
+        detector
+        polarization
+        max_harmonic
+        max_power
+        weakly_relativistic
+        isotropic
+        X1D, Y1D, Z1D        
+        propagator(dict):
+            E, eps0, deps, k_0, masked_kz
+            
+        
+    """
+    # TODO Figure out how to make detailed information available for parallel 
+    # calls.
+
 class ECE2D(object):
     """single channel ECE diagnostic
     
@@ -309,7 +335,8 @@ mesh, call set_coords() with initial mesh again.')
             
         
     
-    def diagnose(self, time=None, debug=False, auto_patch=False):
+    def diagnose(self, time=None, debug=False, auto_patch=False, 
+                 oblique_correction=True):
         r"""Calculates the received power by antenna.
         
         Propagate wave in conjugate plasma, and integrate over the whole space
@@ -335,6 +362,11 @@ mesh, call set_coords() with initial mesh again.')
                                 region. This may cause a decrease of speed, but
                                 can improve the accuracy. Default is False, the
                                 programmer is responsible to set proper x mesh.
+        :param oblique_correction: if True, correction to oblique incident
+                                   wave will be added. The decay part will have
+                                   :math:`\cos(\theta_h)\cos(\theta_v)` term.
+                                   Default is True.
+        :type oblique_correction: bool
         """
         if time is None:
             eq_only = True
@@ -378,8 +410,9 @@ set_coords() first.')
                                            z_E = self.Z1D, 
                                            x_coords=self.X1D, time=time,
                                            tilt_h=tilt_h, tilt_v=tilt_v,
-                                           keepFFTz=True) * self.dZ
-            #E0 = np.fft.fftshift(E0, axes=0)
+                                           keepFFTz=True, 
+                                           oblique_correction=\
+                                           oblique_correction) * self.dZ
             kz = self.propagator.masked_kz[:,0,0]
             dkz = self.propagator.kz[1]-self.propagator.kz[0]
             k0 = self.propagator.k_0[::2]

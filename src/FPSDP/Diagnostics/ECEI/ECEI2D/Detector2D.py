@@ -30,6 +30,19 @@ class Detector2D(Detector):
     __metaclass__ = ABCMeta
     
     @abstractproperty
+    def parameters(self):
+        """return a dictionary which contains a complete set of initialization
+        parameters.
+        """
+        pass
+    
+    @abstractproperty
+    def class_name(self):
+        """return the class name of the detector as a string
+        """
+        pass
+    
+    @abstractproperty
     def central_beam(self):
         pass
     
@@ -125,9 +138,9 @@ class GaussianAntenna(Detector2D):
     def __init__(self, omega_list, k_list, power_list, waist_x, waist_y, w_0y, 
                  waist_z=0, w_0z=None, tilt_v=0, tilt_h=0, rotation=0):
                      
-        self._omega_list = np.asarray(omega_list)
-        self._k_list = np.asarray(k_list)
-        self._power_list = np.asarray(power_list)
+        self._omega_list = np.array(omega_list)
+        self._k_list = np.array(k_list)
+        self._power_list = np.array(power_list, )
         self._central_index = np.argmax(self._power_list)
         # normalize central power to be 1
         self._power_list /= self._power_list[self._central_index]
@@ -146,6 +159,17 @@ class GaussianAntenna(Detector2D):
                                     **self._beam_parameter) \
                        for i, omega in enumerate(self._omega_list)]
                            
+    @property
+    def class_name(self):
+        return 'GaussianAntenna'
+
+    @property
+    def parameters(self):
+        return dict(omega_list=self._omega_list,
+                    k_list=self._k_list,
+                    power_list = self._power_list,
+                    **self._beam_parameter)
+                                               
     @property    
     def central_omega(self):
         """central angular frequency of the antenna emission"""
