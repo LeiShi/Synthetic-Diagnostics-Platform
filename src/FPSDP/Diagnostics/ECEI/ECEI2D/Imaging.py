@@ -347,7 +347,10 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
             for i in xrange(self._ND):
                 eid = i%self._engine_num
                 engine = self._client[eid]
+                print('    channel {0} on engine {1}:'.format(i, eid))
                 channels.append(engine['eces[i].properties'])
+                print('        received.')
+            return channels
 
     @property
     def view_points(self):

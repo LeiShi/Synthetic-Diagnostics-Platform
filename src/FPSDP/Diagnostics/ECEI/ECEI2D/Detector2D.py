@@ -137,10 +137,13 @@ class GaussianAntenna(Detector2D):
     """
     def __init__(self, omega_list, k_list, power_list, waist_x, waist_y, w_0y, 
                  waist_z=0, w_0z=None, tilt_v=0, tilt_h=0, rotation=0):
-                     
-        self._omega_list = np.array(omega_list)
-        self._k_list = np.array(k_list)
-        self._power_list = np.array(power_list, )
+        omegas = np.array(omega_list)
+        ks = np.array(k_list)
+        powers = np.array(power_list)             
+        sort_arg = np.argsort(omegas)
+        self._omega_list = omegas[sort_arg]
+        self._k_list = ks[sort_arg]
+        self._power_list = powers[sort_arg]
         self._central_index = np.argmax(self._power_list)
         # normalize central power to be 1
         self._power_list /= self._power_list[self._central_index]

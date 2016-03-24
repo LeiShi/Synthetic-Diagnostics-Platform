@@ -63,21 +63,65 @@ class ECE2D_property(object):
     
     Attributes:
         
-        plasma
-        detector
-        polarization
-        max_harmonic
-        max_power
-        weakly_relativistic
-        isotropic
-        X1D, Y1D, Z1D        
-        propagator(dict):
-            E, eps0, deps, k_0, masked_kz
+        X1D, Y1D, Z1D (if is_coords_set)
+        diag_X (if is_auto_adjusted)
+        E0_list, kz_list, integrand_list (if is_debug)
+        if is_diagnosed:
+            intkz_list, view_point, view_spot 
+            propagator:
+                E, eps0, deps
             
-        
+    Methods:
+    
+        is_debug : return True if is debug mode.
+        is_coords_set: return True if set_coords is called
+        is_auto_adjusted: return True if auto_adjust_mesh is called
+        is_diagnosed: return True if diagnose is called
     """
-    # TODO Figure out how to make detailed information available for parallel 
-    # calls.
+    def __init__(self, ece2d):
+        assert isinstance(ece2d, ECE2D)
+        try:
+            self.X1D = ece2d.X1D
+            self.Y1D = ece2d.Y1D
+            self.Z1D = ece2d.Z1D
+            self._auto_coords_adjusted = ece2d._auto_coords_adjusted
+            self._coords_set = True
+        except AttributeError:
+            self._coords_set = False
+            self._auto_coords_adjusted = False
+            self._debug = False
+            self._diagnosed = False
+            return
+        if self._auto_coords_adjusted:
+            self.diag_x = ece2d.diag_x
+        try:
+            self.E0_list = ece2d.E0_list
+            self.kz_list = ece2d.kz_list
+            self.integrand_list = ece2d.integand_list
+            self._debug = True
+        except AttributeError:
+            self._debug = False            
+        try:
+            self.intkz_list = ece2d.intkz_list
+            self.view_point = ece2d.view_point
+            self.view_spot = ece2d.view_spot
+            self.propagator = ece2d.propagator.properties
+            self._diagnosed = True
+        except AttributeError:
+            self._diagnosed = False
+        
+        
+    def is_debug(self):
+        return self._debug
+    
+    def is_diagnosed(self):
+        return self._diagnosed
+        
+    def is_auto_adjusted(self):
+        return self._auto_coords_adjusted
+        
+    def is_coords_set(self):
+        return self._coords_set
 
 class ECE2D(object):
     """single channel ECE diagnostic
@@ -103,9 +147,40 @@ class ECE2D(object):
                            correlation tensor can be directly obtained from 
                            anti-Hermitian dielectric tensor. Otherwise, 
                            anisotropic formula is needed. Default is True.
+                           
+    Methods
+    *******
+    
+    set_coords(coordinates): set initial coordinates for calculation
+    auto_adjust_mesh(fine_coeff): 
+        automatically adjust coordinates to optimize the calculation
+    diagnose(time, debug, auto_patch, oblique_correction):
+        run diagnostic. Create received power Ps.
+        
+    Attributes
+    **********
+    After Initialization:
+        plasma, detector, polarization, max_harmonic, max_power, 
+        weakly_relativistic, isotropic, dielectric, scct(Source Current
+        Correlation Tensor), propagator
+    
+    After set_coords call:
+        X1D, Y1D, Z1D
+        
+    After auto_adjust_mesh call:
+        view_point
+        diag_x
+    
+    After diagnose call:
+        
+        non debug:
+            Ps, Te, view_spot
+            
+        debug:
+            E0_list, kz_list, integrand_list, Ps_list
     
     
-    Method
+    Algorithm
     *******    
     A full calculation consists of two steps:
     - Step 1: Propagate unit power wave from detector into the conjugate 
@@ -379,13 +454,10 @@ mesh, call set_coords() with initial mesh again.')
             print('coordinates need to be setup before diagnose. Call \
 set_coords() first.')
         if debug: 
-            self.E_inc_list = E_inc_list
             self.E0_list = []
-            self.k0_list = []
             self.kz_list = []
-            self.K_list = []
-            self.eK_ke_list = []
             self.integrand_list = []
+        self.intkz_list = []
         Ps_list = np.empty((len(self.detector.omega_list)), 
                                 dtype='complex')
                                 
@@ -445,11 +517,9 @@ set_coords() first.')
             Ps_list[i] = trapz(inty[::-1], x=self.X1D[::-1], axis=0)
             if debug:
                 self.E0_list.append(E0)
-                self.k0_list.append(k0)
-                self.K_list.append(K_k)
-                self.eK_ke_list.append(eK_ke)
                 self.kz_list.append(kz)
                 self.integrand_list.append(integrand)
+            self.intkz_list.append(intkz)
         if debug:
             self.Ps_list = Ps_list
         if (len(Ps_list) > 1):        
@@ -479,7 +549,14 @@ set_coords() first.')
         try:
             self.x_coord.patch_list
         except AttributeError:
-            self.auto_adjust_mesh()
+            a = raw_input('Emission spot hasn\'t been analyzed. Do you want to \
+analyze it now, this may take a few minutes? (y/n)')
+            if 'y' in a:
+                print('That is considered as a YES.')
+                self.auto_adjust_mesh()
+            else:
+                print('That is a NO. Stop diag_x with no return.')
+                return None
         x_list=[]
         dx_list=[]
         for patch in self.x_coord.patch_list:
@@ -501,12 +578,18 @@ set_coords() first.')
         """observed emission intensity distribution in Y-X plane 
         """
         try:
-            integ = self.integrand_list[self.detector._central_index]
+            integ = self.intkz_list[self.detector._central_index]
         except AttributeError:
-            print('view_spot is only available for debug mode runs.\
-Call diagnose(debug=True) first.', file=sys.stderr)
+            print('view_spot is only available after diagnosing.\
+Call diagnose() first.', file=sys.stderr)
 
-        return np.sum(np.abs(integ), axis=0)
+        return np.abs(integ)
+        
+    @property
+    def properties(self):
+        """Serializable data for transferring in parallel runs
+        """
+        return ECE2D_property(self)
         
             
         

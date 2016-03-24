@@ -37,6 +37,18 @@ class Propagator(object):
     def power_flow(self):
         pass
     
+    @property
+    def properties(self):
+        """Serializable data for transferring in parallel run"""
+        return Propagator_property(self)
+        
+
+class Propagator_property(object):
+
+    def __init__(self, propagator):
+        self.E = propagator.E
+        self.eps0 = propagator.eps0
+        self.deps = propagator.deps
 
 class ParaxialPerpendicularPropagator1D(Propagator):
     r""" The paraxial propagator for perpendicular propagation of 1D waves.    
