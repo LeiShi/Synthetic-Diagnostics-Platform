@@ -12,6 +12,7 @@ from scipy.integrate import trapz, cumtrapz
 import numpy.fft as fft
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+import ipyparallel as ipp
 
 from FPSDP.GeneralSettings.UnitSystem import cgs
 import FPSDP.Diagnostics.ECEI.ECEI2D.Reciprocity as rcp
@@ -37,10 +38,10 @@ p2d.setup_interps()
 omega = 8e11
 k = omega/c
 # single frequency detector
-detector1 = GaussianAntenna(omega_list=[1.1*omega], k_list=[1.1*k], 
+detector1 = GaussianAntenna(omega_list=[omega], k_list=[k], 
                             power_list=[1], 
-                           waist_x=172, waist_y=2, waist_z=2, w_0y=2, 
-                           tilt_v=0, tilt_h=0)
+                           waist_x=172, waist_y=2, waist_z=2, w_0y=2, w_0z=5, 
+                           tilt_v=0, tilt_h=np.pi/20)
                            
 detector2 = GaussianAntenna(omega_list=[omega], k_list=[k], power_list=[1], 
                            waist_x=175, waist_y=2, waist_z=2, w_0y=2, 
@@ -64,15 +65,28 @@ ece_ani = rcp.ECE2D(plasma=p2d,detector=detector1, polarization='X',
 X1D = np.linspace(251, 150, 100)
 Y1D = np.linspace(-20, 20, 65)
 Z1D = np.linspace(-40, 20, 65)
+Z1D_fine = np.linspace(-40, 20, 512)
 
-ece_iso.set_coords([Z1D, Y1D, X1D])
-ece_ani.set_coords([Z1D, Y1D, X1D])
-ece.set_coords([Z1D, Y1D, X1D])
+ece_iso.set_coords([Z1D_fine, Y1D, X1D])
+ece_ani.set_coords([Z1D_fine, Y1D, X1D])
+ece.set_coords([Z1D_fine, Y1D, X1D])
 
-ecei = ECEImagingSystem(p2d, [detector1, detector2, detector3], max_harmonic=2,
+
+omega_s = np.linspace(0.8, 1.1, 4)*omega
+k_s = omega_s/c
+detectors = [GaussianAntenna(omega_list=[f], k_list=[k_s[i]], 
+                             power_list=[1], waist_x=175, waist_y=0, 
+                             w_0y=2) for i, f in enumerate(omega_s)]
+                             
+
+ecei = ECEImagingSystem(p2d, detectors=detectors, max_harmonic=2,
                         max_power=2)
                         
 ecei.set_coords([Z1D, Y1D, X1D])
+
+client = ipp.Client()
+ecei_para = ECEImagingSystem(p2d, detectors=detectors, max_harmonic=2,
+                             max_power=2, parallel=True, client=client)
 
 #ece.view_point
 #Ps = ece.diagnose(debug=True, auto_patch=True)
