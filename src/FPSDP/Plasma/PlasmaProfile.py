@@ -215,8 +215,8 @@ class ECEI_Profile(PlasmaProfile):
     def get_ne0(self, coordinates):
         """return ne0 interpolated at *coordinates*
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         """
@@ -239,8 +239,8 @@ setup_interp function first.'
     def get_Te0(self, coordinates):
         """return Te0 interpolated at *coordinates*
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         """
@@ -263,8 +263,8 @@ setup_interp function first.'
     def get_B0(self, coordinates):
         """return B0 interpolated at *coordinates*
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         """
@@ -287,8 +287,8 @@ setup_interp function first.'
     def get_dne(self, coordinates, time=None):
         """return dne interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid* 
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -352,8 +352,8 @@ setup_interp function first.'
     def get_dB(self, coordinates, time=None):
         """return dB interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -420,8 +420,8 @@ setup_interp function first.'
     def get_dTe_perp(self, coordinates, time=None):
         """return dTe_perp interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -484,8 +484,8 @@ consider calling setup_interp function first.'
     def get_dTe_para(self, coordinates, time=None):
         """return dTe_para interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -616,18 +616,30 @@ perpendicular=False but no electron parallel temperature perturbation data\
 
     
     def physical_quantities(self):
+        """return info string containing physical quantities included in the
+        profile.
+        """
+        keV = cgs['keV']
         
         result = 'Equilibrium:\n\
-    Electron density: ne0\n\
-    Electron temperature: Te0\n\
-    Magnetic field: B0\n\
-Fluctuation:\n'
+    Electron density: ne0 (max: {0:.3}, min:{1:.3} cm^-3)\n\
+    Electron temperature: Te0 (max:{2:.3}, min:{3:.3} keV)\n\
+    Magnetic field: B0 (max:{4:.3}, min:{5:.3} Gauss)\n\
+Fluctuation:\n'.format(np.max(self.ne0), np.min(self.ne0), 
+                       np.max(self.Te0)/keV, np.min(self.Te0)/keV, 
+                       np.max(self.B0), np.min(self.B0))
         if self.has_dne:
-            result += '    Electron density: dne\n'
+            result += '    Electron density: dne (max:{0:.3}, min:{1:.3} \
+cm^-3)\n'.format(np.max(self.dne), np.min(self.dne))
         if self.has_dTe_para:
-            result += '    Electron parallel temperature: dTe_para\n'
+            result += '    Electron parallel temperature: dTe_para \
+(max:{0:.3}, min:{1:.3} keV)\n'.format(np.max(self.dTe_para)/keV, 
+                                       np.min(self.dTe_para)/keV)
         if self.has_dTe_perp:
-            result += '    Electron perpendicular temperature: dTe_perp\n'
+            result += '    Electron perpendicular temperature: dTe_perp\
+(max:{0:.3}, min:{1:.3} keV)\n'.format(np.max(self.dTe_perp)/keV, 
+                                       np.min(self.dTe_perp)/keV)
         if self.has_dB:
-            result += '    Magnetic field magnitude: dB\n'
+            result += '    Magnetic field magnitude: dB (max:{0:.3}, \
+min:{1:.3} Gauss)\n'.format(np.max(self.dB), np.min(self.dB))
         return result
