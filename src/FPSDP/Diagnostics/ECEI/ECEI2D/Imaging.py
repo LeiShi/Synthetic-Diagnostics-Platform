@@ -16,7 +16,7 @@ from __future__ import print_function
 from os import path
 import sys
 import json
-import time
+import time as systime
 
 import numpy as np
 
@@ -179,7 +179,7 @@ eces[i] = ECE2D(plasma=plasma, detector=detectors[i], **e_param)'\
             for i,d in enumerate(detectors):
                 while(not status[i].ready() and wait_time<self._ND):
                     wait_time += 0.01
-                    time.sleep(0.01)
+                    systime.sleep(0.01)
             if wait_time >= self._ND:
                 raise Exception('Parallel Initialization Time is too long. \
 Check if something went wrong! Time elapsed: {0}s'.format(wait_time))
@@ -215,13 +215,13 @@ eces[i].set_coords(coordinates)')
             for i in channelID:
                 while(not status[i].ready() and wait_time<len(channelID)):
                     wait_time += 0.01
-                    time.sleep(0.01)
+                    systime.sleep(0.01)
             if wait_time >= len(channelID):
                 raise Exception('Parallel Set_coords takes too long. Check if \
 something went wrong. Time elapsed: {0}s'.format(wait_time))
             
     def auto_adjust_mesh(self, fine_coeff=1, channelID='all', 
-                         wait_time_single=120):
+                         wait_time_single=120, mute=False):
         """automatically adjust X grid points based on local emission intensity
         for chosen channels.
         
@@ -235,35 +235,50 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         :param float wait_time_single: expected execution time for single 
                                        channel, in seconds. Only used in 
                                        parallel mode to avoid infinite waiting.
+        :param bool mute: if True, no output during execution, except warnings.
         """
+        tstart = systime.clock()
+        
         if channelID == 'all':
             channelID = np.arange(self._ND)
         if not self._parallel:
+            if not mute:
+                print('Serial run with {} channels.'.format(self._ND))
             for channel_idx in channelID:
+                if not mute:
+                    print('Channel {}:'.format(channel_idx))
                 self.channels[channel_idx].auto_adjust_mesh\
-                                           (fine_coeff=fine_coeff)
+                                           (fine_coeff=fine_coeff, mute=mute)
         else:
+            if not mute:
+                print('Parallel run with {} channels on {} engines.'.\
+                       format(self._ND, self._engine_num) )
             status=[]
             for i in channelID:
                 eid = self._client.ids[i%self._engine_num]
                 engine = self._client[eid]
-                engine.push({'fine_coeff':fine_coeff})
+                if not mute:
+                    print ('channel #{} on engine #{}.'.format(i, eid))
+                engine.push({'fine_coeff':fine_coeff, 'mute':mute})
                 sts = engine.execute('\
-eces[i].auto_adjust_mesh(fine_coeff=fine_coeff)')
+eces[i].auto_adjust_mesh(fine_coeff=fine_coeff, mute=mute)')
                 status.append(sts)
             wait_time = 0
             for i in channelID:
                 while(not status[i].ready() and \
                       wait_time < wait_time_single*len(channelID)):
                     wait_time += 0.01
-                    time.sleep(0.01)
+                    systime.sleep(0.01)
             if wait_time >= wait_time_single*len(channelID):
                 raise Exception('Parallel auto_adjust_mesh takes too long. \
 Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
+        tend = systime.clock()
+        if not mute:
+            print('Walltime: {0:.4}s'.format(tend-tstart))
                                                             
     def diagnose(self, time=None, debug=False, auto_patch=False, 
                  oblique_correction=True, channelID='all', 
-                 wait_time_single=120):
+                 wait_time_single=120, mute=False):
         """diagnose electron temperature with chosen channels
         
         :param int time: time step in plasma profile chosen for diagnose. if 
@@ -287,7 +302,9 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
         :param float wait_time_single: expected execution time for single 
                                        channel, in seconds. Only used in 
                                        parallel mode to avoid infinite waiting.
+        :param bool mute: if True, no printed output.
         """
+        tstart = systime.clock()
         if channelID == 'all':
                 channelID = np.arange(self._ND)
         if not hasattr(self, 'Te'):
@@ -297,30 +314,37 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
         if not self._parallel:
             # single CPU version
             # if no previous Te, initialize with np.nan
-            if not hasattr(self, 'Te'):
-                self.Te = np.empty((self._ND), dtype='float')
-                self.Te[:] = np.nan
-            
+            if not mute:
+                print('Serial run for {} channels.'.format(self._ND))
             for channel_idx in channelID:
+                if not mute:
+                    print('Channel #{}:'.format(channel_idx))
                 self._debug_mode[channel_idx] = debug
                 self.Te[channel_idx] = self._channels[channel_idx].\
                                          diagnose(time=time, debug=debug, 
                                                   auto_patch=auto_patch,
                                                   oblique_correction=\
-                                                  oblique_correction)
+                                                  oblique_correction,
+                                                  mute=mute)
                                                   
         else:
+            if not mute:
+                print('Parallel run for {0} channels on {1} engines.'.\
+                       format(self._ND, self._engine_num))
             status=[]
             for i in channelID:
                 self._debug_mode[i] = debug
                 eid = self._client.ids[i%self._engine_num]
+                if not mute:
+                    print('Channel #{0} on engine #{1}'.format(i, eid))
                 engine = self._client[eid]
                 engine.push(dict(time=time, debug=debug, 
                                   auto_patch=auto_patch,
-                                  oblique_correction=oblique_correction))
+                                  oblique_correction=oblique_correction,
+                                  mute=mute))
                 sts = engine.execute('\
 eces[i].diagnose(time=time, debug=debug, auto_patch=auto_patch, \
-oblique_correction=oblique_correction)')
+oblique_correction=oblique_correction, mute=mute)')
                 status.append(sts)
             wait_time = 0
             for i in channelID:
@@ -334,6 +358,9 @@ oblique_correction=oblique_correction)')
             if wait_time >= wait_time_single*len(channelID):
                 raise Exception('Parallel Set_coords takes too long. Check if \
 something went wrong. Time elapsed: {0}s'.format(wait_time))
+        tend = systime.clock()
+        if not mute:
+            print('Walltime: {0:.4}s'.format(tend-tstart))
             
         return self.Te
         
@@ -368,20 +395,16 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
     
     @property
     def view_spots(self):
-        if np.any(~self._debug_mode):
-            print('Some of the channels didn\'t run in debug mode. view_spot \
-is not available. Call diagnose(debug=True) before accessing this property.', 
-                   file=sys.stderr)
+        if not self._parallel:
+            vs = [c.view_spot for c in self.channels]
         else:
-            if not self._parallel:
-                vs = [c.view_spot for c in self.channels]
-            else:
-                vs = []
-                for i in xrange(self._ND):
-                    eid = self._client.ids[i%self._engine_num]
-                    engine = self._client[eid]
-                    vs.append(engine['eces[{0}].view_spot'.format(i)])
-            return tuple(vs)
+            vs = []
+            for i in xrange(self._ND):
+                eid = self._client.ids[i%self._engine_num]
+                engine = self._client[eid]
+                vs.append(engine['eces[{0}].view_spot'.format(i)])
+        return tuple(vs)
+        
                 
     
     

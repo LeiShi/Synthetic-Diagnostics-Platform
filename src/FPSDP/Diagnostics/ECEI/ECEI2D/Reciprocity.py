@@ -38,6 +38,7 @@ Created on Tue Mar 08 17:04:59 2016
 """
 from __future__ import print_function
 import sys
+import time as systime
 
 import numpy as np
 from scipy.integrate import trapz
@@ -279,7 +280,17 @@ class ECE2D(object):
             print('Calculation mesh not set yet! Call set_coords() to setup\
 before running ECE.', file=sys.stderr)
     
-    def auto_adjust_mesh(self, fine_coeff=1):
+    def auto_adjust_mesh(self, fine_coeff=1, mute=False):
+        """automatically adjust X mesh to optimize efficiency
+        
+        :param float fine_coeff: 
+            coefficient controling the step sizes Default is 1, corresponds to 
+            within emission area, stepsize is 0.5 lambda, outside is 5 lambda. 
+            fine_coeff set to 2 will half the step sizes.
+        :param bool mute: if True, no standard output. Default is False.
+        
+        """        
+        tstart = systime.clock()        
         
         try:
             # test if set_coords() has been called.
@@ -294,7 +305,7 @@ before running ECE.', file=sys.stderr)
                 return
             else:
                 self._auto_coords_adjusted = False
-                self.auto_adjust_mesh(fine_coeff)
+                self.auto_adjust_mesh(fine_coeff, True)
         else:
             # run propagation at cental frequency once to obtain the local 
             # emission pattern
@@ -381,6 +392,8 @@ before running ECE.', file=sys.stderr)
                 print('Automatic coordinates adjustment performed! To reset \
 your mesh, call set_coords() with initial mesh again.')
                 self._auto_coords_adjusted = True
+                if not mute:
+                    print('Walltime: {0:.4}s'.format(systime.clock()-tstart))
                 return
             coeff_ratio = self._fine_coeff/np.float(fine_coeff)
             if not x_coord.reversed:
@@ -403,15 +416,17 @@ your mesh, call set_coords() with initial mesh again.')
                 self.x_coord.add_patch(Cartesian1D(Xmin, Xmax, 
                                                    ResX=p.ResX*coeff_ratio))
             self.set_coords([self.Z1D, self.Y1D, self.x_coord.X1D])
-            print('Automatic coordinates adjustment performed! To reset your \
-mesh, call set_coords() with initial mesh again.')
+            if not mute:
+                print('Automatic coordinates adjustment performed! To reset \
+your mesh, call set_coords() with initial mesh again.')
             self._fine_coeff = fine_coeff
             self._auto_coords_adjusted = True
-            
-        
+            tend = systime.clock()            
+            if not mute:            
+                print('Walltime: {0:.4}s'.format(tend-tstart))
     
-    def diagnose(self, time=None, debug=False, auto_patch=False, 
-                 oblique_correction=True):
+    def diagnose(self, time=None, debug=False, auto_patch=False, fine_coeff=1,
+                 oblique_correction=True, mute=False):
         r"""Calculates the received power by antenna.
         
         Propagate wave in conjugate plasma, and integrate over the whole space
@@ -437,12 +452,23 @@ mesh, call set_coords() with initial mesh again.')
                                 region. This may cause a decrease of speed, but
                                 can improve the accuracy. Default is False, the
                                 programmer is responsible to set proper x mesh.
+        :param float fine_coeff: 
+            coefficient controling the step sizes in auto_patch. 
+            Default is 1, corresponds to within emission area, stepsize is 0.5 
+            lambda, outside is 5 lambda. fine_coeff set to 2 will half the step
+            sizes.
         :param oblique_correction: if True, correction to oblique incident
                                    wave will be added. The decay part will have
                                    :math:`\cos(\theta_h)\cos(\theta_v)` term.
                                    Default is True.
         :type oblique_correction: bool
+        :param bool mute: if True, no output. Default is False.
         """
+        tstart = systime.clock()        
+        
+        if not mute:
+            print('Diagnose starts.')
+        
         if time is None:
             eq_only = True
         else:
@@ -464,7 +490,7 @@ set_coords() first.')
         if auto_patch:
             try:
                 if not self._auto_coords_adjusted:
-                    self.auto_adjust_mesh()
+                    self.auto_adjust_mesh(fine_coeff=fine_coeff, mute=mute)
                 else:
                     pass
             except AttributeError:
@@ -473,6 +499,8 @@ set_coords() first.')
                 return
             
         for i, omega in enumerate(self.detector.omega_list):
+            if not mute:
+                print('omega = {0:.4}GHz starts.'.format(omega/(2*np.pi*1e9)))
             E_inc = E_inc_list[i]
             tilt_h = self.detector.tilt_h
             tilt_v = self.detector.tilt_v
@@ -529,6 +557,10 @@ set_coords() first.')
         else:
             # detector has only one omega
             self.Ps = Ps_list[0]
+
+        tend = systime.clock()            
+        if not mute:
+            print('Walltime: {0:.4}s'.format(tend-tstart))
         return np.real(self.Ps) * 2*np.pi
         
     @property 
@@ -583,7 +615,7 @@ analyze it now, this may take a few minutes? (y/n)')
             print('view_spot is only available after diagnosing.\
 Call diagnose() first.', file=sys.stderr)
 
-        return np.abs(integ)
+        return np.abs(integ)/np.max(np.abs(integ))
         
     @property
     def properties(self):
