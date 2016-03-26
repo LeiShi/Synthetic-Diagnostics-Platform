@@ -328,11 +328,15 @@ before running ECE.', file=sys.stderr)
                 kz = self.propagator.masked_kz[:,0,0]
                 dkz = self.propagator.kz[1]-self.propagator.kz[0]
                 k0 = self.propagator.k_0[::2]
-                K_k = np.empty( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
+                K_k = np.zeros( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
+                
+                mask = self.propagator._mask_z
                 for j, x in enumerate(self.X1D):
                     X = x + np.zeros_like(self.Y1D)
-                    K_k[..., j] = self.scct([self.Y1D, X], omega, kz, k0[j], 
-                                            eq_only=True)
+                    K_k[:,:,mask,:,j] = \
+                      np.transpose(self.scct([self.Y1D, X], omega, kz, 
+                                             k0[j], eq_only=True), 
+                                   axes=(2,0,1,3))
                 if self.polarization == 'X':                    
                     e = np.asarray( [self.propagator.e_x[::2], 
                                      self.propagator.e_y[::2]] )  
@@ -426,7 +430,7 @@ your mesh, call set_coords() with initial mesh again.')
                 print('Walltime: {0:.4}s'.format(tend-tstart))
     
     def diagnose(self, time=None, debug=False, auto_patch=False, fine_coeff=1,
-                 oblique_correction=True, mute=False):
+                 oblique_correction=True, optimize_z=True, mute=False):
         r"""Calculates the received power by antenna.
         
         Propagate wave in conjugate plasma, and integrate over the whole space
@@ -462,6 +466,10 @@ your mesh, call set_coords() with initial mesh again.')
                                    :math:`\cos(\theta_h)\cos(\theta_v)` term.
                                    Default is True.
         :type oblique_correction: bool
+        :param bool optimize_z: 
+            if True, optimized propagation will be used. 
+            See :class:`FPSDP.Model.Waves.Propagator.
+                        ParaxialPerpendicularPropagator2D` for more details. 
         :param bool mute: if True, no output. Default is False.
         """
         tstart = systime.clock()        
@@ -512,15 +520,25 @@ set_coords() first.')
                                            tilt_h=tilt_h, tilt_v=tilt_v,
                                            keepFFTz=True, 
                                            oblique_correction=\
-                                           oblique_correction) * self.dZ
+                                           oblique_correction,
+                                           optimize_z=optimize_z) * self.dZ
             kz = self.propagator.masked_kz[:,0,0]
             dkz = self.propagator.kz[1]-self.propagator.kz[0]
             k0 = self.propagator.k_0[::2]
-            K_k = np.empty( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
-            for j, x in enumerate(self.X1D):
-                X = x + np.zeros_like(self.Y1D)
-                K_k[..., j] = self.scct([self.Y1D, X], omega, kz, k0[j], 
-                                        eq_only, time)
+            K_k = np.zeros( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
+            if optimize_z:
+                mask = self.propagator._mask_z
+                for j, x in enumerate(self.X1D):
+                    X = x + np.zeros_like(self.Y1D)
+                    K_k[:,:,mask,:,j] = \
+                      np.transpose(self.scct([self.Y1D, X], omega, kz, 
+                                             k0[j], eq_only=True), 
+                                   axes=(2,0,1,3))
+            else:
+                for j, x in enumerate(self.X1D):
+                    X = x + np.zeros_like(self.Y1D)
+                    K_k[...,j] = self.scct([self.Y1D, X], omega, kz, 
+                                                  k0[j], eq_only, time)
             if self.polarization == 'X':
                 e = np.asarray( [self.propagator.e_x[::2], 
                                  self.propagator.e_y[::2]] )  

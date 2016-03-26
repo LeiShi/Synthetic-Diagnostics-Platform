@@ -49,6 +49,7 @@ class Propagator_property(object):
         self.E = propagator.E
         self.eps0 = propagator.eps0
         self.deps = propagator.deps
+        self.dimension = propagator.dimension
 
 class ParaxialPerpendicularPropagator1D(Propagator):
     r""" The paraxial propagator for perpendicular propagation of 1D waves.    
@@ -298,7 +299,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
 
     def __init__(self, plasma, dielectric_class, polarization, 
                  direction, unitsystem=cgs, tol=1e-14, max_harmonic=4, 
-                 max_power=4, mute=True):
+                 max_power=4, mute=False):
         assert isinstance(plasma, PlasmaProfile) 
         assert issubclass(dielectric_class, Dielectric)
         assert polarization in ['X','O']
@@ -315,7 +316,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         self.direction = direction
         self.tol = tol
         self.unit_system = unitsystem
-        self.mute = mute
+        self.dimension = 1
         if not mute:
             print('Propagator 1D initialized.', file=sys.stdout)
         
@@ -486,17 +487,36 @@ solver instead of paraxial solver.')
         # find the y index of the peak
         myarg = marg % self.ny
         Ekmax = np.max(np.abs(self.E_k_start))
-        E_margin = Ekmax*np.exp(-mask_order)
-        # create the mask for components smaller than our marginal E
-        mask = np.abs(self.E_k_start[:,myarg]) < E_margin
-        # choose the largest kz in not masked part as the marginal kz
-        kz_margin = np.max(np.abs(self.kz[~mask]))
-        # fill all outside kz with the marginal kz
-        self.masked_kz = np.copy(self.kz)
-        self.masked_kz[mask] = kz_margin
-        #save central kz id
-        self.central_kz = marg // self.ny
-        self.margin_kz = np.argmin(mask)
+        E_margin = Ekmax*np.exp(-mask_order**2/2.)
+        # create the mask for components greater than our marginal E, they will
+        # be considered as significant
+        mask = np.abs(self.E_k_start[:,myarg]) > E_margin
+        self.central_kz_idx = marg // self.ny
+        self.margin_kz_idx = np.argmin(~mask)
+        if not self._optimize_z:
+            # No kz optimization, all kz fields will be propagated. But with a
+            # filtered value to avoid false alarm of kz too small.
+
+            # choose the largest kz in kept part as the marginal kz
+            kz_margin = np.max(np.abs(self.kz[mask]))
+            # fill all outside kz with the marginal kz
+            self.masked_kz = np.copy(self.kz)
+            self.masked_kz[~mask] = kz_margin
+            
+        else:
+            # with kz optimization, E_k_start and kz arrays will shunk to the 
+            # minimum size contatining only the significant components of 
+            # wave-vectors. They will be restored back into spatial space after
+            # propagation.
+            self._mask_z = mask
+            # keep a record of the original E_k_start, for restoration after
+            # propagation
+            self._E_k_origin = self.E_k_start
+            self._nz_origin = self.nz
+            
+            self.E_k_start = self.E_k_start[mask, :]
+            self.masked_kz = self.kz[mask]
+            self.nz = self.masked_kz.shape[0]
         
         tend = clock()
         
@@ -591,7 +611,7 @@ solver instead of paraxial solver.')
         nz=self.nz
         
         ky = self.ky[np.newaxis, :, np.newaxis]
-        kz = self.kz[:, np.newaxis, np.newaxis]
+        kz = self.masked_kz[:, np.newaxis, np.newaxis]
         
         omega2 = self.omega*self.omega
         c = self.unit_system['c']
@@ -693,6 +713,13 @@ solver instead of paraxial solver.')
         else:
             self.E_k = self.E_k0 
         
+        if self._optimize_z:
+            # restore to the original shape in z
+            self.nz = self._nz_origin
+            self._Ek_calc = self.E_k
+            self.E_k = np.zeros((self.nz, self.ny, self.nx), 
+                               dtype='complex')
+            self.E_k[self._mask_z] = self._Ek_calc                
         if self._keepFFTz:
             self.E = self.E_k
         else:
@@ -709,7 +736,7 @@ solver instead of paraxial solver.')
                   z_E, x_coords=None, time=None, tilt_v=0, tilt_h=0, mute=True,
                   debug_mode=False, include_main_phase=False, keepFFTz=False, 
                   normalize_E=False, kz_mask_order=4, oblique_correction=True,
-                  tolrel=1e-3):
+                  tolrel=1e-3, optimize_z=True):
         r"""propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None)
         
@@ -775,6 +802,12 @@ solver instead of paraxial solver.')
                                    :math:`\cos(\theta_h)\cos(\theta_v)` term.
                                    Default is True.
         :type oblique_correction: bool
+        :param bool optimize_z: 
+            if True, an optimization in Z direction will be applied. A filter
+            in kz space will be set, wave vectors outside a certain margin from
+            the central wave vector will be masked out, and won't propagate.
+            In oblique cases, this optimization may provide a maximum 10 times
+            speed boost. Default is True. 
         """ 
 
         tstart = clock()        
@@ -794,6 +827,7 @@ solver instead of paraxial solver.')
         self._keepFFTz = keepFFTz
         self._normalize_E = normalize_E
         self._oblique_correction = oblique_correction
+        self._optimize_z = optimize_z
         
         self.omega = omega
         self.tilt_v = tilt_v
@@ -818,7 +852,8 @@ expected.'.format(tolrel))
         if (x_coords is None):
             self.x_coords = np.linspace(x_start, x_end, nx+1)
         else:
-            self.x_coords = x_coords        
+            self.x_coords = x_coords
+        self.nx = len(self.x_coords)
         
         self._generate_epsilon0(mute=mute)
         self._generate_k(mute=mute, mask_order=kz_mask_order)
@@ -1184,7 +1219,7 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     
     def __init__(self, plasma, dielectric_class, polarization, 
                  direction, ray_y, unitsystem=cgs, tol=1e-14, 
-                 max_harmonic=4, max_power=4):
+                 max_harmonic=4, max_power=4, mute=False):
         assert isinstance(plasma, PlasmaProfile) 
         assert issubclass(dielectric_class, Dielectric)
         assert polarization in ['X','O']
@@ -1202,8 +1237,10 @@ class ParaxialPerpendicularPropagator2D(Propagator):
         self.direction = direction
         self.tol = tol
         self.unit_system = unitsystem
+        self.dimension = 2
         
-        print('Propagator 2D initialized.', file=sys.stdout)
+        if not mute:
+            print('Propagator 2D initialized.', file=sys.stdout)
     
 
     def _SDP(self, omega):
@@ -1420,17 +1457,36 @@ solver instead of paraxial solver.')
         myarg = marg % self.ny
         Ekmax = np.max(np.abs(self.E_k_start))
         E_margin = Ekmax*np.exp(-mask_order**2/2.)
-        # create the mask for components smaller than our marginal E
-        mask = np.abs(self.E_k_start[:,myarg]) < E_margin
-        # choose the largest kz in not masked part as the marginal kz
-        kz_margin = np.max(np.abs(self.kz[~mask]))
-        # fill all outside kz with the marginal kz
-        self.masked_kz = np.copy(self.kz)
-        self.masked_kz[mask] = kz_margin
-        
-        self.central_kz = marg // self.ny
-        self.margin_kz = np.argmin(mask)
-        
+        # create the mask for components greater than our marginal E, they will
+        # be considered as significant
+        mask = np.abs(self.E_k_start[:,myarg]) > E_margin
+        self.central_kz_idx = marg // self.ny
+        self.margin_kz_idx = np.argmin(~mask)
+        if not self._optimize_z:
+            # No kz optimization, all kz fields will be propagated. But with a
+            # filtered value to avoid false alarm of kz too small.
+
+            # choose the largest kz in kept part as the marginal kz
+            kz_margin = np.max(np.abs(self.kz[mask]))
+            # fill all outside kz with the marginal kz
+            self.masked_kz = np.copy(self.kz)
+            self.masked_kz[~mask] = kz_margin
+            
+        else:
+            # with kz optimization, E_k_start and kz arrays will shunk to the 
+            # minimum size contatining only the significant components of 
+            # wave-vectors. They will be restored back into spatial space after
+            # propagation.
+            self._mask_z = mask
+            # keep a record of the original E_k_start, for restoration after
+            # propagation
+            self._E_k_origin = self.E_k_start
+            self._nz_origin = self.nz
+            
+            self.E_k_start = self.E_k_start[mask, :]
+            self.masked_kz = self.kz[mask]
+            self.nz = self.masked_kz.shape[0]
+            
         tend = clock()
         
         if not mute:
@@ -1778,8 +1834,9 @@ solver instead of paraxial solver.')
             C[vacuum_idx] = 1
             C[non_vacuum] = (S2+D2)/S2 - (S2-D2)*D2/(S2*(S-P))
             
-            self.phase_kz = cumtrapz(- C*self.kz*self.kz / (2*self.k_0), 
-                                           x=self.calc_x_coords, initial=0)
+            self.phase_kz = cumtrapz(- C*self.masked_kz*self.masked_kz / \
+                                       (2*self.k_0), 
+                                     x=self.calc_x_coords, initial=0)
         
         tend = clock()        
         if not mute:                                   
@@ -1818,10 +1875,18 @@ solver instead of paraxial solver.')
             self._generate_main_phase(mute=mute) 
             self.Fk = self.Fk * np.exp(1j * self.main_phase)
         self.Fk = self.Fk * np.exp(1j * self.phase_kz)
+        if self._optimize_z:
+            # restore to the original shape in z
+            self.nz = self._nz_origin
+            self._Fk_calc = self.Fk
+            self.Fk = np.zeros((self.nz, self.ny, self.nx_calc), 
+                               dtype='complex')
+            self.Fk[self._mask_z] = self._Fk_calc
         if self._keepFFTz:
             self.F = self.Fk
         else:
             self.F = np.fft.ifft(self.Fk, axis=0)
+                        
         self.E = self.F / (np.sqrt(np.abs(self.k_0)) * self._ey_mod)
         
         tend = clock()
@@ -1834,7 +1899,8 @@ solver instead of paraxial solver.')
                   z_E, x_coords=None, time=None, tilt_v=0, tilt_h=0, 
                   regular_E_mesh=True,  mute=True, debug_mode=False, 
                   include_main_phase=False, keepFFTz=False, normalize_E=True, 
-                  kz_mask_order=4, oblique_correction=True, tolrel=1e-3):
+                  kz_mask_order=4, oblique_correction=True, tolrel=1e-3, 
+                  optimize_z=True):
         r"""propagate(self, time, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None)
         
@@ -1902,7 +1968,13 @@ solver instead of paraxial solver.')
         :type oblique_correction: bool  
         :param float tolrel: Optional, a relative error tolarence for oblique
                              effect. If (kz*ky/k0)^2 exceeds tolrel, a warning
-                             will be generated.                                     
+                             will be generated. 
+        :param bool optimize_z: 
+            if True, an optimization in Z direction will be applied. A filter
+            in kz space will be set, wave vectors outside a certain margin from
+            the central wave vector will be masked out, and won't propagate.
+            In oblique cases, this optimization may provide a maximum 10 times
+            speed boost. Default is True.                       
         """ 
         
         tstart = clock()
@@ -1921,7 +1993,8 @@ solver instead of paraxial solver.')
         self._include_main_phase = include_main_phase 
         self._keepFFTz = keepFFTz 
         self._normalize_E = normalize_E
-        self._oblique_correction = oblique_correction          
+        self._oblique_correction = oblique_correction
+        self._optimize_z = optimize_z          
             
         self.omega = omega
         self.tilt_h = tilt_h
