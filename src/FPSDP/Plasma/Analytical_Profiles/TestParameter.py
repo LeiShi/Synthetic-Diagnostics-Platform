@@ -19,10 +19,10 @@ from ..PlasmaProfile import ECEI_Profile
 Parameter2D = OrderedDict()
 Parameter2D['R_0']=200
 Parameter2D['a']=50
-Parameter2D['DownLeft']=(-60,150)
-Parameter2D['UpRight']=(60,300)
-Parameter2D['NR']=301
-Parameter2D['NZ']=193
+Parameter2D['DownLeft']=(-30,150)
+Parameter2D['UpRight']=(30,300)
+Parameter2D['NR']=601
+Parameter2D['NZ']=720
 Parameter2D['ne_0']=2e13
 Parameter2D['Te_0']=1*cgs['keV']
 Parameter2D['B_0']=20000
@@ -31,14 +31,17 @@ Parameter2D['Te_shape']='Hmode'
 Parameter2D['dne_ne']=0.01
 Parameter2D['dte_te']=0.01
 Parameter2D['dB_B']=0
-Parameter2D['timesteps']=[0]
+Parameter2D['siny']={'k': 21, 'omega':6.28e5, 'x0': 220, 'dx':5, 'y0':0}
+Parameter2D['sinx']={'k':6.28, 'omega':6.28e5, 'y0': 0, 'dy':20, 'x0':220}
+Parameter2D['timesteps']=[0, 1, 2, 3]
+Parameter2D['dt']=2.5e-6
 
 Parameter1D = OrderedDict()
 Parameter1D['R_0']=200
 Parameter1D['a']=50
 Parameter1D['Xmin']=150
 Parameter1D['Xmax']=300
-Parameter1D['NX']=301
+Parameter1D['NX']=601
 Parameter1D['ne_0']=2e13
 Parameter1D['Te_0']=1*cgs['keV']
 Parameter1D['B_0']=20000
@@ -47,7 +50,9 @@ Parameter1D['Te_shape']='Hmode'
 Parameter1D['dne_ne']=0.01
 Parameter1D['dte_te']=0.01
 Parameter1D['dB_B']=0
-Parameter1D['timesteps']=[0]
+Parameter1D['sinx']={'k':6.28, 'omega':6.28e5, 'x0':220}
+Parameter1D['timesteps']=[0, 1, 2, 3]
+Parameter1D['dt']=2.5e-6
                
 
 
@@ -68,6 +73,10 @@ ShapeTable = {'exp': {'NeDecayScale': 3, 'TeDecayScale':5} ,
                        'PedHightN': 0.7, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
               'uniform':None,
               'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
+
+# FlucType provides a list of supported fluctuation types
+FlucType2D = ('random', 'siny', 'sinx')
+FlucType1D = ('random', 'sinx')
 
 def show_parameter2D():
     """Print out the parameters at the moment
@@ -95,7 +104,10 @@ def set_parameter2D(DownLeft=Parameter2D['DownLeft'],
                     dne_ne=Parameter2D['dne_ne'],
                     dte_te=Parameter2D['dte_te'],
                     dB_B=Parameter2D['dB_B'],
-                    timesteps=Parameter2D['timesteps']):
+                    sinx=Parameter2D['sinx'],
+                    siny=Parameter2D['siny'],
+                    timesteps=Parameter2D['timesteps'],
+                    dt=Parameter2D['dt']):
     """A explicit method to change the parameters.
 
     Although it's possible to directly assign new values to parameter keywords,
@@ -115,7 +127,10 @@ def set_parameter2D(DownLeft=Parameter2D['DownLeft'],
     Parameter2D['dne_ne'] = dne_ne
     Parameter2D['dte_te'] = dte_te
     Parameter2D['dB_B'] = dB_B
+    Parameter2D['sinx'] = sinx
+    Parameter2D['siny'] = siny
     Parameter2D['timesteps'] = timesteps
+    Parameter2D['dt'] = dt
     
 def set_parameter1D(Xmin=Parameter1D['Xmin'], 
                     Xmax=Parameter1D['Xmax'], 
@@ -130,7 +145,9 @@ def set_parameter1D(Xmin=Parameter1D['Xmin'],
                     dne_ne=Parameter1D['dne_ne'],
                     dte_te=Parameter1D['dte_te'],
                     dB_B=Parameter1D['dB_B'],
-                    timesteps=Parameter1D['timesteps']):
+                    sinx=Parameter1D['sinx'],
+                    timesteps=Parameter1D['timesteps'],
+                    dt=Parameter1D['dt']):
     """A explicit method to change the parameters.
 
     Although it's possible to directly assign new values to parameter keywords,
@@ -149,9 +166,11 @@ def set_parameter1D(Xmin=Parameter1D['Xmin'],
     Parameter1D['dne_ne'] = dne_ne
     Parameter1D['dte_te'] = dte_te
     Parameter1D['dB_B'] = dB_B
+    Parameter1D['sinx'] = sinx
     Parameter1D['timesteps'] = timesteps
+    Parameter1D['dt']=dt
 
-def create_profile1D(random_fluctuation=False, fluc_level=None):
+def create_profile1D(fluctuation=None, fluc_level=None):
     """Create the profiles and return it in a dictionary structure
 
     ne, Te, B values on RZ mesh are returned
@@ -243,29 +262,55 @@ are {}'.format(tshp, ShapeTable.keys()))
     profile['B']= B_array
     
     
-    if random_fluctuation:
-        
-        time = Parameter1D['timesteps']
-        d_shape = [len(time), XGrid.shape[0]]
-        if fluc_level is None:
-            dne = 2*Parameter1D['dne_ne']*profile['ne']*(random(d_shape)-0.5)
-            dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
-                       (random(d_shape)-0.5)
-            dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
-                       (random(d_shape)-0.5)
-            dB = 2*Parameter1D['dB_B']*profile['B']*(random(d_shape)-0.5)
+    if fluctuation is not None:
+        if fluctuation=='random':
+            time = Parameter1D['timesteps']
+            d_shape = [len(time), XGrid.shape[0]]
+            if fluc_level is None:
+                dne = 2*Parameter1D['dne_ne']*profile['ne']*\
+                      (random(d_shape)-0.5)
+                dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
+                           (random(d_shape)-0.5)
+                dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
+                           (random(d_shape)-0.5)
+                dB = 2*Parameter1D['dB_B']*profile['B']*(random(d_shape)-0.5)
+            else:
+                dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
+                dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+                dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+                dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
+            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
+                            profile['B'], time, dne, dTe_para, dTe_perp, dB)
+        elif fluctuation=='sinx':
+            timesteps = np.asarray(Parameter1D['timesteps'])
+            time = timesteps*Parameter1D['dt']
+            d_shape = [len(time), XGrid.shape[0]]
+            if fluc_level is None:
+                nfluc_level = Parameter1D['dne_ne']
+                tfluc_level = Parameter1D['dte_te']
+                Bfluc_level = Parameter1D['dB_B']
+            else:
+                nfluc_level = fluc_level
+                tfluc_level = fluc_level
+                Bfluc_level = fluc_level
+            x0 = Parameter1D['sinx']['x0']
+            k = Parameter1D['sinx']['k']
+            omega = Parameter1D['sinx']['omega']
+            fluc_pattern = np.sin(omega*time[:, np.newaxis] - k*(XGrid.X1D-x0))
+            dne = nfluc_level*profile['ne']*fluc_pattern
+            dTe = tfluc_level*profile['Te']*fluc_pattern
+            dB = Bfluc_level*profile['B']*fluc_pattern
+            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
+                            profile['B'], time, dne, dTe, dTe, dB)
         else:
-            dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
-            dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-            dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-            dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
-        return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                        profile['B'], time, dne, dTe_para, dTe_perp, dB)
+            raise NotImplementedError('Invalid fluctuation type:  {0}. \
+Supported types are {1}'.format(fluctuation, FlucType1D))
+            
     else:
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
                         profile['B'])
 
-def create_profile2D(random_fluctuation=False, fluc_level=None):
+def create_profile2D(fluctuation=None, fluc_level=None):
     """Create the profiles and return it in a dictionary structure
 
     ne, Te, B values on RZ mesh are returned
@@ -356,24 +401,78 @@ are {}'.format(tshp, ShapeTable.keys()))
     profile['B']= B_array
     
     
-    if random_fluctuation:
-        time = Parameter2D['timesteps']
-        d_shape = [len(time)]
-        d_shape.extend([i for i in RZGrid.R2D.shape])
-        if fluc_level is None:
-            dne = 2*Parameter2D['dne_ne']*profile['ne']*(random(d_shape)-0.5)
-            dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
-                       (random(d_shape)-0.5)
-            dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
-                       (random(d_shape)-0.5)
-            dB = 2*Parameter2D['dB_B']*profile['B']*(random(d_shape)-0.5)
+    if fluctuation is not None:
+        if fluctuation == 'random':
+            time = Parameter2D['timesteps']
+            d_shape = [len(time)]
+            d_shape.extend([i for i in RZGrid.R2D.shape])
+            if fluc_level is None:
+                dne = 2*Parameter2D['dne_ne']*profile['ne']*(random(d_shape)-0.5)
+                dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
+                           (random(d_shape)-0.5)
+                dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
+                           (random(d_shape)-0.5)
+                dB = 2*Parameter2D['dB_B']*profile['B']*(random(d_shape)-0.5)
+            else:
+                dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
+                dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+                dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
+                dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
+            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
+                            profile['B'], time, dne, dTe_para, dTe_perp, dB)
+        elif fluctuation=='sinx':
+            timesteps = np.asarray(Parameter2D['timesteps'])
+            time = timesteps*Parameter2D['dt']
+            if fluc_level is None:
+                nfluc_level = Parameter2D['dne_ne']
+                tfluc_level = Parameter2D['dte_te']
+                Bfluc_level = Parameter2D['dB_B']
+            else:
+                nfluc_level = fluc_level
+                tfluc_level = fluc_level
+                Bfluc_level = fluc_level
+            x0 = Parameter2D['sinx']['x0']
+            k = Parameter2D['sinx']['k']
+            y0 = Parameter2D['sinx']['y0']
+            dy = Parameter2D['sinx']['dy']
+            omega = Parameter2D['sinx']['omega']
+            
+            fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
+                                  k*(RZGrid.R2D-x0)) * \
+                                  np.exp(-(RZGrid.Z2D-y0)**2/dy**2)
+            dne = nfluc_level*profile['ne']*fluc_pattern
+            dTe = tfluc_level*profile['Te']*fluc_pattern
+            dB = Bfluc_level*profile['B']*fluc_pattern
+            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
+                            profile['B'], time, dne, dTe, dTe, dB)
+        elif fluctuation=='siny':
+            timesteps = np.asarray(Parameter2D['timesteps'])
+            time = timesteps*Parameter2D['dt']
+            if fluc_level is None:
+                nfluc_level = Parameter2D['dne_ne']
+                tfluc_level = Parameter2D['dte_te']
+                Bfluc_level = Parameter2D['dB_B']
+            else:
+                nfluc_level = fluc_level
+                tfluc_level = fluc_level
+                Bfluc_level = fluc_level
+            y0 = Parameter2D['siny']['y0']
+            k = Parameter2D['siny']['k']
+            x0 = Parameter2D['siny']['x0']
+            dx = Parameter2D['siny']['dx']
+            omega = Parameter2D['siny']['omega']
+            
+            fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
+                                  k*(RZGrid.Z2D-y0)) * \
+                                  np.exp(-(RZGrid.R2D-x0)**2/dx**2)
+            dne = nfluc_level*profile['ne']*fluc_pattern
+            dTe = tfluc_level*profile['Te']*fluc_pattern
+            dB = Bfluc_level*profile['B']*fluc_pattern
+            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
+                            profile['B'], time, dne, dTe, dTe, dB)
         else:
-            dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
-            dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-            dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-            dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
-        return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                        profile['B'], time, dne, dTe_para, dTe_perp, dB)
+            raise NotImplementedError('Invalid fluctuation type:  {0}. \
+Supported types are {1}'.format(fluctuation, FlucType2D))
     else:
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
                         profile['B'])
@@ -457,7 +556,7 @@ class TestPlasmaCreator:
     Shape of Magnetic Geometry:
         Concentric : all flux surfaces are concentric circles
         Shafranov_Shifted: flux surfaces are circles that have been shifted 
-        outwards according to Shafranov shift
+                           outwards according to Shafranov shift
     Equilibrium:
         Exponential_Decay: profiles are exponentially decaying radially
         Hmode_linear: profiles are slowly decreasing in the core region, and 
