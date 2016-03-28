@@ -57,11 +57,13 @@ Created on Wed Mar 02 15:23:04 2016
 
 @author: Lei Shi
 """
+import warnings
 
 import numpy as np
 from scipy.special import gammainc
 
-from FPSDP.GeneralSettings.UnitSystem import cgs
+from ..GeneralSettings.UnitSystem import cgs
+from ..Maths.Funcs import search_root
 
 
 # Some common constants all functions will use
@@ -556,7 +558,7 @@ class PlasmaCharProfile(object):
         self.B0 = p.B0
         self._plasma.setup_interps()
         
-    def set_coords(self, coordinates):
+    def set_coords(self, coordinates=None):
         """set the coordinates of locations where all characteristic properties 
         will be evaluated at. Must be called before retrieving any properties.
         
@@ -573,12 +575,15 @@ class PlasmaCharProfile(object):
         :raise AssertionError: if coordinates has different dimension as plasma
                                profile.
         """
-        self._coords = np.asarray(coordinates)
-        assert self._plasma.grid.dimension == self._coords.shape[0]
-        
-        self.ne0 = self._plasma.get_ne0(coordinates)
-        self.Te0 = self._plasma.get_Te0(coordinates)
-        self.B0 = self._plasma.get_B0(coordinates)
+        if coordinates is None:
+            self._coords = self._plasma.grid.get_ndmesh()
+        else:
+            self._coords = np.asarray(coordinates)
+            assert self._plasma.grid.dimension == self._coords.shape[0]
+            
+            self.ne0 = self._plasma.get_ne0(coordinates)
+            self.Te0 = self._plasma.get_Te0(coordinates)
+            self.B0 = self._plasma.get_B0(coordinates)
         
     
     @property    
@@ -616,3 +621,19 @@ class PlasmaCharProfile(object):
     @property
     def nu_ee_eps(self):
         return nu_ee_eps(self.ne0, self.Te0)
+        
+    def find_cold_ECE_res(self, omega, harmonic=2):
+        if self._plasma.grid.dimension == 1:
+            omega_ece = self.omega_ce * harmonic
+            x = self._coords[0]
+        elif self._plasma.grid.dimension == 2:
+            mid_y = self._coords[0].shape[0]/2
+            omega_ece = self.omega_ce[mid_y, :] * harmonic
+            x = self._coords[1][mid_y, :]
+        else:
+            raise NotImplementedError('Only 1D or 2D plasma profile are \
+supported.')
+        if (not np.all(np.argsort(omega_ece) == np.arange(len(omega_ece)))):
+            warnings.warn('ece frequency is not monotonically increasing! \
+Result from find_cold_ECE_res may not be valid.')
+        return search_root(x, omega_ece, omega)
