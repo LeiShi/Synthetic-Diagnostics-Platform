@@ -492,13 +492,14 @@ solver instead of paraxial solver.')
         # be considered as significant
         mask = np.abs(self.E_k_start[:,myarg]) > E_margin
         self.central_kz_idx = marg // self.ny
-        self.margin_kz_idx = np.argmin(~mask)
+        self.central_kz = self.kz[self.central_kz_idx]
+        # choose the largest kz in kept part as the marginal kz
+        kz_margin = np.max(np.abs(self.kz[mask]))
+        self.delta_kz = kz_margin - self.central_kz
         if not self._optimize_z:
             # No kz optimization, all kz fields will be propagated. But with a
             # filtered value to avoid false alarm of kz too small.
 
-            # choose the largest kz in kept part as the marginal kz
-            kz_margin = np.max(np.abs(self.kz[mask]))
             # fill all outside kz with the marginal kz
             self.masked_kz = np.copy(self.kz)
             self.masked_kz[~mask] = kz_margin
@@ -1461,13 +1462,14 @@ solver instead of paraxial solver.')
         # be considered as significant
         mask = np.abs(self.E_k_start[:,myarg]) > E_margin
         self.central_kz_idx = marg // self.ny
-        self.margin_kz_idx = np.argmin(~mask)
+        self.central_kz = self.kz[self.central_kz_idx]
+        # choose the largest kz in kept part as the marginal kz
+        kz_margin = np.max(np.abs(self.kz[mask]))
+        self.delta_kz = kz_margin - self.central_kz
         if not self._optimize_z:
             # No kz optimization, all kz fields will be propagated. But with a
             # filtered value to avoid false alarm of kz too small.
 
-            # choose the largest kz in kept part as the marginal kz
-            kz_margin = np.max(np.abs(self.kz[mask]))
             # fill all outside kz with the marginal kz
             self.masked_kz = np.copy(self.kz)
             self.masked_kz[~mask] = kz_margin
