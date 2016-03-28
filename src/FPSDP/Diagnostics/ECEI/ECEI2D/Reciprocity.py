@@ -383,7 +383,7 @@ before running ECE.', file=sys.stderr)
                             in_patch = True
                             continue
                     else:
-                        if not patch_flag or (i == len(patch_array)):
+                        if not patch_flag or (i == len(patch_array)-1):
                             x_end = self.X1D[i]
                             patch = Cartesian1D(x_start, x_end,
                                                ResX=0.5*wave_length/fine_coeff)
@@ -508,7 +508,7 @@ set_coords() first.')
             
         for i, omega in enumerate(self.detector.omega_list):
             if not mute:
-                print('omega = {0:.4}GHz starts.'.format(omega/(2*np.pi*1e9)))
+                print('f = {0:.4}GHz starts.'.format(omega/(2*np.pi*1e9)))
             E_inc = E_inc_list[i]
             tilt_h = self.detector.tilt_h
             tilt_v = self.detector.tilt_v
@@ -518,6 +518,7 @@ set_coords() first.')
                                            z_E = self.Z1D, 
                                            x_coords=self.X1D, time=time,
                                            tilt_h=tilt_h, tilt_v=tilt_v,
+                                           debug_mode=debug,
                                            keepFFTz=True, 
                                            oblique_correction=\
                                            oblique_correction,
