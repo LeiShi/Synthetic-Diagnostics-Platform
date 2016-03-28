@@ -365,13 +365,18 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         return self.Te
         
     @property
-    def channels(self):
+    def channels(self, channelID='all'):
+        """Detailed information for all/chosen channels"""
+        if channelID == 'all':
+            channelID = np.arange(self._ND)
+        else:
+            channelID = np.array(channelID)
         if not self._parallel:
-            return self._channels
+            return [self._channels[i] for i in channelID]
         else:
             print('Parallel Channels:')
             channels = []
-            for i in xrange(self._ND):
+            for i in channelID:
                 eid = i%self._engine_num
                 engine = self._client[eid]
                 print('    channel {0} on engine {1}:'.format(i, eid))
@@ -380,31 +385,92 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
             return channels
 
     @property
-    def view_points(self):
+    def view_points(self, channelID='all'):
         """ actual viewing location for each channel
         """
+        if channelID == 'all':
+            channelID = np.arange(self._ND)
+        else:
+            channelID = np.array(channelID)
         if not self._parallel:
-            vp = [c.view_point for c in self.channels]
+            vp = [self.channels[i].view_point for i in channelID]
         else:
             vp = []
-            for i in xrange(self._ND):
+            for i in channelID:
                 eid = self._client.ids[i%self._engine_num]
                 engine = self._client[eid]
                 vp.append(engine['eces[{0}].view_point'.format(i)])
         return tuple(vp)
     
     @property
-    def view_spots(self):
+    def view_spots(self, channelID='all'):
+        """view_spot list of all channels"""
+        if channelID == 'all':
+            channelID = np.arange(self._ND)
+        else:
+            channelID = np.array(channelID)
         if not self._parallel:
-            vs = [c.view_spot for c in self.channels]
+            vs = [self.channels[i].view_spot for i in channelID]
         else:
             vs = []
-            for i in xrange(self._ND):
+            for i in channelID:
                 eid = self._client.ids[i%self._engine_num]
                 engine = self._client[eid]
                 vs.append(engine['eces[{0}].view_spot'.format(i)])
         return tuple(vs)
         
+    @property
+    def X1Ds(self, channelID='all'):
+        """list containing X1D arrays of all channels"""
+        if channelID == 'all':
+            channelID = np.arange(self._ND)
+        else:
+            channelID = np.array(channelID)
+        if not self._parallel:
+            x1ds = [self.channels[i].X1D for i in channelID]
+        else:
+            x1ds = []
+            for i in channelID:
+                eid = self._client.ids[i%self._engine_num]
+                engine = self._client[eid]
+                x1ds.append(engine['eces[{0}].X1D'.format(i)])
+        return tuple(x1ds)
+        
+    @property
+    def Y1Ds(self, channelID='all'):
+        """list containing X1D arrays of all channels"""
+        if channelID == 'all':
+            channelID = np.arange(self._ND)
+        else:
+            channelID = np.array(channelID)
+        if not self._parallel:
+            y1ds = [self.channels[i].Y1D for i in channelID]
+        else:
+            y1ds = []
+            for i in channelID:
+                eid = self._client.ids[i%self._engine_num]
+                engine = self._client[eid]
+                y1ds.append(engine['eces[{0}].Y1D'.format(i)])
+        return tuple(y1ds)
+        
+    @property
+    def Z1Ds(self, channelID='all'):
+        """list containing X1D arrays of all channels"""
+        if channelID == 'all':
+            channelID = np.arange(self._ND)
+        else:
+            channelID = np.array(channelID)
+        if not self._parallel:
+            z1ds = [self.channels[i].Z1D for i in channelID]
+        else:
+            z1ds = []
+            for i in channelID:
+                eid = self._client.ids[i%self._engine_num]
+                engine = self._client[eid]
+                z1ds.append(engine['eces[{0}].Z1D'.format(i)])
+        return tuple(z1ds)
+        
+    
                 
     
     
