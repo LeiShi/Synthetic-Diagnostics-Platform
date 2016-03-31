@@ -28,6 +28,14 @@ from ...IO import f90nml
 from ...Maths.Funcs import poly2_curve
 from ...Diagnostics.AvailableDiagnostics import Available_Diagnostics
 from ..PlasmaProfile import ECEI_Profile
+from ...GeneralSettings.Exceptions import PlasmaError
+
+
+class GTC_Loader_Error(PlasmaError):
+    def __init__(self,message):
+        self.message = message
+    def __str__(self):
+        return str(self.message)
 
 
 def get_interp_planes(loader):
@@ -36,11 +44,11 @@ def get_interp_planes(loader):
     dPHI = 2 * np.pi / loader.n_plane
     phi_planes = np.arange(loader.n_plane)*dPHI
     if(loader.CO_DIR):
-        nextplane = np.searchsorted(phi_planes,loader.grid.phi3D,side = 'right')
+        nextplane = np.searchsorted(phi_planes,loader.grid.phi3D, side='right')
         prevplane = nextplane - 1
         nextplane[np.nonzero(nextplane == loader.n_plane)] = 0
     else:
-        prevplane = np.searchsorted(phi_planes,loader.grid.phi3D,side = 'right')
+        prevplane = np.searchsorted(phi_planes,loader.grid.phi3D, side='right')
         nextplane = prevplane - 1
         prevplane[np.nonzero(prevplane == loader.n_plane)] = 0
 
@@ -49,15 +57,22 @@ def get_interp_planes(loader):
 def calculate_needed_planes(my_gtc):
     pass
 
-def check_time_availability(path,required_times,fname_pattern):
-    """
-    We use regular expression to extract the time step information from file names. Note that if non-default file names are used, we need to modify the regular expression pattern.
-    More information about regular expression module in python, check out the documentation :https://docs.python.org/2/library/re.html 
+def check_time_availability(path, required_times, fname_pattern):
+    """Check GTC output files for available time steps
+    
+    We use regular expression to extract the time step information from file 
+    names. Note that if non-default file names are used, we need to modify the 
+    regular expression pattern.
+    
+    More information about regular expression module in python, check out the 
+    documentation :https://docs.python.org/2/library/re.html 
     
     :param string path: the path within which file names are being checked
     :param required_times: time steps that are expected to be existing
     :type required_times: python or numpy array of int.
-    :param fname_pattern: regular expression pattern that fits the filenames, and extract the time information with the group name *time*.        
+    :param fname_pattern: regular expression pattern that fits the filenames, 
+                          and extract the time information with the group name 
+                          *time*.        
     :type fname_pattern: raw string
     """
     
@@ -72,41 +87,55 @@ def check_time_availability(path,required_times,fname_pattern):
     time_all = np.sort(time_all)
     for t in required_times:
         if t not in time_all:
-            raise GTC_Loader_Error(('Time {} not available!'.format(t),time_all))
+            raise GTC_Loader_Error(('Time {} not available!'.format(t), 
+                                    time_all))
     print 'All time available.'
     return time_all
     
 
-class GTC_Loader_Error(Exception):
-    def __init__(self,message):
-        self.message = message
-    def __str__(self):
-        return str(self.message)
-
 class GTC_Loader:
     """Main class for loading GTC data. 
-    Instances are initialized with a given "grid" containing user specified mesh,
-    and a path containing all GTC output files. After initialization, GTC data
-    on the mesh will be ready to use.
+    
+    Instances are initialized with a given "grid" containing user specified 
+    mesh, and a path containing all GTC output files. After initialization, GTC
+    data on the mesh will be ready to use.
     """
     
-    def __init__(self,gtc_path,grid,tsteps,fname_pattern_2D = r'snap(?P<time>\d+)_fpsdp.json', fname_pattern_3D = r'PHI_(?P<time>\d+)_\d+.ncd', Mode = 'full'):
+    def __init__(self, gtc_path, grid, tsteps, 
+                 fname_pattern_2D=r'snap(?P<time>\d+)_fpsdp.json', 
+                 fname_pattern_3D = r'PHI_(?P<time>\d+)_\d+.ncd', 
+                 Mode = 'full'):
         """Initialize a GTC loader with the following parameters:
         
-            :param string gtc_path: The path where GTC output files are located. 
-            :param grid: User defined spatial grid. All GTC data will be interpolated onto this grid.
-            :type grid: FPSDP.Geometry.Grid object. Only Cartesian2D and Cartesian3D are supported for now.
-            :param tsteps: time steps requested. Use GTC simulation step counting. Will be checked at the beginning to make sure all requested time steps have been outputted. 
-            :type tsteps: list or 1D numpy array of int
-            :param fname_pattern_2D: (Optional) Regular Expression to fit 2D output files. Do not change unless you have changed the output file name convention.
-            :type fname_pattern_2D: raw string
-            :param fname_pattern_3D: (Optional) Regular Expression to fit 3D output files. Do not change unless you have changed the output file name convention.
-            :type fname_pattern_3D: raw string
-            :param string Mode:
+        :param string gtc_path: The path where GTC output files are located. 
+        :param grid: User defined spatial grid. All GTC data will be 
+                     interpolated onto this grid.
+        :type grid: :class:`Grid <FPSDP.Geometry.Grid>` object. Only 
+                    Cartesian2D and Cartesian3D are supported for now.
+        :param tsteps: 
+            time steps requested. Use GTC simulation step counting. 
+            Will be checked at the beginning to make sure all requested time 
+            steps have been outputted. 
+        :type tsteps: list or 1D numpy array of int
+        :param fname_pattern_2D: 
+            (Optional) Regular Expression to fit 2D output files. Do not change
+            unless you have changed the output file name convention.
+        :type fname_pattern_2D: raw string
+        :param fname_pattern_3D: 
+            (Optional) Regular Expression to fit 3D output files. Do not change
+            unless you have changed the output file name convention.
+        :type fname_pattern_3D: raw string
+        :param string Mode:
             (Optional) choice among 3 possible iniialization modes: 
-                **full**(Default): load both equilibrium and fluctuations, and interpolate them on given *grid*
-                **eq_only**: load only equilibrium, and interpolate it on given *grid*
-                **least**: DO NOT load any GTC output files, only initialize the loader with initial parameters. This mode is mainly used for debug.
+            
+            **full**(Default): 
+                load both equilibrium and fluctuations, and interpolate them on
+                given *grid*            
+            **eq_only**: 
+                load only equilibrium, and interpolate it on given *grid*
+            **least**: 
+                DO NOT load any GTC output files, only initialize the loader 
+                with initial parameters. This mode is mainly used for debug.
         """        
         
         
@@ -117,10 +146,14 @@ class GTC_Loader:
         if isinstance(grid, Cartesian2D):
             print('2D grid detected.')
             self.dimension = 2
-            #First, use :py:func:`check_time_availability` to analyze the existing files and check if all required time steps are available.
-            #If any requested time steps are not there, raise an error and print out all existing time steps.
+            # First, use :py:func:`check_time_availability` to analyze the 
+            # existing files and check if all required time steps are 
+            # available.
+            # If any requested time steps are not there, raise an error and 
+            # print out all existing time steps.
             try:
-                self.time_all = check_time_availability(self.path,self.tsteps,fname_pattern_2D)
+                self.time_all = check_time_availability(self.path, self.tsteps,
+                                                        fname_pattern_2D)
             except GTC_Loader_Error as e:
                 print e.message[0]
                 print 'Available time steps are:'
@@ -130,38 +163,51 @@ class GTC_Loader:
             print('3D grid detected.')
             self.dimension = 3
             try:
-                self.time_all = check_time_availability(os.path.join(self.path,'phi_dir'),self.tsteps,fname_pattern_3D)
+                self.time_all = check_time_availability(os.path.join(self.path,
+                                                                    'phi_dir'),
+                                                        self.tsteps,
+                                                        fname_pattern_3D)
             except GTC_Loader_Error as e:
                 print e.message[0]
                 print 'Available time steps are:'
                 print str(e.message[1])
                 raise 
         else:
-            raise(GTC_Loader_Error('Invalid grid: Only Cartesian2D or Cartesian3D grids are supported.'))
+            raise(GTC_Loader_Error('Invalid grid: Only Cartesian2D or \
+Cartesian3D grids are supported.'))
             
         
         if ((Mode == 'full') or (Mode == 'eq_only')):
-            #read gtc.in.out and gtc.out, obtain run specifications like: adiabatic/non-adiabatic electrons, electrostatic/electromagnetic, time step, ion gyro-radius, and snap output frequency.
+            # read gtc.in.out and gtc.out, obtain run specifications like: 
+            # adiabatic/non-adiabatic electrons, electrostatic/electromagnetic,
+            # time step, ion gyro-radius, and snap output frequency.
             self.load_gtc_specifics() 
         
-            # read grid_fpsdp.json, create triangulated mesh on GTC grids and extended grids for equilibrium.
+            # read grid_fpsdp.json, create triangulated mesh on GTC grids and 
+            # extended grids for equilibrium.
             self.load_grid() 
         
-            #read equilibriumB_fpsdp.json and equilibrium1D_fpsdp.json, create interpolators for B_phi,B_R,B_Z on extended grids, and interpolators for equilibrium density and temperature over 'a'.
+            # read equilibriumB_fpsdp.json and equilibrium1D_fpsdp.json, create
+            # interpolators for B_phi,B_R,B_Z on extended grids, and 
+            # interpolators for equilibrium density and temperature over 'a'.
             self.load_equilibrium(SOL_width=0.1) 
         
-            #interpolate equilibrium quantities
+            # interpolate equilibrium quantities
             self.interpolate_eq()
             
             if(Mode == 'full'):
-                #For fluctuations, 2D and 3D loaders are different
+                # For fluctuations, 2D and 3D loaders are different
                 if(self.dimension == 2):
-                    #2D is simple, read snap{time}_fpsdp.json and interpolate the data onto 2D grid
+                    # 2D is simple, read snap{time}_fpsdp.json and interpolate 
+                    # the data onto 2D grid
                     self.load_fluctuations_2D()
                     self.interpolate_fluc_2D()
                     
                 if(self.dimension == 3):
-                    #3D is much harder to do. First, we calculate the needed cross-section numbers
+                    # 3D loader is current not implemented
+                    raise NotImplementedError
+                    # 3D is much harder to do. First, we calculate the needed 
+                    # cross-section numbers
                     # get interpolation plane numbers for each grid point
                     self.prevplane,self.nextplane = get_interp_planes(self)
                     # calculate needed planes
@@ -173,13 +219,22 @@ class GTC_Loader:
                     self.interpolate_fluc_3D()
             
     def load_gtc_specifics(self):
-        """ read relevant GTC simulation settings from gtc.in.out and gtc.out files.
+        """ read relevant GTC simulation settings from gtc.in.out and gtc.out 
+        files.
+        
         Create Attributes:
-            :var bool HaveElectron: if True, GTC is simulating non-adiabatic electrons. Otherwise only adiabatic electrons are used.
-            :var bool isEM: if True, GTC is in Electro-magnetic mode. Otherwise in electro-static mode.
+            :var bool HaveElectron: 
+                if True, GTC is simulating non-adiabatic electrons. 
+                Otherwise only adiabatic electrons are used.
+            :var bool isEM: 
+                if True, GTC is in Electro-magnetic mode. 
+                Otherwise in electro-static mode.
             :var double dt: GTC simulation time step length, unit: second
-            :var double rho_i: typical ion gyro-radius in GTC simulation, unit:meter
-            :var int snapstep: GTC snapshot output time, every *snapstep* timesteps, a *snap###_fpsdp.json* file is written.
+            :var double rho_i: 
+                typical ion gyro-radius in GTC simulation, unit:meter
+            :var int snapstep: 
+                GTC snapshot output time, every *snapstep* timesteps, 
+                a *snap###_fpsdp.json* file is written.
         """
         
         GTCin_fname = self.path+'gtc.in.out'
@@ -205,14 +260,17 @@ class GTC_Loader:
             :var points_gtc: (R,Z) pairs for each GTC simulation grid point
             :vartype points_gtc: (N,2) shape double array
             
-            :var a_gtc: corresponding normalized flux radial coordinates on GTC grid
+            :var a_gtc: 
+                corresponding normalized flux radial coordinates on GTC grid
             :vartype a_gtc: 1D double array of length N
             :var theta_gtc: corresponding flux poloidal coordinates on GTC grid
             :vartype theta_gtc: 1D double array of length N
 
-            :var R_eq: R cooridnate on larger mesh for interpolating equilibrium
+            :var R_eq: 
+                R cooridnate on larger mesh for interpolating equilibrium
             :vartype R_eq: 1D double array of length N_eq
-            :var Z_eq: Z cooridnate on larger mesh for interpolating equilibrium
+            :var Z_eq: 
+                Z cooridnate on larger mesh for interpolating equilibrium
             :vartype Z_eq: 1D double array of length N_eq
             :var points_eq: (R,Z) pairs for each grid point on equilibrium mesh
             :vartype points_eq: (N_eq,2) shape double array
@@ -220,20 +278,29 @@ class GTC_Loader:
             :var a_eq: corresponding *a* values 
             :vartype a_eq: 1D double array of length N_eq
             
-            :var R_LCFS: R coordinates for sampled last closed flux surface, i.e. a=1
+            :var R_LCFS: 
+                R coordinates for sampled last closed flux surface, i.e. a=1
             :vartype R_LCFS: 1D double array of length N_LCFS
-            :var Z_LCFS: Z coordinates for sampled last closed flux surface, i.e. a=1
+            :var Z_LCFS: 
+                Z coordinates for sampled last closed flux surface, i.e. a=1
             :vartype Z_LCFS: 1D double array of length N_LCFS
             
             :var double R0: R coordinate of magnetic axis
             :var double Z0: Z coordinate of magnetic axis
             
-            :var Delaunay_gtc: trangulation of GTC grid on (R,Z) plane, created by scipy.spatial.Delaunay
+            :var Delaunay_gtc: 
+                trangulation of GTC grid on (R,Z) plane, 
+                created by :class:`Delaunay <scipy.spatial.Delaunay>`
             :vartype Delaunay_gtc: scipy.spatial.Delaunay object
-            :var Delaunay_eq: trangulation of equilibrium grid on (R,Z) plane, created by scipy.spatial.Delaunay
+            :var Delaunay_eq: 
+                trangulation of equilibrium grid on (R,Z) plane, created by 
+                :class:`Delaunay <scipy.spatial.Delaunay>`
             :vartype Delaunay_eq: scipy.spatial.Delaunay object
             
-            :var a_eq_interp: 2D linear interpolator of *a* on (R,Z) plane, using *a_eq* and *Delaunay_eq*. Out_of_bound value is set to be *nan* and will be dealt with later.
+            :var a_eq_interp: 
+                2D linear interpolator of *a* on (R,Z) plane, using *a_eq* and 
+                *Delaunay_eq*. Out_of_bound value is set to be *nan* and will 
+                be dealt with later.
             :vartype a_eq_interp: scipy.interpolate.LinearNDInterpolator object
             
             
@@ -253,22 +320,35 @@ class GTC_Loader:
         self.Z_eq = np.array(raw_grids['Z_eq'])*self.R0
         self.points_eq = np.transpose(np.array([self.Z_eq,self.R_eq]))
         self.a_eq = np.array(raw_grids['a_eq'])
-        #self.a_eq_max = np.max(self.a_eq)
-        #self.a_eq /= self.a_eq_max
+        # self.a_eq_max = np.max(self.a_eq)
+        # self.a_eq /= self.a_eq_max
       
-        #use Delaunay Triangulation package provided by **scipy** to do the 2D triangulation on GTC mesh
+        # use Delaunay Triangulation package provided by **scipy** to do the 2D
+        # triangulation on GTC mesh
         self.Delaunay_gtc = Delaunay(self.points_gtc)
-        self.triangulation_gtc = triangulation.Triangulation(self.Z_gtc,self.R_gtc,triangles = self.Delaunay_gtc.simplices)
-        self.trifinder_gtc = DelaunayTriFinder(self.Delaunay_gtc,self.triangulation_gtc)
+        self.triangulation_gtc = triangulation.Triangulation(self.Z_gtc, 
+                                                             self.R_gtc,
+                                        triangles=self.Delaunay_gtc.simplices)
+        self.trifinder_gtc = DelaunayTriFinder(self.Delaunay_gtc,
+                                               self.triangulation_gtc)
         
-        #For equilibrium mesh, we use Triangulation package provided by **matplotlib** to do a cubic interpolation on *a* values and B field. The points outside the convex hull of given set of points will be treated later.
+        # For equilibrium mesh, we use Triangulation package provided by 
+        # **matplotlib** to do a cubic interpolation on *a* values and B field.
+        # The points outside the convex hull of given set of points will be 
+        # treated later.
         self.Delaunay_eq = Delaunay(self.points_eq)
-        self.triangulation_eq = triangulation.Triangulation(self.Z_eq,self.R_eq, triangles = self.Delaunay_eq.simplices)
-        self.trifinder_eq = DelaunayTriFinder(self.Delaunay_eq,self.triangulation_eq)
+        self.triangulation_eq = triangulation.Triangulation(self.Z_eq,
+                                                            self.R_eq, 
+                                        triangles = self.Delaunay_eq.simplices)
+        self.trifinder_eq = DelaunayTriFinder(self.Delaunay_eq, 
+                                              self.triangulation_eq)
         
-        #interpolate flux surface coordinate "a" onto grid_eq, save the interpolater for future use.
-        #Default fill value is "nan", points outside eq mesh will be dealt with care
-        self.a_eq_interp = linear_interp(self.triangulation_eq,self.a_eq, trifinder = self.trifinder_eq)
+        # interpolate flux surface coordinate "a" onto grid_eq, save the 
+        # interpolater for future use.
+        # Default fill value is "nan", points outside eq mesh will be dealt 
+        # with care
+        self.a_eq_interp = linear_interp(self.triangulation_eq, self.a_eq, 
+                                         trifinder = self.trifinder_eq)
         
     def load_equilibrium(self, SOL_width = 0.1, extrapolation_points = 20):
         """ read in equilibrium field data from equilibriumB_fpsdp.json and equilibrium1D_fpsdp.json
@@ -625,6 +705,9 @@ class GTC_Loader:
             B = np.sqrt(self.Bphi_on_grid*self.Bphi_on_grid + self.BR_on_grid*\
                         self.BR_on_grid + self.BZ_on_grid*self.BZ_on_grid)
             return ECEI_Profile(grid, ne_total, Te_para, Te_perp, B)
+        elif (diagnostics == 'ECEI2D'):
+            self.interpolate_on_grid(grid)
+            ne_total = self.ne0_on_grid
         else:
             raise NotImplemented('GTC profile generator for {} is not \
 implemented! Modify FPSDP.Plasma.GTC_Profile.GTC_Loader.create_profile to \

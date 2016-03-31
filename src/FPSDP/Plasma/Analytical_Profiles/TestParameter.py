@@ -407,7 +407,8 @@ are {}'.format(tshp, ShapeTable.keys()))
             d_shape = [len(time)]
             d_shape.extend([i for i in RZGrid.R2D.shape])
             if fluc_level is None:
-                dne = 2*Parameter2D['dne_ne']*profile['ne']*(random(d_shape)-0.5)
+                dne = 2*Parameter2D['dne_ne']*profile['ne']*\
+                      (random(d_shape)-0.5)
                 dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
                            (random(d_shape)-0.5)
                 dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
