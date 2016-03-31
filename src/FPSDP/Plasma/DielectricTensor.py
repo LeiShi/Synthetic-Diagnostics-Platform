@@ -258,11 +258,8 @@ from ..Maths.PlasmaDispersionFunction import Fq_list, F1q_list, F2q_list
 from ..Maths.PlasmaDispersionFunction import Z, a_pn
 from .PlasmaProfile import PlasmaProfile
 from ..GeneralSettings.UnitSystem import UnitSystem, cgs
-from ..GeneralSettings.Exceptions import ModelInvalidError, ResonanceError, \
-                                         PlasmaWarning
+from ..GeneralSettings.Exceptions import ModelInvalidError, ResonanceError
 
-class DielectricTensorWarning(PlasmaWarning):
-    pass
 
 class Susceptibility(object):
     r"""Abstract base class for susceptibility tensor classes
@@ -765,7 +762,7 @@ No resonance allowed.'
             # ion case
             warnings.warn('Warm Susceptibility formula is used for ion species\
 , this is usually not appropriate. Check your model to be sure this is what \
-you wanted.', DielectricTensorWarning)
+you wanted.')
         
             c = self.plasma.unit_system['c']
             q = self.plasma.unit_system['e'] * \
@@ -1104,7 +1101,7 @@ non-relativistic limit. Resonance allowed. Max_harmonic = {}'.format(\
             # ion case
             warnings.warn('Hot non-relativistic Susceptibility formula is \
 used for ion species, this is usually not appropriate. Check your model to be \
-sure this is what you wanted.', DielectricTensorWarning)
+sure this is what you wanted.')
         
             c = self.plasma.unit_system['c']
             q = self.plasma.unit_system['e'] * \
@@ -1482,7 +1479,7 @@ weakly-relativistic limit. Resonance allowed. Max_harmonic = {}'.format(\
             # ion case
             warnings.warn('Hot non-relativistic Susceptibility formula is \
 used for ion species, this is usually not appropriate. Check your model to be \
-sure this is what you wanted.', DielectricTensorWarning)
+sure this is what you wanted.')
         
             c = self.plasma.unit_system['c']
             q = self.plasma.unit_system['e'] * \
@@ -1635,8 +1632,7 @@ def conjugate_suscept(hot_suscept_class):
                      eq_only=True, time = 0, tol=1e-14):
             chi_e = super(conj_suscept, self).__call__(coordinates, omega, 
                                                        -k_para, -k_perp, 
-                                                       eq_only=eq_only, 
-                                                       time = time,
+                                                       eq_only=True, time = 0,
                                                        tol=1e-14)
                                                        
             transpose_axes = np.arange(chi_e.ndim)

@@ -50,8 +50,7 @@ from abc import ABCMeta, abstractproperty
 def heuman(phi,m):
     r""" Compute the Heuman's lambda function
 
-    :math:`\Lambda_0 (\xi,k) = \frac{2}{\pi}\left[E(k)F(\xi,k') + K(k)E(\xi,k')
-           - K(k)F(\xi,k')\right]`
+    :math:`\Lambda_0 (\xi,k) = \frac{2}{\pi}\left[E(k)F(\xi,k') + K(k)E(\xi,k')- K(k)F(\xi,k')\right]`
     where :math:`k' = \sqrt{(1-k^2)}`
 
     :param np.array[N] phi: The amplitude of the elliptic integrals
@@ -76,17 +75,14 @@ def solid_angle_disk(pos,r):
       \Omega = \left\{\begin{array}{lr}
       2\pi-\frac{2L}{R_\text{max}}K(k)-\pi\Lambda_0(\xi,k) & r_0 < r_m \\
       \phantom{2}\pi-\frac{2L}{R_\text{max}}K(k) & r_0 = r_m \\
-      \phantom{2\pi}-\frac{2L}{R_\text{max}}K(k)+\pi\Lambda_0(\xi,k) & r_0 > 
-      r_m \\
+      \phantom{2\pi}-\frac{2L}{R_\text{max}}K(k)+\pi\Lambda_0(\xi,k) & r_0 > r_m \\
       \end{array}\right.
 
-    Read the paper of `Paxton  <http://scitation.aip.org/content/aip/journal
-    /rsi/30/4/10.1063/1.1716590>`_ "Solid Angle Calculation for a 
+    Read the paper of `Paxton  <http://scitation.aip.org/content/aip/journal/rsi/30/4/10.1063/1.1716590>`_ "Solid Angle Calculation for a 
     Circular Disk" in 1959 for the exact computation.
 
     :param np.array[N,3] pos: Position from which computing the solid angle
-    :param float r: Radius of the disk (the disk is centered in (0,0,0) and the
-                    perpendicular is along the z-axis)
+    :param float r: Radius of the disk (the disk is centered in (0,0,0) and the perpendicular is along the z-axis)
 
     :returns: Solid angle for each positions
     :rtype: np.array[N]
@@ -117,8 +113,7 @@ def solid_angle_disk(pos,r):
     solid[ind1] = temp
 
     # on axis case (easy analytical computation)
-    solid[ind2] = 2*np.pi*(1.0 - np.abs(pos[ind2,2])/\
-                  np.sqrt(r**2 + pos[ind2,2]**2))
+    solid[ind2] = 2*np.pi*(1.0 - np.abs(pos[ind2,2])/np.sqrt(r**2 + pos[ind2,2]**2))
     if (solid <= 0).any():
         print('Solid angle:',solid)
         print('Position:', pos)
@@ -127,8 +122,7 @@ def solid_angle_disk(pos,r):
 
 
 def compute_threshold_solid_angle(x,y,pos,rx,ry):
-    """ Compute a normalization of the threshold for the function 
-    :func:`solid_angle_seg <FPSDP.Maths.Funcs.solid_angle_seg>`
+    """ Compute a normalization of the threshold for the function :func:`solid_angle_seg <FPSDP.Maths.Funcs.solid_angle_seg>`
 
     :param list[x1,x2] x: Intersection on the ring of the mixed case
     :param list[y1,y2] y: Intersection on the lens of the mixed case
@@ -180,28 +174,23 @@ def compute_threshold_solid_angle(x,y,pos,rx,ry):
 def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     r""" Compute the solid angle of a disk where a segment has been removed.
     
-    First, the numerical integration will be carried out over the biggest area 
-    of the disk,
-    and, in a second time, if necessary, the integral over the full disk is 
-    computed (with the analytical formula) and subtracted by the numerical 
-    integral.
-    When we want to compute the small area with this methods, the error can be 
-    bigger than the solid angle, therefore an external check need to be done 
-    (usually this method is used in a computation in two step with the other 
-    one that will be a lot bigger than this error)
+    First, the numerical integration will be carried out over the biggest area of the disk,
+    and, in a second time, if necessary, the integral over the full disk is computed
+    (with the analytical formula) and subtracted by the numerical integral.
+    When we want to compute the small area with this methods, the error can be bigger than
+    the solid angle, therefore an external check need to be done (usually this method is used in 
+    a computation in two step with the other one that will be a lot bigger than this error)
     
-    The idea is to compute numerically the 2D integral by splitting the domain 
-    in sector of the same angle and doing a Gauss-Legendre quadrature formula 
-    over each dimension.
+    The idea is to compute numerically the 2D integral by splitting the domain in 
+    sector of the same angle and doing a Gauss-Legendre quadrature formula over
+    each dimension.
     
-    In a first time, the maximum radius (that will depends on the coordinate 
-    :math:`\theta`)has to be compute.
+    In a first time, the maximum radius (that will depends on the coordinate :math:`\theta`)
+    has to be compute.
     
-    WARNING: This function assumed that all the points are at the same distance
-    of the focus points.
+    WARNING: This function assumed that all the points are at the same distance of the focus points.
 
-    In this figure, we want to compute the area between the black line and the 
-    blue one.
+    In this figure, we want to compute the area between the black line and the blue one.
     
     .. tikz::
        \draw [red,dashed,domain=115:180] plot ({6*cos(\x)}, {6*sin(\x)});
@@ -228,14 +217,9 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
         
     :todo: improvement: remove useless computation of rmax
     :param np.array[N,3] pos: Position in the optical system
-    :param list[np.array[N],..] x: 
-        Position of the intersection on the ring (list contains 2 elements) 
-    :param float r: 
-        Radius of the disk (should be centered at (0,0,0) and the perpendicular
-        should be along the z-axis)
-    :param float islens: 
-        None if it is not the lens, otherwise the distance between the lens and
-        the focus point
+    :param list[np.array[N],..] x: Position of the intersection on the ring (list contains 2 elements) 
+    :param float r: Radius of the disk (should be centered at (0,0,0) and the perpendicular should be along the z-axis)
+    :param float islens: None if it is not the lens, otherwise the distance between the lens and the focus point
     :param int Nth: Number of sections for the theta quadrature formula
     :param int Nr: Number of sections for the radial quadrature formula
 
@@ -265,12 +249,10 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     # indices where we want to compute the big part
     ind = np.einsum('ij,ij->i',perp,x1) > 0
 
-    # create a vector perpendicular to x1-x2 and goes to the line from the
-    # origin
+    # create a vector perpendicular to x1-x2 and goes to the line from the origin
     perp[~ind] = -perp[~ind]
     perp = perp/np.sqrt(np.sum(perp**2,axis=1))[:,np.newaxis]
-    # in the case of the lens and between the fiber and the lens, we want the 
-    # opposite case
+    # in the case of the lens and between the fiber and the lens, we want the opposite case
     if islens is not None:
         test = pos[:,2] < islens
         ind[test] = ~ind[test]
@@ -292,8 +274,8 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     #:todo: This can be improved
     # compute the distance along theta where the segment is crossed
     rmax = d[:,np.newaxis,np.newaxis]/cospsi
-    # if the line cannot be cross, therefore the computation can raise some 
-    # troubl => set it manually to the good value
+    # if the line cannot be cross, therefore the computation can raise some trouble
+    # => set it manually to the good value
     rmax[~ind2] = r
     # take the min between the intersection with the segment and the circle
     rmax = np.minimum(r,rmax)
@@ -323,8 +305,7 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     # Theta quadrature
     omega = np.sum(diff*np.sum(rmax*omega*quadt.w,axis=2),axis=1)
     
-    # multiply by the scalar product between the position and the normal (to 
-    # the disk) vector 
+    # multiply by the scalar product between the position and the normal (to the disk) vector 
     omega *= np.abs(pos[:,2])
 
     # change the area that we want to compute
@@ -374,8 +355,7 @@ def low_pass_box(s,nc):
 
     n = len(s)
     if nc>n/2:
-        print("Warning: critical frequency out of input range, nothing will \
-happen to the input spectra.")
+        print("Warning: critical frequency out of input range, nothing will happen to the input spectra.")
         return s
     mask_plus = np.arange(n)<=nc
     mask_minus = np.arange(n)>= n-nc
@@ -665,9 +645,7 @@ class poly3_curve(poly_curve):
         :param double yp2: derivative at *x2*
         
         Create Attribute:
-            :var poly: 
-                the third order polynomial that connects the two given 
-                points (x1,y1) and (x2,y2)
+            :var poly: the third order polynomial that connects the two given points (x1,y1) and (x2,y2)
             :vartype poly: numpy.poly1d object
         """
         assert not x1==x2
@@ -689,8 +667,7 @@ class poly3_curve(poly_curve):
         x23 = x2**3
         x22 = x2**2                
         
-        a = np.array([[x13,x12,x1,1],[x23,x22,x2,1],[3*x12,2*x1,1,0],
-                      [3*x22,2*x2,1,0]])
+        a = np.array([[x13,x12,x1,1],[x23,x22,x2,1],[3*x12,2*x1,1,0],[3*x22,2*x2,1,0]])
         b = np.array([y1,y2,yp1,yp2])
         coef = np.linalg.solve(a,b)
         self.poly = np.poly1d(coef)

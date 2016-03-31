@@ -39,7 +39,6 @@ Created on Tue Mar 08 17:04:59 2016
 from __future__ import print_function
 import sys
 import time as systime
-import warnings
 
 import numpy as np
 from scipy.integrate import trapz
@@ -54,7 +53,6 @@ from .CurrentCorrelationTensor import SourceCurrentCorrelationTensor, \
                                       AnisotropicNonrelativisticMaxwellian
 from ....Geometry.Grid import Cartesian1D, FinePatch1D
 from ....GeneralSettings.UnitSystem import cgs
-from ....GeneralSettings.Exceptions import ECEIWarning
 
 class ECE2D_property(object):
     """Serializable container for main ECE2D properties
@@ -385,15 +383,12 @@ before running ECE.', file=sys.stderr)
                             in_patch = True
                             continue
                     else:
-                        if (not patch_flag) or (i == len(patch_array)-1):
+                        if not patch_flag or (i == len(patch_array)-1):
                             x_end = self.X1D[i]
                             patch = Cartesian1D(x_start, x_end,
                                                ResX=0.5*wave_length/fine_coeff)
                             self.x_coord.add_patch(patch)
                             in_patch = False
-                            if (i == len(patch_array -1)):
-                                warnings.warn('Emission pattern e^-9 level \
-touches inner calculation boundary, possible loss of signal.', ECEIWarning)
                         else:
                             continue
                 self._fine_coeff = fine_coeff
@@ -435,8 +430,7 @@ your mesh, call set_coords() with initial mesh again.')
                 print('Walltime: {0:.4}s'.format(tend-tstart))
     
     def diagnose(self, time=None, debug=False, auto_patch=False, fine_coeff=1,
-                 oblique_correction=True, optimize_z=True, mute=False, 
-                 tol=1e-4):
+                 oblique_correction=True, optimize_z=True, mute=False):
         r"""Calculates the received power by antenna.
         
         Propagate wave in conjugate plasma, and integrate over the whole space
@@ -477,8 +471,6 @@ your mesh, call set_coords() with initial mesh again.')
             See :class:`FPSDP.Model.Waves.Propagator.
                         ParaxialPerpendicularPropagator2D` for more details. 
         :param bool mute: if True, no output. Default is False.
-        :param float tol: aimed tolerance for error. Used to trigger a optical
-                          thin warning.  
         """
         tstart = systime.clock()        
         
@@ -489,8 +481,6 @@ your mesh, call set_coords() with initial mesh again.')
             eq_only = True
         else:
             eq_only = False
-        
-        self.time = time
         
         try:
             E_inc_list = self.detector.E_inc_list
@@ -533,11 +523,6 @@ set_coords() first.')
                                            oblique_correction=\
                                            oblique_correction,
                                            optimize_z=optimize_z) * self.dZ
-            pf = self.propagator.power_flow[-1]
-            if np.abs(pf) > tol:
-                warnings.warn('Residual beam power {0:.4} exceeds tolerance \
-{1:.4}, optically thin or calculation area too small.'.format(pf, tol), 
-                              ECEIWarning)
             kz = self.propagator.masked_kz[:,0,0]
             dkz = self.propagator.kz[1]-self.propagator.kz[0]
             k0 = self.propagator.k_0[::2]
@@ -548,7 +533,7 @@ set_coords() first.')
                     X = x + np.zeros_like(self.Y1D)
                     K_k[:,:,mask,:,j] = \
                       np.transpose(self.scct([self.Y1D, X], omega, kz, 
-                                             k0[j], eq_only, time), 
+                                             k0[j], eq_only=True), 
                                    axes=(2,0,1,3))
             else:
                 for j, x in enumerate(self.X1D):
@@ -645,16 +630,9 @@ analyze it now, this may take a few minutes? (y/n)')
         """
         try:
             integ = self.intkz_list[self.detector._central_index]
-            if self.time is None:    
-                Te = self.plasma.get_Te0([self.Y2D, self.X2D])
-            else:
-                Te = self.plasma.get_Te([self.Y2D, self.X2D], eq_only=False, 
-                                        time=self.time)
-            integ /= Te
         except AttributeError:
             print('view_spot is only available after diagnosing.\
 Call diagnose() first.', file=sys.stderr)
-        
 
         return np.abs(integ)/np.max(np.abs(integ))
         

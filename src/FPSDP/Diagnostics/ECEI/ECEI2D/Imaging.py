@@ -71,7 +71,13 @@ class ECEImagingSystem(object):
         diagnose plasma of using chosen 
         time steps using chosen channels.
     
-    
+    direct_map(Te_measured, detectorID='all'): 
+        map the measured electron temperature onto R-Z plane, using real peak 
+        emission locations.
+                                               
+    ideal_map(Te_measured, detectorID='all'): 
+        map the measured electron temperature onto R-Z plane, using ideal 
+        resonance locations.
     """
     
     def __init__(self, plasma, detectors, polarization='X', 
@@ -203,17 +209,16 @@ Check if something went wrong! Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 engine.push({'coordinates':coordinates})
                 sts = engine.execute('\
-eces[{0}].set_coords(coordinates)'.format(i))
+eces[i].set_coords(coordinates)')
                 status.append(sts)
             wait_time = 0
-            for i, ci in enumerate(channelID):
+            for i in channelID:
                 while(not status[i].ready() and wait_time<len(channelID)):
                     wait_time += 0.01
                     systime.sleep(0.01)
             if wait_time >= len(channelID):
                 raise Exception('Parallel Set_coords takes too long. Check if \
 something went wrong. Time elapsed: {0}s'.format(wait_time))
-            return status
             
     def auto_adjust_mesh(self, fine_coeff=1, channelID='all', 
                          wait_time_single=120, mute=False):
@@ -244,9 +249,6 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                     print('Channel {}:'.format(channel_idx))
                 self.channels[channel_idx].auto_adjust_mesh\
                                            (fine_coeff=fine_coeff, mute=mute)
-            tend = systime.clock()
-            if not mute:
-                print('Walltime: {0:.4}s'.format(tend-tstart))
         else:
             if not mute:
                 print('Parallel run with {} channels on {} engines.'.\
@@ -259,10 +261,10 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                     print ('channel #{} on engine #{}.'.format(i, eid))
                 engine.push({'fine_coeff':fine_coeff, 'mute':mute})
                 sts = engine.execute('\
-eces[{0}].auto_adjust_mesh(fine_coeff=fine_coeff, mute=mute)'.format(i))
+eces[i].auto_adjust_mesh(fine_coeff=fine_coeff, mute=mute)')
                 status.append(sts)
             wait_time = 0
-            for i, ci in enumerate(channelID):
+            for i in channelID:
                 while(not status[i].ready() and \
                       wait_time < wait_time_single*len(channelID)):
                     wait_time += 0.01
@@ -270,10 +272,9 @@ eces[{0}].auto_adjust_mesh(fine_coeff=fine_coeff, mute=mute)'.format(i))
             if wait_time >= wait_time_single*len(channelID):
                 raise Exception('Parallel auto_adjust_mesh takes too long. \
 Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
-            tend = systime.clock()
-            if not mute:
-                print('Walltime: {0:.4}s'.format(tend-tstart))
-            return status
+        tend = systime.clock()
+        if not mute:
+            print('Walltime: {0:.4}s'.format(tend-tstart))
                                                             
     def diagnose(self, time=None, debug=False, auto_patch=False, 
                  oblique_correction=True, channelID='all', 
@@ -325,13 +326,11 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
                                                   oblique_correction=\
                                                   oblique_correction,
                                                   mute=mute)
-            tend = systime.clock()
-            if not mute:
-                print('Walltime: {0:.4}s'.format(tend-tstart))                                                  
+                                                  
         else:
             if not mute:
                 print('Parallel run for {0} channels on {1} engines.'.\
-                       format(len(channelID), self._engine_num))
+                       format(self._ND, self._engine_num))
             status=[]
             for i in channelID:
                 self._debug_mode[i] = debug
@@ -344,26 +343,28 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
                                   oblique_correction=oblique_correction,
                                   mute=mute))
                 sts = engine.execute('\
-eces[{0}].diagnose(time=time, debug=debug, auto_patch=auto_patch, \
-oblique_correction=oblique_correction, mute=mute)'.format(i))
+eces[i].diagnose(time=time, debug=debug, auto_patch=auto_patch, \
+oblique_correction=oblique_correction, mute=mute)')
                 status.append(sts)
             wait_time = 0
-            for i, ci in enumerate(channelID):
+            for i in channelID:
                 while(not status[i].ready() and \
                       wait_time < wait_time_single*len(channelID)):
                     wait_time += 0.01
                     self._client.wait(status[i], 0.01)
-                eid = self._client.ids[ci%self._engine_num]
+                eid = self._client.ids[i%self._engine_num]
                 engine = self._client[eid]
-                self.Te[ci] = engine['eces[{0}].Te'.format(ci)]
+                self.Te[i] = engine['eces[{0}].Te'.format(i)]
             if wait_time >= wait_time_single*len(channelID):
                 raise Exception('Parallel Set_coords takes too long. Check if \
 something went wrong. Time elapsed: {0}s'.format(wait_time))
-            tend = systime.clock()
-            if not mute:
-                print('Walltime: {0:.4}s'.format(tend-tstart))    
-            return status
+        tend = systime.clock()
+        if not mute:
+            print('Walltime: {0:.4}s'.format(tend-tstart))
+            
+        return self.Te
         
+    @property
     def channels(self, channelID='all'):
         """Detailed information for all/chosen channels"""
         if channelID == 'all':
@@ -383,6 +384,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 print('        received.')
             return channels
 
+    @property
     def view_points(self, channelID='all'):
         """ actual viewing location for each channel
         """
@@ -400,6 +402,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 vp.append(engine['eces[{0}].view_point'.format(i)])
         return tuple(vp)
     
+    @property
     def view_spots(self, channelID='all'):
         """view_spot list of all channels"""
         if channelID == 'all':
@@ -416,6 +419,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 vs.append(engine['eces[{0}].view_spot'.format(i)])
         return tuple(vs)
         
+    @property
     def X1Ds(self, channelID='all'):
         """list containing X1D arrays of all channels"""
         if channelID == 'all':
@@ -432,6 +436,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 x1ds.append(engine['eces[{0}].X1D'.format(i)])
         return tuple(x1ds)
         
+    @property
     def Y1Ds(self, channelID='all'):
         """list containing X1D arrays of all channels"""
         if channelID == 'all':
@@ -448,6 +453,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 y1ds.append(engine['eces[{0}].Y1D'.format(i)])
         return tuple(y1ds)
         
+    @property
     def Z1Ds(self, channelID='all'):
         """list containing X1D arrays of all channels"""
         if channelID == 'all':
