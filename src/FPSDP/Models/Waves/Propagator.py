@@ -50,6 +50,13 @@ class Propagator_property(object):
         self.eps0 = propagator.eps0
         self.deps = propagator.deps
         self.dimension = propagator.dimension
+        if(self.dimension == 1):
+            self.x_coords = propagator.x_coords
+        else:
+            self.x_coords = propagator.calc_x_coords
+        self.y_coords = propagator.y_coords
+        self.z_coords = propagator.z_coords
+        self.power_flow = propagator.power_flow
 
 class ParaxialPerpendicularPropagator1D(Propagator):
     r""" The paraxial propagator for perpendicular propagation of 1D waves.    

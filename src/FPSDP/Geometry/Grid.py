@@ -6,11 +6,15 @@ import warnings
 import numpy as np
 
 from .Geometry import Geometry
+from .GeneralSettings.Exceptions import GeometryError, GeometryWarning
 
 
-class GridError(Exception):
+class GridError(GeometryError):
     def __init__(self,*p):
         self.args = p
+
+class GridWarning(GeometryWarning):
+    """Warning raised by Grid.py"""
 
 class Grid(object):
     """Base class for all kinds of grids
@@ -595,7 +599,7 @@ class Path2D(Grid):
         
     def get_mesh(self):
         warnings.warn('Path2D doesn\'t have regular mesh. get_mesh will return\
- a tuple containing (Z,R,s) coordinates of points on the path.')
+ a tuple containing (Z,R,s) coordinates of points on the path.', GridWarning)
         return (self.Z2D[0,:], self.R2D[0,:], self.s2D[0,:]) 
 
     def __str__(self):
