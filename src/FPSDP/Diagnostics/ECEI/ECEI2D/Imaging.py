@@ -238,7 +238,8 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
             channelID = np.arange(self._ND)
         if not self._parallel:
             if not mute:
-                print('Serial run with {} channels.'.format(self._ND))
+                print('Serial run of channel {0} out of total {1} channels.'.\
+                       format(channelID, self._ND))
             for channel_idx in channelID:
                 if not mute:
                     print('Channel {}:'.format(channel_idx))
@@ -249,8 +250,8 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 print('Walltime: {0:.4}s'.format(tend-tstart))
         else:
             if not mute:
-                print('Parallel run with {} channels on {} engines.'.\
-                       format(self._ND, self._engine_num) )
+                print('Parallel run of channel {0} on {1} engines.'.\
+                       format(channelID, self._engine_num) )
             status=[]
             for i in channelID:
                 eid = self._client.ids[i%self._engine_num]
@@ -314,7 +315,8 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
             # single CPU version
             # if no previous Te, initialize with np.nan
             if not mute:
-                print('Serial run for {} channels.'.format(self._ND))
+                print('Serial run for channel {0} out of total {1} channels.'.\
+                       format(channelID, self._ND))
             for channel_idx in channelID:
                 if not mute:
                     print('Channel #{}:'.format(channel_idx))
@@ -364,7 +366,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 print('Walltime: {0:.4}s'.format(tend-tstart))    
             return status
         
-    def channels(self, channelID='all'):
+    def get_channels(self, channelID='all'):
         """Detailed information for all/chosen channels"""
         if channelID == 'all':
             channelID = np.arange(self._ND)
@@ -382,8 +384,12 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 channels.append(engine['eces[i].properties'])
                 print('        received.')
             return channels
+            
+    @property
+    def channels(self):
+        return self.get_channels()
 
-    def view_points(self, channelID='all'):
+    def get_view_points(self, channelID='all'):
         """ actual viewing location for each channel
         """
         if channelID == 'all':
@@ -399,8 +405,12 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 vp.append(engine['eces[{0}].view_point'.format(i)])
         return tuple(vp)
+        
+    @property
+    def view_points(self):
+        return self.get_view_points()
     
-    def view_spots(self, channelID='all'):
+    def get_view_spots(self, channelID='all'):
         """view_spot list of all channels"""
         if channelID == 'all':
             channelID = np.arange(self._ND)
@@ -416,7 +426,11 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 vs.append(engine['eces[{0}].view_spot'.format(i)])
         return tuple(vs)
         
-    def X1Ds(self, channelID='all'):
+    @property
+    def view_spots(self):
+        return self.get_view_spots()
+        
+    def get_X1Ds(self, channelID='all'):
         """list containing X1D arrays of all channels"""
         if channelID == 'all':
             channelID = np.arange(self._ND)
@@ -431,8 +445,12 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 x1ds.append(engine['eces[{0}].X1D'.format(i)])
         return tuple(x1ds)
-        
-    def Y1Ds(self, channelID='all'):
+    
+    @property
+    def X1Ds(self):
+        return self.get_X1Ds()
+    
+    def get_Y1Ds(self, channelID='all'):
         """list containing X1D arrays of all channels"""
         if channelID == 'all':
             channelID = np.arange(self._ND)
@@ -448,7 +466,11 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 y1ds.append(engine['eces[{0}].Y1D'.format(i)])
         return tuple(y1ds)
         
-    def Z1Ds(self, channelID='all'):
+    @property
+    def Y1Ds(self):
+        return self.get_Y1Ds()
+        
+    def get_Z1Ds(self, channelID='all'):
         """list containing X1D arrays of all channels"""
         if channelID == 'all':
             channelID = np.arange(self._ND)
@@ -463,6 +485,10 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 z1ds.append(engine['eces[{0}].Z1D'.format(i)])
         return tuple(z1ds)
+        
+    @property
+    def Z1Ds(self):
+        return self.get_Z1Ds()
         
     
                 
