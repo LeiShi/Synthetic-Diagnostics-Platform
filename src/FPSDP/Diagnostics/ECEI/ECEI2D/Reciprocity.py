@@ -48,7 +48,8 @@ from .Detector2D import Detector2D
 from ....Models.Waves.Propagator import ParaxialPerpendicularPropagator2D
 from ....Plasma.PlasmaProfile import ECEI_Profile
 from ....Plasma.DielectricTensor import ConjRelElectronColdIon,\
-    ConjHotElectronColdIon,SusceptRelativistic, SusceptNonrelativistic
+    ConjHotElectronColdIon, SusceptRelativistic, SusceptNonrelativistic,\
+    ConjColdElectronColdIon
 from .CurrentCorrelationTensor import SourceCurrentCorrelationTensor, \
                                       IsotropicMaxwellian, \
                                       AnisotropicNonrelativisticMaxwellian
@@ -138,7 +139,8 @@ class ECE2D(object):
     :type plasma: :py:class:`FPSDP.Plasma.PlasmaProfile.ECEIProfile` object
     :param detector: receiving antenna 
     :type detector: 
-        :py:class`FPSDP.Diagnostics.ECEI.ECEI2D.Detector2D.Detector2D` object
+        :py:class`Detector2D <FPSDP.Diagnostics.ECEI.ECEI2D.Detector2D.
+        Detector2D>` object
     :param string polarization: either 'O' or 'X', the chosen polarization.
     :param bool weakly_relativistic: model selection for both dielectric and 
                                      current correlation tensor. If True, 
@@ -271,7 +273,8 @@ class ECE2D(object):
                                               direction=-1,
                                 ray_y=self.detector.central_beam.waist_loc[1],
                                               max_harmonic=self.max_harmonic,
-                                              max_power=self.max_power)
+                                              max_power=self.max_power,
+                                base_dielectric_class=ConjColdElectronColdIon)
         
     def _set_detector(self):
         """setup incidental field mesh for detector 
