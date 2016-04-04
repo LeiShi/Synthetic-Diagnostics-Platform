@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 from .Geometry import Geometry
-from .GeneralSettings.Exceptions import GeometryError, GeometryWarning
+from ..GeneralSettings.Exceptions import GeometryError, GeometryWarning
 
 
 class GridError(GeometryError):
@@ -282,12 +282,18 @@ class Cartesian2D(ExpGrid):
         #create 1D array for R and Z
         self.R1D = np.linspace(self.Rmin,self.Rmax,self.NR)
         self.Z1D = np.linspace(self.Zmin,self.Zmax,self.NZ)
-        #now create the 2darrays for R and Z
-        self.Z2D = np.zeros((self.NZ,self.NR)) + self.Z1D[:,np.newaxis]
-        self.R2D = np.zeros(self.Z2D.shape) + self.R1D[np.newaxis,:]
-        self.shape = self.R2D.shape
+        self.shape = (self.NZ, self.NR)
         self.dimension = 2
     
+    @property
+    def R2D(self):
+        """R coordinates on 2D full mesh"""
+        return np.zeros(self.shape) + self.R1D[np.newaxis,:]
+        
+    @property
+    def Z2D(self):
+        """Z coordinates on 2D full mesh"""
+        return np.zeros(self.shape) + self.Z1D[:,np.newaxis]
 
     def get_mesh(self):
         return (self.Z1D, self.R1D)  
@@ -428,16 +434,24 @@ class Cartesian3D(ExpGrid):
         self.X1D = np.linspace(self.Xmin,self.Xmax,self.NX)
         self.Y1D = np.linspace(self.Ymin,self.Ymax,self.NY)
         self.Z1D = np.linspace(self.Zmin,self.Zmax,self.NZ)
-        #now create the 3darrays for X, Y, and Z
         self.shape = (self.NZ, self.NY, self.NX)
-        zero3D = np.zeros(self.shape)
-        self.Z3D = zero3D + self.Z1D[:, np.newaxis, np.newaxis]
-        self.Y3D = zero3D + self.Y1D[np.newaxis,:,np.newaxis]
-        self.X3D = zero3D + self.X1D[np.newaxis,np.newaxis, :]
-        
         self.dimension = 3
         
-    
+    @property
+    def X3D(self):
+        """X coordinates on 3D mesh"""
+        return np.zeros(self.shape) + self.X1D[np.newaxis,np.newaxis, :]
+        
+    @property
+    def Y3D(self):
+        """X coordinates on 3D mesh"""
+        return np.zeros(self.shape) + self.Y1D[np.newaxis,:,np.newaxis]
+        
+    @property
+    def Z3D(self):
+        """Z coordinates on 3D mesh"""
+        return np.zeros(self.shape) + self.Z1D[:, np.newaxis, np.newaxis]
+        
     def get_mesh(self):
         return (self.Z1D, self.Y1D, self.X1D)
         
