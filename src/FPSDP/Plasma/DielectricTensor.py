@@ -1621,29 +1621,51 @@ sure this is what you wanted.', DielectricTensorWarning)
         return result
             
 
-def conjugate_suscept(hot_suscept_class):
+def conjugate_suscept(suscept_class):
     """return the conjugated version of the hot susceptibility tensor class
     """
-    class conj_suscept(hot_suscept_class):
-        def __init__(self, plasma, species, species_id=0, max_harmonic=4, 
-                     max_power=4):
-            super(conj_suscept, self).__init__(plasma, species, species_id=0, 
-                                               max_harmonic=max_harmonic, 
-                                               max_power=max_power)
-                                               
-        def __call__(self, coordinates, omega, k_para, k_perp, 
-                     eq_only=True, time = 0, tol=1e-14):
-            chi_e = super(conj_suscept, self).__call__(coordinates, omega, 
-                                                       -k_para, -k_perp, 
-                                                       eq_only=eq_only, 
-                                                       time = time,
-                                                       tol=1e-14)
-                                                       
-            transpose_axes = np.arange(chi_e.ndim)
-            transpose_axes[0] = 1
-            transpose_axes[1] = 0
-            
-            return np.transpose(chi_e, axes=transpose_axes)
+    assert issubclass(suscept_class, Susceptibility)
+    if issubclass(suscept_class, HotSusceptibility):
+        class conj_suscept(suscept_class):
+            def __init__(self, plasma, species, species_id=0, max_harmonic=4, 
+                         max_power=4):
+                super(conj_suscept, self).__init__(plasma, species, 
+                                                   species_id=0, 
+                                                   max_harmonic=max_harmonic, 
+                                                   max_power=max_power)
+                                                   
+            def __call__(self, coordinates, omega, k_para, k_perp, 
+                         eq_only=True, time = 0, tol=1e-14):
+                chi_e = super(conj_suscept, self).__call__(coordinates, omega, 
+                                                           -k_para, -k_perp, 
+                                                           eq_only=eq_only, 
+                                                           time = time,
+                                                           tol=1e-14)
+                                                           
+                transpose_axes = np.arange(chi_e.ndim)
+                transpose_axes[0] = 1
+                transpose_axes[1] = 0
+                
+                return np.transpose(chi_e, axes=transpose_axes)
+                
+    else:
+        class conj_suscept(suscept_class):
+            def __init__(self, plasma, species, species_id=0):
+                super(conj_suscept, self).__init__(plasma, species, 
+                                                   species_id=0)
+                                                   
+            def __call__(self, coordinates, omega, k_para=None, k_perp=None, 
+                         eq_only=True, time = 0, tol=1e-14):
+                chi_e = super(conj_suscept, self).__call__(coordinates, omega,
+                                                           eq_only=eq_only, 
+                                                           time = time,
+                                                           tol=1e-14)
+                                                           
+                transpose_axes = np.arange(chi_e.ndim)
+                transpose_axes[0] = 1
+                transpose_axes[1] = 0
+                
+                return np.transpose(chi_e, axes=transpose_axes)
             
     return conj_suscept
             
@@ -2290,6 +2312,44 @@ Maximum harmonic = {}, maximum power = {}'.format(max_harmonic,max_power)
         else:
             self.has_ion = False
             
+
+class ConjColdElectronColdIon(ColdDielectric):
+    r"""Class evaluating cold electron + cold ion  
+    dielectric tensor in Conjugated Plasma:
+    
+    .. math::
+        \mathbf{\epsilon^T}(\omega) \equiv \epsilon^T(\omega)
+    
+    Cold electron susceptibility tensor doesn't depend on *k_para* and 
+    *k_perp*, we do not need these.
+    
+    Initialization
+    ==============
+    :param plasma: plasma profile containing at least ne and B data
+    :type plasma: :py:class:`PlasmaProfile` object
+    :param ion_species: Ion species ids used in calculating dielectric tensor. 
+                        If None, no ion is added, only electrons contribute.
+    :type ion_species: None, or int, or list of int. 
+                       Optional, default to be None.
+    """
+    def __init__(self, plasma, ion_species=None):
+        self._name = 'Conjugate Cold Electrons and Ions Plasma Dielectric \
+Tensor'
+        self._description = 'Cold electrons and optional cold ions.'
+        self._plasma = plasma
+        self._Chi_e_model = conjugate_suscept(SusceptCold)(plasma,'e')
+        if ion_species is not None:
+            self.has_ion = True
+            self.ion_species = ion_species
+            self._Chi_i_model = []
+            for s in ion_species:
+                self._Chi_i_model.append(conjugate_suscept(SusceptCold)(plasma,
+                                                                       'i', s))
+        else:
+            self.has_ion = False
+    
+
+
 class ConjHotElectronColdIon(HotDielectric):
     r"""Class evaluating hot(non-relativistic) electron + cold ion  
     dielectric tensor in Conjugated Plasma:
