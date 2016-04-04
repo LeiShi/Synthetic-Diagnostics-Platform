@@ -305,14 +305,15 @@ class ParaxialPerpendicularPropagator1D(Propagator):
     
 
     def __init__(self, plasma, dielectric_class, polarization, 
-                 direction, unitsystem=cgs, tol=1e-14, max_harmonic=4, 
+                 direction, base_dielectric_class=ColdElectronColdIon,
+                 unitsystem=cgs, tol=1e-14, max_harmonic=4, 
                  max_power=4, mute=False):
         assert isinstance(plasma, PlasmaProfile) 
         assert issubclass(dielectric_class, Dielectric)
         assert polarization in ['X','O']
         assert direction in [1, -1]
         
-        self.main_dielectric = ColdElectronColdIon(plasma)
+        self.main_dielectric = base_dielectric_class(plasma)
         if issubclass(dielectric_class, HotDielectric):
             self.fluc_dielectric = dielectric_class(plasma, 
                                                     max_harmonic=max_harmonic,
@@ -1226,14 +1227,15 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     """
     
     def __init__(self, plasma, dielectric_class, polarization, 
-                 direction, ray_y, unitsystem=cgs, tol=1e-14, 
+                 direction, ray_y, unitsystem=cgs, 
+                 base_dielectric_class=ColdElectronColdIon, tol=1e-14, 
                  max_harmonic=4, max_power=4, mute=False):
         assert isinstance(plasma, PlasmaProfile) 
         assert issubclass(dielectric_class, Dielectric)
         assert polarization in ['X','O']
         assert direction in [1, -1]
         
-        self.main_dielectric = ColdElectronColdIon(plasma)
+        self.main_dielectric = base_dielectric_class(plasma)
         self.ray_y = ray_y
         if issubclass(dielectric_class, HotDielectric):
             self.fluc_dielectric = dielectric_class(plasma, 
