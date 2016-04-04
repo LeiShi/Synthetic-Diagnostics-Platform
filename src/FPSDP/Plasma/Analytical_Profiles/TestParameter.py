@@ -53,6 +53,26 @@ Parameter1D['dB_B']=0
 Parameter1D['sinx']={'k':6.28, 'omega':6.28e5, 'x0':220}
 Parameter1D['timesteps']=[0, 1, 2, 3]
 Parameter1D['dt']=2.5e-6
+
+Parameter_DIIID = OrderedDict()
+Parameter_DIIID['R_0']=177
+Parameter_DIIID['a']=50
+Parameter_DIIID['DownLeft']=(-30,127)
+Parameter_DIIID['UpRight']=(30,250)
+Parameter_DIIID['NR']=493
+Parameter_DIIID['NZ']=241
+Parameter_DIIID['ne_0']=3e13
+Parameter_DIIID['Te_0']=3*cgs['keV']
+Parameter_DIIID['B_0']=20000
+Parameter_DIIID['ne_shape']='Hmode'
+Parameter_DIIID['Te_shape']='Hmode'
+Parameter_DIIID['dne_ne']=0.01
+Parameter_DIIID['dte_te']=0.01
+Parameter_DIIID['dB_B']=0
+Parameter_DIIID['siny']={'k': 6.28/50, 'omega':6.28e5, 'x0': 222, 'dx':2, 'y0':0}
+Parameter_DIIID['sinx']={'k':6.28, 'omega':6.28e5, 'y0': 0, 'dy':20, 'x0':220}
+Parameter_DIIID['timesteps']=[0, 1, 2, 3]
+Parameter_DIIID['dt']=2.5e-6
                
 
 
@@ -69,8 +89,8 @@ xgc_test3D = {'Xmin':0.9,'Xmax':1.6,'Ymin':-0.5, 'Ymax':0.5, 'Zmin':-0.1,
 # DecayScale means within a minor radius, it will decay to exponential of which
 # power.
 ShapeTable = {'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
-              'Hmode':{'PedWidthT': 0.02,'PedWidthN': 0.02 ,'PedHightT': 0.8, 
-                       'PedHightN': 0.7, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
+              'Hmode':{'PedWidthT': 0.05,'PedWidthN': 0.05 ,'PedHightT': 0.4, 
+                       'PedHightN': 0.4, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
               'uniform':None,
               'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
 
@@ -82,7 +102,9 @@ def show_parameter2D():
     """Print out the parameters at the moment
     """
     for key,value in Parameter2D.items():
-        print '{} : {}'.format(key, value)
+        print '{0} : {1}'.format(key, value)
+        if 'shape' in key:
+            print '    {0} Params: {1}'.format(value, ShapeTable[value])
     
 def show_parameter1D():
     """Print out the parameters at the moment
