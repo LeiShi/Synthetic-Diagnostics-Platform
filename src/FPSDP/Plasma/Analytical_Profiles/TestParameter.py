@@ -9,6 +9,7 @@ import numpy as np
 from numpy.random import random
 
 from ...GeneralSettings.UnitSystem import cgs
+from ...GeneralSettings.Exceptions import FPSDPError
 from ...Geometry import Grid 
 from ..PlasmaProfile import ECEI_Profile
 
@@ -28,11 +29,20 @@ Parameter2D['Te_0']=1*cgs['keV']
 Parameter2D['B_0']=20000
 Parameter2D['ne_shape']='Hmode'
 Parameter2D['Te_shape']='Hmode'
-Parameter2D['dne_ne']=0.01
-Parameter2D['dte_te']=0.01
-Parameter2D['dB_B']=0
-Parameter2D['siny']={'k': 21, 'omega':6.28e5, 'x0': 220, 'dx':5, 'y0':0}
-Parameter2D['sinx']={'k':6.28, 'omega':6.28e5, 'y0': 0, 'dy':20, 'x0':220}
+
+# 2D fluctuations can be one of three types: 'sinx', 'siny', or 'random'
+# 'sinx' 'params': level, k, omega, y0, dy, x0, phi0
+# 'siny' : level, k, omega, x0, dx, y0, phi0
+# 'random': level
+Parameter2D['dne_ne']={'type':'siny', 
+                       'params':{'level':0.01, 'k': 2*np.pi/5, 'omega':6.28e5, 
+                                 'x0': 220, 'dx':5, 'y0':0, 'phi0':0}}
+Parameter2D['dte_te']={'type':'siny', 
+                       'params':{'level':0.01, 'k': 2*np.pi/5, 'omega':6.28e5, 
+                                 'x0': 220, 'dx':5, 'y0':0, 'phi0':0}}
+Parameter2D['dB_B']={'type':'siny', 
+                     'params':{'level':0.01, 'k': 2*np.pi/5, 'omega':6.28e5, 
+                               'x0': 220, 'dx':5, 'y0':0, 'phi0':0}}
 Parameter2D['timesteps']=[0, 1, 2, 3]
 Parameter2D['dt']=2.5e-6
 
@@ -47,10 +57,18 @@ Parameter1D['Te_0']=1*cgs['keV']
 Parameter1D['B_0']=20000
 Parameter1D['ne_shape']='Hmode'
 Parameter1D['Te_shape']='Hmode'
-Parameter1D['dne_ne']=0.01
-Parameter1D['dte_te']=0.01
-Parameter1D['dB_B']=0
-Parameter1D['sinx']={'k':6.28, 'omega':6.28e5, 'x0':220}
+# fluctuations are specified individually, with 'type' being either 'sin' or 
+# 'random'
+Parameter1D['dne_ne']={'type':'sin', 'params':{'level':0.01, 'k':6.28, 
+                                               'omega':6.28e5, 'x0':220, 
+                                               'phi0':0}}
+Parameter1D['dte_te']={'type':'sin', 'params':{'level':0.01, 'k':6.28, 
+                                               'omega':6.28e5, 'x0':220, 
+                                               'phi0':0}}
+Parameter1D['dB_B']={'type':'sin', 'params':{'level':0.01, 'k':6.28, 
+                                               'omega':6.28e5, 'x0':220, 
+                                               'phi0':0}}
+# timesteps determines the chosen time steps to be created
 Parameter1D['timesteps']=[0, 1, 2, 3]
 Parameter1D['dt']=2.5e-6
 
@@ -66,11 +84,15 @@ Parameter_DIIID['Te_0']=3*cgs['keV']
 Parameter_DIIID['B_0']=20000
 Parameter_DIIID['ne_shape']='Hmode'
 Parameter_DIIID['Te_shape']='Hmode'
-Parameter_DIIID['dne_ne']=0.01
-Parameter_DIIID['dte_te']=0.01
-Parameter_DIIID['dB_B']=0
-Parameter_DIIID['siny']={'k': 6.28/50, 'omega':6.28e5, 'x0': 222, 'dx':2, 'y0':0}
-Parameter_DIIID['sinx']={'k':6.28, 'omega':6.28e5, 'y0': 0, 'dy':20, 'x0':220}
+Parameter_DIIID['dne_ne']={'type':'siny', 
+                       'params':{'level':0.01, 'k': 2*np.pi/50, 'omega':6.28e5, 
+                                 'x0': 222, 'dx':2, 'y0':0, 'phi0':0}}
+Parameter_DIIID['dte_te']={'type':'siny', 
+                       'params':{'level':0.01, 'k': 2*np.pi/50, 'omega':6.28e5, 
+                                 'x0': 222, 'dx':2, 'y0':0, 'phi0':0}}
+Parameter_DIIID['dB_B']={'type':'siny', 
+                     'params':{'level':0.00, 'k': 2*np.pi/50, 'omega':6.28e5, 
+                               'x0': 222, 'dx':2, 'y0':0, 'phi0':0}}
 Parameter_DIIID['timesteps']=[0, 1, 2, 3]
 Parameter_DIIID['dt']=2.5e-6
                
@@ -126,8 +148,6 @@ def set_parameter2D(DownLeft=Parameter2D['DownLeft'],
                     dne_ne=Parameter2D['dne_ne'],
                     dte_te=Parameter2D['dte_te'],
                     dB_B=Parameter2D['dB_B'],
-                    sinx=Parameter2D['sinx'],
-                    siny=Parameter2D['siny'],
                     timesteps=Parameter2D['timesteps'],
                     dt=Parameter2D['dt']):
     """A explicit method to change the parameters.
@@ -149,8 +169,6 @@ def set_parameter2D(DownLeft=Parameter2D['DownLeft'],
     Parameter2D['dne_ne'] = dne_ne
     Parameter2D['dte_te'] = dte_te
     Parameter2D['dB_B'] = dB_B
-    Parameter2D['sinx'] = sinx
-    Parameter2D['siny'] = siny
     Parameter2D['timesteps'] = timesteps
     Parameter2D['dt'] = dt
     
@@ -167,7 +185,6 @@ def set_parameter1D(Xmin=Parameter1D['Xmin'],
                     dne_ne=Parameter1D['dne_ne'],
                     dte_te=Parameter1D['dte_te'],
                     dB_B=Parameter1D['dB_B'],
-                    sinx=Parameter1D['sinx'],
                     timesteps=Parameter1D['timesteps'],
                     dt=Parameter1D['dt']):
     """A explicit method to change the parameters.
@@ -188,11 +205,10 @@ def set_parameter1D(Xmin=Parameter1D['Xmin'],
     Parameter1D['dne_ne'] = dne_ne
     Parameter1D['dte_te'] = dte_te
     Parameter1D['dB_B'] = dB_B
-    Parameter1D['sinx'] = sinx
     Parameter1D['timesteps'] = timesteps
     Parameter1D['dt']=dt
 
-def create_profile1D(fluctuation=None, fluc_level=None):
+def create_profile1D(fluctuation=False):
     """Create the profiles and return it in a dictionary structure
 
     ne, Te, B values on RZ mesh are returned
@@ -284,50 +300,66 @@ are {}'.format(tshp, ShapeTable.keys()))
     profile['B']= B_array
     
     
-    if fluctuation is not None:
-        if fluctuation=='random':
-            time = Parameter1D['timesteps']
-            d_shape = [len(time), XGrid.shape[0]]
-            if fluc_level is None:
-                dne = 2*Parameter1D['dne_ne']*profile['ne']*\
-                      (random(d_shape)-0.5)
-                dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
-                           (random(d_shape)-0.5)
-                dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
-                           (random(d_shape)-0.5)
-                dB = 2*Parameter1D['dB_B']*profile['B']*(random(d_shape)-0.5)
-            else:
-                dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
-                dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-                dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-                dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
-            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                            profile['B'], time, dne, dTe_para, dTe_perp, dB)
-        elif fluctuation=='sinx':
-            timesteps = np.asarray(Parameter1D['timesteps'])
-            time = timesteps*Parameter1D['dt']
-            d_shape = [len(time), XGrid.shape[0]]
-            if fluc_level is None:
-                nfluc_level = Parameter1D['dne_ne']
-                tfluc_level = Parameter1D['dte_te']
-                Bfluc_level = Parameter1D['dB_B']
-            else:
-                nfluc_level = fluc_level
-                tfluc_level = fluc_level
-                Bfluc_level = fluc_level
-            x0 = Parameter1D['sinx']['x0']
-            k = Parameter1D['sinx']['k']
-            omega = Parameter1D['sinx']['omega']
-            fluc_pattern = np.sin(omega*time[:, np.newaxis] - k*(XGrid.X1D-x0))
+    if fluctuation:
+        dne_type = Parameter1D['dne_ne']['type']
+        dte_type = Parameter1D['dte_te']['type']
+        dB_type = Parameter1D['dB_B']['type']
+        timesteps = np.asarray(Parameter1D['timesteps'])
+        time = timesteps*Parameter1D['dt']
+        d_shape = [len(time), XGrid.shape[0]]
+        if dne_type=='random':
+            dne = 2*Parameter1D['dne_ne']['params']['level']*profile['ne']*\
+                  (random(d_shape)-0.5)
+        elif dne_type=='sin':
+            nfluc_level = Parameter1D['dne_ne']['params']['level']
+            x0 = Parameter1D['dne_ne']['params']['x0']
+            k = Parameter1D['dne_ne']['params']['k']
+            omega = Parameter1D['dne_ne']['params']['omega']
+            phi0 = Parameter1D['dne_ne']['params']['phi0']
+            fluc_pattern = np.sin(omega*time[:, np.newaxis] - k*(XGrid.X1D-x0)\
+                                  + phi0)
             dne = nfluc_level*profile['ne']*fluc_pattern
-            dTe = tfluc_level*profile['Te']*fluc_pattern
-            dB = Bfluc_level*profile['B']*fluc_pattern
-            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                            profile['B'], time, dne, dTe, dTe, dB)
         else:
             raise NotImplementedError('Invalid fluctuation type:  {0}. \
 Supported types are {1}'.format(fluctuation, FlucType1D))
             
+        if dte_type=='random':
+            dTe_para = 2*Parameter1D['dte_te']['params']['level']*profile['Te']*\
+                           (random(d_shape)-0.5)
+            dTe_perp = 2*Parameter1D['dte_te']['params']['level']*profile['Te']*\
+                           (random(d_shape)-0.5)
+        elif dte_type=='sin':
+            tfluc_level = Parameter1D['dte_te']['params']['level']
+            x0 = Parameter1D['dte_te']['params']['x0']
+            k = Parameter1D['dte_te']['params']['k']
+            omega = Parameter1D['dte_te']['params']['omega']
+            phi0 = Parameter1D['dte_te']['params']['phi0']
+            fluc_pattern = np.sin(omega*time[:, np.newaxis] - k*(XGrid.X1D-x0)\
+                                  + phi0)
+            dTe_para = tfluc_level*profile['Te']*fluc_pattern
+            dTe_perp = dTe_para
+        else:
+            raise NotImplementedError('Invalid fluctuation type:  {0}. \
+Supported types are {1}'.format(fluctuation, FlucType1D))
+            
+        if dB_type=='random':
+            dB = 2*Parameter1D['dB_B']['params']['level']*profile['B']*\
+                 (random(d_shape)-0.5)
+        elif dB_type=='sin':
+            Bfluc_level = Parameter1D['dB_B']['params']['level']
+            x0 = Parameter1D['dB_B']['params']['x0']
+            k = Parameter1D['dB_B']['params']['k']
+            omega = Parameter1D['dB_B']['params']['omega']
+            phi0 = Parameter1D['dB_B']['params']['phi0']
+            fluc_pattern = np.sin(omega*time[:, np.newaxis] - k*(XGrid.X1D-x0)\
+                                  + phi0)
+            dB = Bfluc_level*profile['B']*fluc_pattern
+        else:
+            raise NotImplementedError('Invalid fluctuation type:  {0}. \
+Supported types are {1}'.format(fluctuation, FlucType1D))
+            
+        return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
+                            profile['B'], time, dne, dTe_para, dTe_perp, dB)
     else:
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
                         profile['B'])
@@ -423,79 +455,122 @@ are {}'.format(tshp, ShapeTable.keys()))
     profile['B']= B_array
     
     
-    if fluctuation is not None:
-        if fluctuation == 'random':
-            time = Parameter2D['timesteps']
-            d_shape = [len(time)]
-            d_shape.extend([i for i in RZGrid.R2D.shape])
-            if fluc_level is None:
-                dne = 2*Parameter2D['dne_ne']*profile['ne']*\
-                      (random(d_shape)-0.5)
-                dTe_para = 2*Parameter1D['dte_te']*profile['Te']*\
-                           (random(d_shape)-0.5)
-                dTe_perp = 2*Parameter1D['dte_te']*profile['Te']*\
-                           (random(d_shape)-0.5)
-                dB = 2*Parameter2D['dB_B']*profile['B']*(random(d_shape)-0.5)
-            else:
-                dne = 2*fluc_level*profile['ne']*(random(d_shape)-0.5)
-                dTe_para = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-                dTe_perp = 2*fluc_level*profile['Te']*(random(d_shape)-0.5)
-                dB = 2*fluc_level*profile['B']*(random(d_shape)-0.5)
-            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                            profile['B'], time, dne, dTe_para, dTe_perp, dB)
-        elif fluctuation=='sinx':
-            timesteps = np.asarray(Parameter2D['timesteps'])
-            time = timesteps*Parameter2D['dt']
-            if fluc_level is None:
-                nfluc_level = Parameter2D['dne_ne']
-                tfluc_level = Parameter2D['dte_te']
-                Bfluc_level = Parameter2D['dB_B']
-            else:
-                nfluc_level = fluc_level
-                tfluc_level = fluc_level
-                Bfluc_level = fluc_level
-            x0 = Parameter2D['sinx']['x0']
-            k = Parameter2D['sinx']['k']
-            y0 = Parameter2D['sinx']['y0']
-            dy = Parameter2D['sinx']['dy']
-            omega = Parameter2D['sinx']['omega']
+    if fluctuation:
+        dne_type = Parameter2D['dne_ne']['type']
+        dte_type = Parameter2D['dte_te']['type']
+        dB_type = Parameter2D['dB_B']['type']
+        
+        timesteps = np.asarray(Parameter2D['timesteps'])
+        time = timesteps*Parameter2D['dt']
+        d_shape = [len(time)]
+        d_shape.extend([i for i in RZGrid.R2D.shape])
+        
+        if dne_type == 'random':
+            dne = 2*Parameter2D['dne_ne']['params']['level']*profile['ne']*\
+                  (random(d_shape)-0.5)
+        elif dne_type == 'sinx':
+            level = Parameter2D['dne_ne']['params']['level']
+            x0 = Parameter2D['dne_ne']['params']['x0']
+            k = Parameter2D['dne_ne']['params']['k']
+            y0 = Parameter2D['dne_ne']['params']['y0']
+            dy = Parameter2D['dne_ne']['params']['dy']
+            phi0 = Parameter2D['dne_ne']['params']['phi0']
+            omega = Parameter2D['dne_ne']['params']['omega']
             
             fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
-                                  k*(RZGrid.R2D-x0)) * \
+                                  k*(RZGrid.R2D-x0) + phi0) * \
                                   np.exp(-(RZGrid.Z2D-y0)**2/dy**2)
-            dne = nfluc_level*profile['ne']*fluc_pattern
-            dTe = tfluc_level*profile['Te']*fluc_pattern
-            dB = Bfluc_level*profile['B']*fluc_pattern
-            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                            profile['B'], time, dne, dTe, dTe, dB)
-        elif fluctuation=='siny':
-            timesteps = np.asarray(Parameter2D['timesteps'])
-            time = timesteps*Parameter2D['dt']
-            if fluc_level is None:
-                nfluc_level = Parameter2D['dne_ne']
-                tfluc_level = Parameter2D['dte_te']
-                Bfluc_level = Parameter2D['dB_B']
-            else:
-                nfluc_level = fluc_level
-                tfluc_level = fluc_level
-                Bfluc_level = fluc_level
-            y0 = Parameter2D['siny']['y0']
-            k = Parameter2D['siny']['k']
-            x0 = Parameter2D['siny']['x0']
-            dx = Parameter2D['siny']['dx']
-            omega = Parameter2D['siny']['omega']
+            dne = level*profile['ne']*fluc_pattern
+        elif dne_type == 'siny':
+            level = Parameter2D['dne_ne']['params']['level']
+            y0 = Parameter2D['dne_ne']['params']['y0']
+            k = Parameter2D['dne_ne']['params']['k']
+            x0 = Parameter2D['dne_ne']['params']['x0']
+            dx = Parameter2D['dne_ne']['params']['dx']
+            phi0 = Parameter2D['dne_ne']['params']['phi0']
+            omega = Parameter2D['dne_ne']['params']['omega']
             
             fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
-                                  k*(RZGrid.Z2D-y0)) * \
+                                  k*(RZGrid.Z2D-y0) + phi0) * \
                                   np.exp(-(RZGrid.R2D-x0)**2/dx**2)
-            dne = nfluc_level*profile['ne']*fluc_pattern
-            dTe = tfluc_level*profile['Te']*fluc_pattern
-            dB = Bfluc_level*profile['B']*fluc_pattern
-            return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
-                            profile['B'], time, dne, dTe, dTe, dB)
+            dne = level*profile['ne']*fluc_pattern
         else:
             raise NotImplementedError('Invalid fluctuation type:  {0}. \
-Supported types are {1}'.format(fluctuation, FlucType2D))
+Supported types are {1}'.format(dne_type, FlucType2D))
+        
+        if dte_type == 'random':
+            dTe_para = 2*Parameter2D['dte_te']*profile['Te']*\
+                           (random(d_shape)-0.5)
+            dTe_perp = dTe_para
+            
+        elif dte_type == 'sinx':
+            level = Parameter2D['dte_te']['params']['level']
+            x0 = Parameter2D['dte_te']['params']['x0']
+            k = Parameter2D['dte_te']['params']['k']
+            y0 = Parameter2D['dte_te']['params']['y0']
+            dy = Parameter2D['dte_te']['params']['dy']
+            phi0 = Parameter2D['dte_te']['params']['phi0']
+            omega = Parameter2D['dte_te']['params']['omega']
+            
+            fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
+                                  k*(RZGrid.R2D-x0) + phi0) * \
+                                  np.exp(-(RZGrid.Z2D-y0)**2/dy**2)
+            dTe_para = level*profile['Te']*fluc_pattern
+            dTe_perp = dTe_para
+        elif dte_type == 'siny':
+            level = Parameter2D['dte_te']['params']['level']
+            y0 = Parameter2D['dte_te']['params']['y0']
+            k = Parameter2D['dte_te']['params']['k']
+            x0 = Parameter2D['dte_te']['params']['x0']
+            dx = Parameter2D['dte_te']['params']['dx']
+            phi0 = Parameter2D['dte_te']['params']['phi0']
+            omega = Parameter2D['dte_te']['params']['omega']
+            
+            fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
+                                  k*(RZGrid.Z2D-y0) + phi0) * \
+                                  np.exp(-(RZGrid.R2D-x0)**2/dx**2)
+            dTe_para = level*profile['Te']*fluc_pattern
+            dTe_perp = dTe_para
+        else:
+            raise NotImplementedError('Invalid fluctuation type:  {0}. \
+Supported types are {1}'.format(dte_type, FlucType2D))
+        
+        if dB_type == 'random':
+            dB = 2*Parameter2D['dB_B']*profile['B']*(random(d_shape)-0.5)
+        elif dB_type == 'sinx':
+            level = Parameter2D['dB_B']['params']['level']
+            x0 = Parameter2D['dB_B']['params']['x0']
+            k = Parameter2D['dB_B']['params']['k']
+            y0 = Parameter2D['dB_B']['params']['y0']
+            dy = Parameter2D['dB_B']['params']['dy']
+            phi0 = Parameter2D['dB_B']['params']['phi0']
+            omega = Parameter2D['dB_B']['params']['omega']
+            
+            fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
+                                  k*(RZGrid.R2D-x0) + phi0) * \
+                                  np.exp(-(RZGrid.Z2D-y0)**2/dy**2)
+            dB = level*profile['B']*fluc_pattern
+        elif dB_type == 'siny':
+            level = Parameter2D['dB_B']['params']['level']
+            y0 = Parameter2D['dB_B']['params']['y0']
+            k = Parameter2D['dB_B']['params']['k']
+            x0 = Parameter2D['dB_B']['params']['x0']
+            dx = Parameter2D['dB_B']['params']['dx']
+            phi0 = Parameter2D['dB_B']['params']['phi0']
+            omega = Parameter2D['dB_B']['params']['omega']
+            
+            fluc_pattern = np.sin(omega*time[:, np.newaxis, np.newaxis] - \
+                                  k*(RZGrid.Z2D-y0) + phi0) * \
+                                  np.exp(-(RZGrid.R2D-x0)**2/dx**2)
+            dB = level*profile['B']*fluc_pattern
+        else:
+            raise NotImplementedError('Invalid fluctuation type:  {0}. \
+Supported types are {1}'.format(dB_type, FlucType2D))
+            
+        
+        return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
+                            profile['B'], time, dne, dTe_para, dTe_perp, dB)
+        
     else:
         return ECEI_Profile(profile['Grid'],profile['ne'],profile['Te'],
                         profile['B'])
@@ -534,7 +609,7 @@ def simulate_1D(p1d, grid2D):
 
 #TODO Build the new test plamsa model center.
 
-class PlasmaModelError(Exception):
+class PlasmaModelError(FPSDPError):
     def __init__(self,value):
         self.value = value
     def __str__(self):

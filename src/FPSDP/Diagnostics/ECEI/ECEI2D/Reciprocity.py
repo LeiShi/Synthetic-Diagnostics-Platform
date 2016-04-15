@@ -455,8 +455,9 @@ your mesh, call set_coords() with initial mesh again.')
         tensor calculated in 
         :py:module:`FPSDP.Diagnostics.ECEI.ECEI2D.CurrentCorrelationTensor`.
 
-        :param int time: time step in plasma profile chosen for diagnose. if 
-                         not given, only equilibrium will be used.
+        :param time: time steps in plasma profile chosen for diagnose. if 
+                     not given, only equilibrium will be used.
+        :type time: int or array_like of int, default is None.
         :param bool debug: debug mode flag. if True, more information will be 
                            kept for examining.
         :param bool auto_patch: if True, program will automatically detect the 
@@ -490,10 +491,19 @@ your mesh, call set_coords() with initial mesh again.')
         
         if time is None:
             eq_only = True
+            multiple_time = False
         else:
             eq_only = False
-        
-        self.time = time
+            self.time = np.array(time)
+            if self.time.ndim == 1:
+                # 1D array case
+                multiple_time = True
+            elif self.time.ndim > 1:
+                raise ValueError('time can only be scalar or 1D array, higher \
+dimensional arrays are not supported!')
+            else:
+                # scalar case
+                multiple_time=False
         
         try:
             E_inc_list = self.detector.E_inc_list
@@ -518,83 +528,168 @@ set_coords() first.')
                 print('Base coordinates not set! Call set_coords() first.', 
                       file=sys.stderr)
                 return
-            
-        for i, omega in enumerate(self.detector.omega_list):
-            if not mute:
-                print('f = {0:.4}GHz starts.'.format(omega/(2*np.pi*1e9)))
-            E_inc = E_inc_list[i]
-            tilt_h = self.detector.tilt_h
-            tilt_v = self.detector.tilt_v
-            E0 = self.propagator.propagate(omega, x_start=None, 
-                                           x_end=None, nx=None, 
-                                           E_start=E_inc, y_E=self.Y1D,
-                                           z_E = self.Z1D, 
-                                           x_coords=self.X1D, time=time,
-                                           tilt_h=tilt_h, tilt_v=tilt_v,
-                                           debug_mode=debug,
-                                           keepFFTz=True, 
-                                           oblique_correction=\
-                                           oblique_correction,
-                                           optimize_z=optimize_z) * self.dZ
-            pf = self.propagator.power_flow[-1]
-            if np.abs(pf) > tol:
-                warnings.warn('Residual beam power {0:.4} exceeds tolerance \
-{1:.4}, optically thin or calculation area too small.'.format(pf, tol), 
-                              ECEIWarning)
-            kz = self.propagator.masked_kz[:,0,0]
-            dkz = self.propagator.kz[1]-self.propagator.kz[0]
-            k0 = self.propagator.k_0[::2]
-            K_k = np.zeros( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
-            if optimize_z:
-                mask = self.propagator._mask_z
-                for j, x in enumerate(self.X1D):
-                    X = x + np.zeros_like(self.Y1D)
-                    K_k[:,:,mask,:,j] = \
-                      np.transpose(self.scct([self.Y1D, X], omega, kz, 
-                                             k0[j], eq_only, time), 
-                                   axes=(2,0,1,3))
-            else:
-                for j, x in enumerate(self.X1D):
-                    X = x + np.zeros_like(self.Y1D)
-                    K_k[...,j] = self.scct([self.Y1D, X], omega, kz, 
-                                                  k0[j], eq_only, time)
-            if self.polarization == 'X':
-                e = np.asarray( [self.propagator.e_x[::2], 
-                                 self.propagator.e_y[::2]] )  
-                e_conj = np.conj(e)
-                # For X mode, normalization of Poynting vector has an extra
-                # |e_y|^2 term that is not included in detector power 
-                # normalization
-                E0 /= np.sqrt(e[1,0]*e_conj[1,0])
-                # inner tensor product with unit polarization vector and K_k
-                eK_ke = 0
-                for l in xrange(2):
-                    for m in xrange(2):
-                        eK_ke += e[l] * K_k[l, m, ...] * e_conj[m]
-            elif self.polarization == 'O':
-                eK_ke = K_k[2,2]
-            integrand = eK_ke * E0 * np.conj(E0)/(32*np.pi)
-            # integrate over kz dimension         
-            intkz = np.sum(integrand, axis=0)*(dkz)
-            # integrate over y dimension
-            inty = trapz(intkz, x=self.Y1D, axis=0)
-            # integrate over x dimension
-            Ps_list[i] = trapz(inty[::-1], x=self.X1D[::-1], axis=0)
+                
+        if not multiple_time:    
+            for i, omega in enumerate(self.detector.omega_list):
+                if not mute:
+                    print('f = {0:.4}GHz starts.'.format(omega/(2*np.pi*1e9)))
+                E_inc = E_inc_list[i]
+                tilt_h = self.detector.tilt_h
+                tilt_v = self.detector.tilt_v
+                E0 = self.propagator.propagate(omega, x_start=None, 
+                                               x_end=None, nx=None, 
+                                               E_start=E_inc, y_E=self.Y1D,
+                                               z_E = self.Z1D, 
+                                               x_coords=self.X1D, time=time,
+                                               tilt_h=tilt_h, tilt_v=tilt_v,
+                                               debug_mode=debug,
+                                               keepFFTz=True, 
+                                               oblique_correction=\
+                                               oblique_correction,
+                                               optimize_z=optimize_z) * self.dZ
+                pf = self.propagator.power_flow[-1]
+                if np.abs(pf) > tol:
+                    warnings.warn('Residual beam power {0:.4} exceeds \
+tolerance {1:.4}, optically thin or calculation area too small.'.\
+                                   format(pf, tol), ECEIWarning)
+                kz = self.propagator.masked_kz[:,0,0]
+                dkz = self.propagator.kz[1]-self.propagator.kz[0]
+                k0 = self.propagator.k_0[::2]
+                K_k = np.zeros( (3,3,self.NZ,self.NY,self.NX), dtype='complex')
+                if optimize_z:
+                    mask = self.propagator._mask_z
+                    for j, x in enumerate(self.X1D):
+                        X = x + np.zeros_like(self.Y1D)
+                        K_k[:,:,mask,:,j] = \
+                          np.transpose(self.scct([self.Y1D, X], omega, kz, 
+                                                 k0[j], eq_only, time), 
+                                       axes=(2,0,1,3))
+                else:
+                    for j, x in enumerate(self.X1D):
+                        X = x + np.zeros_like(self.Y1D)
+                        K_k[...,j] = self.scct([self.Y1D, X], omega, kz, 
+                                                      k0[j], eq_only, time)
+                if self.polarization == 'X':
+                    e = np.asarray( [self.propagator.e_x[::2], 
+                                     self.propagator.e_y[::2]] )  
+                    e_conj = np.conj(e)
+                    # For X mode, normalization of Poynting vector has an extra
+                    # |e_y|^2 term that is not included in detector power 
+                    # normalization
+                    E0 /= np.sqrt(e[1,0]*e_conj[1,0])
+                    # inner tensor product with unit polarization vector and 
+                    # K_k
+                    eK_ke = 0
+                    for l in xrange(2):
+                        for m in xrange(2):
+                            eK_ke += e[l] * K_k[l, m, ...] * e_conj[m]
+                elif self.polarization == 'O':
+                    eK_ke = K_k[2,2]
+                integrand = eK_ke * E0 * np.conj(E0)/(32*np.pi)
+                # integrate over kz dimension         
+                intkz = np.sum(integrand, axis=0)*(dkz)
+                # integrate over y dimension
+                inty = trapz(intkz, x=self.Y1D, axis=0)
+                # integrate over x dimension
+                Ps_list[i] = trapz(inty[::-1], x=self.X1D[::-1], axis=0)
+                if debug:
+                    self.E0_list.append(E0)
+                    self.kz_list.append(kz)
+                    self.integrand_list.append(integrand)
+                self.intkz_list.append(intkz)
             if debug:
-                self.E0_list.append(E0)
-                self.kz_list.append(kz)
-                self.integrand_list.append(integrand)
-            self.intkz_list.append(intkz)
-        if debug:
-            self.Ps_list = Ps_list
-        if (len(Ps_list) > 1):        
-            # detector has a list of omegas, final result will be integrate 
-            # over omega space.
-            self.Ps = trapz(Ps_list, x=self.detector.omega_list)
+                self.Ps_list = Ps_list
+            if (len(Ps_list) > 1):        
+                # detector has a list of omegas, final result will be integrate 
+                # over omega space.
+                self.Ps = trapz(Ps_list, x=self.detector.omega_list)
+            else:
+                # detector has only one omega
+                self.Ps = Ps_list[0]
         else:
-            # detector has only one omega
-            self.Ps = Ps_list[0]
-
+            self.Ps = np.empty_like(self.time, dtype='complex')
+            for nt, t in enumerate(self.time):
+                for i, omega in enumerate(self.detector.omega_list):
+                    if not mute:
+                        print('f = {0:.4}GHz starts.'.\
+                              format(omega/(2*np.pi*1e9)))
+                    E_inc = E_inc_list[i]
+                    tilt_h = self.detector.tilt_h
+                    tilt_v = self.detector.tilt_v
+                    E0 = self.propagator.propagate(omega, x_start=None, 
+                                                   x_end=None, nx=None, 
+                                                   E_start=E_inc, y_E=self.Y1D,
+                                                   z_E = self.Z1D, 
+                                                   x_coords=self.X1D, 
+                                                   time=t,
+                                                   tilt_h=tilt_h, 
+                                                   tilt_v=tilt_v,
+                                                   debug_mode=debug,
+                                                   keepFFTz=True, 
+                                                   oblique_correction=\
+                                                   oblique_correction,
+                                              optimize_z=optimize_z) * self.dZ
+                    pf = self.propagator.power_flow[-1]
+                    if np.abs(pf) > tol:
+                        warnings.warn('Residual beam power {0:.4} exceeds \
+    tolerance {1:.4}, optically thin or calculation area too small.'.\
+                                       format(pf, tol), ECEIWarning)
+                    kz = self.propagator.masked_kz[:,0,0]
+                    dkz = self.propagator.kz[1]-self.propagator.kz[0]
+                    k0 = self.propagator.k_0[::2]
+                    K_k = np.zeros( (3,3,self.NZ,self.NY,self.NX), 
+                                    dtype='complex')
+                    if optimize_z:
+                        mask = self.propagator._mask_z
+                        for j, x in enumerate(self.X1D):
+                            X = x + np.zeros_like(self.Y1D)
+                            K_k[:,:,mask,:,j] = \
+                              np.transpose(self.scct([self.Y1D, X], omega, kz, 
+                                                     k0[j], eq_only, t), 
+                                           axes=(2,0,1,3))
+                    else:
+                        for j, x in enumerate(self.X1D):
+                            X = x + np.zeros_like(self.Y1D)
+                            K_k[...,j] = self.scct([self.Y1D, X], omega, kz, 
+                                                          k0[j], eq_only, t)
+                    if self.polarization == 'X':
+                        e = np.asarray( [self.propagator.e_x[::2], 
+                                         self.propagator.e_y[::2]] )  
+                        e_conj = np.conj(e)
+                        # For X mode, normalization of Poynting vector has an 
+                        # extra |e_y|^2 term that is not included in detector 
+                        # power normalization
+                        E0 /= np.sqrt(e[1,0]*e_conj[1,0])
+                        # inner tensor product with unit polarization vector 
+                        # and K_k
+                        eK_ke = 0
+                        for l in xrange(2):
+                            for m in xrange(2):
+                                eK_ke += e[l] * K_k[l, m, ...] * e_conj[m]
+                    elif self.polarization == 'O':
+                        eK_ke = K_k[2,2]
+                    integrand = eK_ke * E0 * np.conj(E0)/(32*np.pi)
+                    # integrate over kz dimension         
+                    intkz = np.sum(integrand, axis=0)*(dkz)
+                    # integrate over y dimension
+                    inty = trapz(intkz, x=self.Y1D, axis=0)
+                    # integrate over x dimension
+                    Ps_list[i] = trapz(inty[::-1], x=self.X1D[::-1], axis=0)
+                    if debug:
+                        self.E0_list.append(E0)
+                        self.kz_list.append(kz)
+                        self.integrand_list.append(integrand)
+                    self.intkz_list.append(intkz)
+                if debug:
+                    self.Ps_list = Ps_list
+                if (len(Ps_list) > 1):        
+                    # detector has a list of omegas, final result will be integrate 
+                    # over omega space.
+                    self.Ps[nt] = trapz(Ps_list, x=self.detector.omega_list)
+                else:
+                    # detector has only one omega
+                    self.Ps[nt] = Ps_list[0]
+                    
         tend = systime.clock()            
         if not mute:
             print('Walltime: {0:.4}s'.format(tend-tstart))

@@ -306,8 +306,10 @@ setup_interps function first.'
         
         if time is None:
             time = np.arange(len(self.time))
+
+        time = np.array(time)        
         
-        if isinstance(time, int):
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -325,7 +327,7 @@ setup_interps function first.'
                 dne_sp = RegularGridInterpolator(mesh, self.dne[time])
                 result = dne_sp(points)
             return result
-        else:
+        elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -348,6 +350,8 @@ setup_interps function first.'
                     dne_sp = RegularGridInterpolator(mesh, self.dne[t])
                     result[i] = dne_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
             
     def get_dB(self, coordinates, time=None):
         """return dB interpolated at *coordinates*, for each time step
@@ -371,8 +375,10 @@ setup_interps function first.'
         
         if time is None:
             time = np.arange(len(self.time))
-            
-        if isinstance(time, int):
+        
+        time = np.array(time)        
+        
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -390,10 +396,10 @@ setup_interps function first.'
                 result = dB_sp(points)
             return result
         
-        else:
-            # Note that the first dimension in coordinates is the number of spatial
-            # axis. We can simply overwrite it with time steps to get the desired
-            # shape of result. 
+        elif time.ndim == 1:
+            # Note that the first dimension in coordinates is the number of 
+            # spatial axis. We can simply overwrite it with time steps to get 
+            # the desired shape of result. 
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -415,6 +421,8 @@ setup_interps function first.'
                     dB_sp = RegularGridInterpolator(mesh, self.dB[t])
                     result[i] = dB_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
 
 
     def get_dTe_perp(self, coordinates, time=None):
@@ -438,8 +446,9 @@ setup_interps function first.'
         assert self.grid.dimension == coordinates.shape[0]
         
         if time is None:
-            time = np.arange(len(self.time))        
-        if isinstance(time, int):
+            time = np.arange(len(self.time)) 
+        time = np.array(time)
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -457,7 +466,7 @@ consider calling setup_interps function first.'
                 result = dte_sp(points)
             return result
                 
-        else:
+        elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -479,6 +488,8 @@ consider calling setup_interps function first.'
                     dte_sp = RegularGridInterpolator(mesh, self.dTe_perp[t])
                     result[i] = dte_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
 
             
     def get_dTe_para(self, coordinates, time=None):
@@ -503,8 +514,10 @@ consider calling setup_interps function first.'
         
         if time is None:
             time = np.arange(len(self.time))  
-            
-        if isinstance(time, int):
+
+        time = np.array(time)        
+        
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -521,7 +534,7 @@ consider calling setup_interps function first.'
                 dte_sp = RegularGridInterpolator(mesh, self.dTe_para[time])
                 result = dte_sp(points)
             return result        
-        else:
+        elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -543,6 +556,8 @@ consider calling setup_interps function first.'
                     dte_sp = RegularGridInterpolator(mesh, self.dTe_para[t])
                     result[i] = dte_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
             
     def get_ne(self, coordinates, eq_only=True, time=None):
         """wrapper for getting electron densities
