@@ -219,7 +219,7 @@ Cartesian3D grids are supported.'))
                     self.interpolate_fluc_3D()
             
     def load_gtc_specifics(self):
-        """ read relevant GTC simulation settings from gtc.in.out and gtc.out 
+        """ read relevant GTC simulation settings from gtc.in and gtc.out 
         files.
         
         Create Attributes:
@@ -237,9 +237,9 @@ Cartesian3D grids are supported.'))
                 a *snap###_fpsdp.json* file is written.
         """
         
-        GTCin_fname = self.path+'gtc.in.out'
+        GTCin_fname = os.path.join(self.path, 'gtc.in')
         gtcin_nml = f90nml.read(GTCin_fname)        
-        GTCout_fname = self.path+'gtc.out'
+        GTCout_fname = os.path.join(self.path, 'gtc.out')
         gtcout_nml = f90nml.read(GTCout_fname)
         
         
@@ -305,7 +305,7 @@ Cartesian3D grids are supported.'))
             
             
         """
-        grid_fname = self.path+'grid_fpsdp.json'
+        grid_fname = os.path.join(self.path, 'grid_fpsdp.json')
         with open(grid_fname) as gridfile:
             raw_grids = json.load(gridfile)
         self.R0= raw_grids['R0']/100  #convert from cm to m
@@ -384,7 +384,7 @@ Cartesian3D grids are supported.'))
             :vartype ne0_interp: scipy.interpolate.interp1d object
         """
         
-        eqB_fname = self.path+ 'equilibriumB_fpsdp.json'
+        eqB_fname = os.path.join( self.path, 'equilibriumB_fpsdp.json')
         with open(eqB_fname,'r') as eqBfile:
             raw_eqB = json.load(eqBfile)
         
@@ -399,7 +399,7 @@ Cartesian3D grids are supported.'))
         self.B_Z_interp = linear_interp(self.triangulation_eq,self.B_Z, trifinder = self.trifinder_eq)
 
         #Now reading in 1D equilibrium quantities        
-        eq1D_fname = self.path+'equilibrium1d_fpsdp.json'
+        eq1D_fname = os.path.join(self.path, 'equilibrium1d_fpsdp.json')
         with open(eq1D_fname,'r') as eq1Dfile:
             raw_eq1D = json.load(eq1Dfile)
         
@@ -490,8 +490,8 @@ Cartesian3D grids are supported.'))
         self.a_on_grid[out_mask] = a_out
         
         #Now we are ready to interpolate ne and Te on our grid
-        self.ne0_on_grid = self.ne0_interp(self.a_on_grid)
-        self.Te0_on_grid = self.Te0_interp(self.a_on_grid)
+        self.ne0_on_grid = self.ne0_interp(self.a_on_grid.data)
+        self.Te0_on_grid = self.Te0_interp(self.a_on_grid.data)
         
         #B_R,B_Z and B_phi can be interpolated exactly like *a*
                
@@ -708,6 +708,7 @@ Cartesian3D grids are supported.'))
         elif (diagnostics == 'ECEI2D'):
             self.interpolate_on_grid(grid)
             ne_total = self.ne0_on_grid
+            #TODO complete ECEI2D profile output
         else:
             raise NotImplemented('GTC profile generator for {} is not \
 implemented! Modify FPSDP.Plasma.GTC_Profile.GTC_Loader.create_profile to \
