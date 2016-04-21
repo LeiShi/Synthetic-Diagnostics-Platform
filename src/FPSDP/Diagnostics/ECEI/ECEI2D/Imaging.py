@@ -32,7 +32,8 @@ class ECEImagingSystem(object):
     ***************
         __init__(plasma, detectors, polarization='X', 
                  weakly_relativistic=True, isotropic=True, 
-                 max_harmonic=4, max_power=4)
+                 max_harmonic=4, max_power=4, parallel=False, 
+                 client=None)
     
     :param plasma: plasma to be diagnosed
     :type plasma: :py:class:`FPSDP.Plasma.PlasmaProfile.ECEIProfile` object
@@ -281,7 +282,7 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
                  wait_time_single=120, mute=False):
         """diagnose electron temperature with chosen channels
         
-        :param int time: time step in plasma profile chosen for diagnose. if 
+        :param int time: time steps in plasma profile chosen for diagnose. if 
                          not given, only equilibrium will be used.
         :param bool debug: debug mode flag. if True, more information will be 
                            kept for examining. Default is False.
@@ -307,9 +308,14 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
         tstart = systime.clock()
         if channelID == 'all':
                 channelID = np.arange(self._ND)
-        if not hasattr(self, 'Te'):
-                self.Te = np.empty((self._ND), dtype='float')
-                self.Te[:] = np.nan
+        if time is not None:
+            time = np.array(time)
+            Te_shape = [self._ND]
+            Te_shape.extend(time.shape)
+            self.Te = np.empty((Te_shape), dtype='float')
+            self.Te[...] = np.nan
+        else:
+            self.Te = np.empty((self._ND,), dtype='float')
                 
         if not self._parallel:
             # single CPU version
@@ -321,12 +327,12 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
                 if not mute:
                     print('Channel #{}:'.format(channel_idx))
                 self._debug_mode[channel_idx] = debug
-                self.Te[channel_idx] = self._channels[channel_idx].\
+                self.Te[channel_idx] = np.asarray(self._channels[channel_idx].\
                                          diagnose(time=time, debug=debug, 
                                                   auto_patch=auto_patch,
                                                   oblique_correction=\
                                                   oblique_correction,
-                                                  mute=mute)
+                                                  mute=mute))
             tend = systime.clock()
             if not mute:
                 print('Walltime: {0:.4}s'.format(tend-tstart))                                                  
@@ -357,7 +363,7 @@ oblique_correction=oblique_correction, mute=mute)'.format(i))
                     self._client.wait(status[i], 0.01)
                 eid = self._client.ids[ci%self._engine_num]
                 engine = self._client[eid]
-                self.Te[ci] = engine['eces[{0}].Te'.format(ci)]
+                self.Te[ci] = np.asarray(engine['eces[{0}].Te'.format(ci)])
             if wait_time >= wait_time_single*len(channelID):
                 raise Exception('Parallel Set_coords takes too long. Check if \
 something went wrong. Time elapsed: {0}s'.format(wait_time))

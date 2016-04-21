@@ -492,6 +492,7 @@ your mesh, call set_coords() with initial mesh again.')
         if time is None:
             eq_only = True
             multiple_time = False
+            self.time = None
         else:
             eq_only = False
             self.time = np.array(time)
@@ -742,7 +743,7 @@ analyze it now, this may take a few minutes? (y/n)')
         """observed emission intensity distribution in Y-X plane 
         """
         try:
-            integ = self.intkz_list[self.detector._central_index]
+            integ = np.copy(self.intkz_list[self.detector._central_index])
             if self.time is None:    
                 Te = self.plasma.get_Te0([self.Y2D, self.X2D])
             else:

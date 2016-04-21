@@ -1835,15 +1835,16 @@ solver instead of paraxial solver.')
             S = np.real(self.eps0[0,0])
             D = np.imag(self.eps0[1,0])
             P = np.real(self.eps0[2,2])
-            S2 = S*S
-            D2 = D*D
             # vacuum case needs special attention. C coefficient has a 0/0 part
             # the limit gives C=1, which is correct for vacuum.
             vacuum_idx = np.abs(D) < self.tol
-            non_vacuum = np.logical_not(vacuum_idx)            
+            non_vacuum = np.logical_not(vacuum_idx) 
+            S2 = (S*S)[non_vacuum]
+            D2 = (D*D)[non_vacuum]
             C = np.empty_like(self.calc_x_coords)
             C[vacuum_idx] = 1
-            C[non_vacuum] = (S2+D2)/S2 - (S2-D2)*D2/(S2*(S-P))
+            C[non_vacuum] = (S2+D2)/S2 - (S2-D2)*D2/\
+                            (S2*(S[non_vacuum]-P[non_vacuum]))
             
             self.phase_kz = cumtrapz(- C*self.masked_kz*self.masked_kz / \
                                        (2*self.k_0), 
