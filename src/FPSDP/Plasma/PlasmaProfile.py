@@ -68,6 +68,14 @@ class PlasmaProfile(object):
         self.unit_system = unitsystem
         self._name = 'General plasma profile'
         
+    @property
+    def class_name(self):
+        return 'PlasmaProfile'
+        
+    @property
+    def parameters(self):
+        return dict(grid=self.grid, unitsystem=self.unit_system)
+        
     def physical_quantities(self):
         return 'none'
         
@@ -88,7 +96,6 @@ class ECEI_Profile(PlasmaProfile):
     :var Te_para:  *optional*, fluctuated electron temperature parallel to B
     :var Te_perp: *optional*, fluctuatied electron temperature perpendicular 
                   to B
-    :var
     
     These should all be passed in compatible with the ``grid`` specification.
     :raises AssertionError: if any of the above quantities are not compatible
@@ -145,6 +152,33 @@ class ECEI_Profile(PlasmaProfile):
         self.Te0 = Te0
         self.B0 = B0
         
+    @property
+    def class_name(self):
+        """return the name of the class as a string"""
+        return 'ECEI_Profile'
+       
+    @property   
+    def parameters(self):
+        """return a whole parameter dictionary that can initialize the profile
+        """
+        params = dict(grid=self.grid, ne0=self.ne0, Te0=self.Te0, B0=self.B0,
+                      unitsystem=self.unit_system)
+        if self.has_dB:
+            params['time'] = self.time
+            params['dB'] = self.dB
+        if self.has_dne:
+            params['time'] = self.time
+            params['dne'] = self.dne
+        if self.has_dTe_para:
+            params['time'] = self.time
+            params['dTe_para'] = self.dTe_para
+        if self.has_dTe_perp:
+            params['time'] = self.time
+            params['dTe_perp'] = self.dTe_perp
+        
+        return params
+        
+        
         
     def setup_interps(self, equilibrium_only = False):
         """setup interpolators for frequent evaluation of profile quantities on
@@ -181,8 +215,8 @@ class ECEI_Profile(PlasmaProfile):
     def get_ne0(self, coordinates):
         """return ne0 interpolated at *coordinates*
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         """
@@ -196,7 +230,7 @@ class ECEI_Profile(PlasmaProfile):
         except AttributeError:
             print 'ne0_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
-setup_interp function first.'
+setup_interps function first.'
             mesh = self.grid.get_mesh()
             ne0_sp = RegularGridInterpolator(mesh, self.ne0)
             return ne0_sp(points)
@@ -205,8 +239,8 @@ setup_interp function first.'
     def get_Te0(self, coordinates):
         """return Te0 interpolated at *coordinates*
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         """
@@ -220,7 +254,7 @@ setup_interp function first.'
         except AttributeError:
             print 'Te0_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
-setup_interp function first.'
+setup_interps function first.'
             mesh = self.grid.get_mesh()
             Te0_sp = RegularGridInterpolator(mesh, self.Te0)
             return Te0_sp(points)
@@ -229,8 +263,8 @@ setup_interp function first.'
     def get_B0(self, coordinates):
         """return B0 interpolated at *coordinates*
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         """
@@ -244,7 +278,7 @@ setup_interp function first.'
         except AttributeError:
             print 'B0_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
-setup_interp function first.'
+setup_interps function first.'
             mesh = self.grid.get_mesh()
             B0_sp = RegularGridInterpolator(mesh, self.B0)
             return B0_sp(points)  
@@ -253,8 +287,8 @@ setup_interp function first.'
     def get_dne(self, coordinates, time=None):
         """return dne interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid* 
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -272,8 +306,10 @@ setup_interp function first.'
         
         if time is None:
             time = np.arange(len(self.time))
+
+        time = np.array(time)        
         
-        if isinstance(time, int):
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -286,12 +322,12 @@ setup_interp function first.'
             except AttributeError:
                 print 'dne_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
-setup_interp function first.'
+setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 dne_sp = RegularGridInterpolator(mesh, self.dne[time])
                 result = dne_sp(points)
             return result
-        else:
+        elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -308,18 +344,20 @@ setup_interp function first.'
             except AttributeError:
                 print 'dne_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
-setup_interp function first.'
+setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 for i,t in enumerate(time):
                     dne_sp = RegularGridInterpolator(mesh, self.dne[t])
                     result[i] = dne_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
             
     def get_dB(self, coordinates, time=None):
         """return dB interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -337,8 +375,10 @@ setup_interp function first.'
         
         if time is None:
             time = np.arange(len(self.time))
-            
-        if isinstance(time, int):
+        
+        time = np.array(time)        
+        
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -350,16 +390,16 @@ setup_interp function first.'
             except AttributeError:
                 print 'dB_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
-setup_interp function first.'
+setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 dB_sp = RegularGridInterpolator(mesh, self.dB[time])
                 result = dB_sp(points)
             return result
         
-        else:
-            # Note that the first dimension in coordinates is the number of spatial
-            # axis. We can simply overwrite it with time steps to get the desired
-            # shape of result. 
+        elif time.ndim == 1:
+            # Note that the first dimension in coordinates is the number of 
+            # spatial axis. We can simply overwrite it with time steps to get 
+            # the desired shape of result. 
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -375,19 +415,21 @@ setup_interp function first.'
             except AttributeError:
                 print 'dB_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
-setup_interp function first.'
+setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 for i,t in enumerate(time):
                     dB_sp = RegularGridInterpolator(mesh, self.dB[t])
                     result[i] = dB_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
 
 
     def get_dTe_perp(self, coordinates, time=None):
         """return dTe_perp interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -404,8 +446,9 @@ setup_interp function first.'
         assert self.grid.dimension == coordinates.shape[0]
         
         if time is None:
-            time = np.arange(len(self.time))        
-        if isinstance(time, int):
+            time = np.arange(len(self.time)) 
+        time = np.array(time)
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -417,13 +460,13 @@ setup_interp function first.'
             except AttributeError:
                 print 'dTe_perp_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
-consider calling setup_interp function first.'
+consider calling setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 dte_sp = RegularGridInterpolator(mesh, self.dTe_perp[time])
                 result = dte_sp(points)
             return result
                 
-        else:
+        elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -439,19 +482,21 @@ consider calling setup_interp function first.'
             except AttributeError:
                 print 'dTe_perp_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
-consider calling setup_interp function first.'
+consider calling setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 for i,t in enumerate(time):
                     dte_sp = RegularGridInterpolator(mesh, self.dTe_perp[t])
                     result[i] = dte_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
 
             
     def get_dTe_para(self, coordinates, time=None):
         """return dTe_para interpolated at *coordinates*, for each time step
         
-        :param coordinates: Coordinates given in (Z,Y,X)*(for 3D)* or (Z,R) 
-                            *(for 2D)* order.
+        :param coordinates: Coordinates given in (Z,Y,X) *(3D)* or (Z,R) 
+                            *(2D)* , or (X,) *(1D)* order.
         :type coordinates: *dim* ndarrays, *dim* is the dimensionality of 
                            *self.grid*  
         :param time: Optional, the time steps chosen to return. If None, all 
@@ -469,8 +514,10 @@ consider calling setup_interp function first.'
         
         if time is None:
             time = np.arange(len(self.time))  
-            
-        if isinstance(time, int):
+
+        time = np.array(time)        
+        
+        if time.ndim == 0:
             result_shape = coordinates.shape[1:]    
             result = np.empty(result_shape)        
             
@@ -482,12 +529,12 @@ consider calling setup_interp function first.'
             except AttributeError:
                 print 'dTe_para_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
-consider calling setup_interp function first.'
+consider calling setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 dte_sp = RegularGridInterpolator(mesh, self.dTe_para[time])
                 result = dte_sp(points)
             return result        
-        else:
+        elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
             nt = len(time)
             result_shape[0] = nt
@@ -503,12 +550,14 @@ consider calling setup_interp function first.'
             except AttributeError:
                 print 'dTe_para_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
-consider calling setup_interp function first.'
+consider calling setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 for i,t in enumerate(time):
                     dte_sp = RegularGridInterpolator(mesh, self.dTe_para[t])
                     result[i] = dte_sp(points)
             return result
+        else:
+            raise ValueError('time can only be int or 1D array of int.')
             
     def get_ne(self, coordinates, eq_only=True, time=None):
         """wrapper for getting electron densities
@@ -529,8 +578,8 @@ electron density perturbation data available.')
     def get_B(self, coordinates, eq_only=True, time=None):
         """wrapper for getting magnetic field strength
         
-        If eq_only is True, only equilibirum density is returned
-        otherwise, the total density is returned.
+        If eq_only is True, only equilibirum B is returned
+        otherwise, the total B is returned.
         
         if time is None, all available time steps for perturbations are 
         returned. Otherwise the given time steps are returned.
@@ -549,11 +598,16 @@ electron density perturbation data available.')
                time=None):
         """wrapper for getting electron densities
         
-        If eq_only is True, only equilibirum density is returned
-        otherwise, the total density is returned.
+        If eq_only is True, only equilibirum Te is returned
+        otherwise, the total Te is returned.
+        
+        if perpendicular is True, perturbed perpendicular Te is added.
+        Otherwise, perturbed parallel Te is added.        
         
         if time is None, all available time steps for perturbations are 
         returned. Otherwise the given time steps are returned.
+        
+        
         """
         if eq_only:
             return self.get_Te0(coordinates)
@@ -571,24 +625,36 @@ perpendicular=True but no electron perpendicular temperature perturbation data\
                        self.get_dTe_para(coordinates, time)
             else:
                 raise ValueError('get_Te is called with eq_only=False, \
-perpendicular=True but no electron perpendicular temperature perturbation data\
+perpendicular=False but no electron parallel temperature perturbation data\
  available.')
 
 
     
     def physical_quantities(self):
+        """return info string containing physical quantities included in the
+        profile.
+        """
+        keV = cgs['keV']
         
         result = 'Equilibrium:\n\
-    Electron density: ne0\n\
-    Electron temperature: Te0\n\
-    Magnetic field: B0\n\
-Fluctuation:\n'
+    Electron density: ne0 (max: {0:.3}, min:{1:.3} cm^-3)\n\
+    Electron temperature: Te0 (max:{2:.3}, min:{3:.3} keV)\n\
+    Magnetic field: B0 (max:{4:.3}, min:{5:.3} Gauss)\n\
+Fluctuation:\n'.format(np.max(self.ne0), np.min(self.ne0), 
+                       np.max(self.Te0)/keV, np.min(self.Te0)/keV, 
+                       np.max(self.B0), np.min(self.B0))
         if self.has_dne:
-            result += '    Electron density: dne\n'
+            result += '    Electron density: dne (max:{0:.3}, min:{1:.3} \
+cm^-3)\n'.format(np.max(self.dne), np.min(self.dne))
         if self.has_dTe_para:
-            result += '    Electron parallel temperature: dTe_para\n'
+            result += '    Electron parallel temperature: dTe_para \
+(max:{0:.3}, min:{1:.3} keV)\n'.format(np.max(self.dTe_para)/keV, 
+                                       np.min(self.dTe_para)/keV)
         if self.has_dTe_perp:
-            result += '    Electron perpendicular temperature: dTe_perp\n'
+            result += '    Electron perpendicular temperature: dTe_perp\
+(max:{0:.3}, min:{1:.3} keV)\n'.format(np.max(self.dTe_perp)/keV, 
+                                       np.min(self.dTe_perp)/keV)
         if self.has_dB:
-            result += '    Magnetic field magnitude: dB\n'
+            result += '    Magnetic field magnitude: dB (max:{0:.3}, \
+min:{1:.3} Gauss)\n'.format(np.max(self.dB), np.min(self.dB))
         return result
