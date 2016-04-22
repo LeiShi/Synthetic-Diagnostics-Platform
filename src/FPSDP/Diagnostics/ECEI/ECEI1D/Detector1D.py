@@ -9,8 +9,11 @@ from scipy.interpolate import RectBivariateSpline
 from ...GeneralSettings.UnitSystem import cgs
 from ...Geometry.Grid import path, Path2D, Cartesian2D
 from ...Plasma.PlasmaProfile import ECEI_Profile
+from ..Detector import Detector
 
-class detector:
+#TODO derive Detector1D class from Detector class, and obey all the conventions
+# there.
+class Detector1D(object):
     """class of the detector which contains the frequency and path information
 
     Attributes:
@@ -26,18 +29,18 @@ class detector:
 
     Methods:
     """
-    def __init__(this,f_ctr,n_f,f_flt,p_flt,pth):
-        this.f_ctr = f_ctr
-        this.n_f = n_f
-        this.f_flt = np.copy(f_flt)
-        this.p_flt = np.copy(p_flt)
-        this.pth = pth
-    def __setitem__(this,d2):
-        this.f_ctr = d2.f_ctr
-        this.n_f = d2.n_f
-        this.f_flt = np.copy(d2.f_flt)
-        this.p_flt = np.copy(d2.p_flt)
-        this.pth = d2.pth
+    def __init__(self,f_ctr,n_f,f_flt,p_flt,pth):
+        self.f_ctr = f_ctr
+        self.n_f = n_f
+        self.f_flt = np.copy(f_flt)
+        self.p_flt = np.copy(p_flt)
+        self.pth = pth
+    def __setitem__(self,d2):
+        self.f_ctr = d2.f_ctr
+        self.n_f = d2.n_f
+        self.f_flt = np.copy(d2.f_flt)
+        self.p_flt = np.copy(d2.p_flt)
+        self.pth = d2.pth
 
 def create_2D_pointlike_detector_array(plasma):
     """create testing 2D detector array which covers all the given plasma region
@@ -63,7 +66,7 @@ def create_2D_pointlike_detector_array(plasma):
                     f_flt = [f_ctr]
                     p_flt = [1]
                     pth = path(2,[R[0],R[-1]],[Z[Z_idx],Z[Z_idx]]) #light path is assumed horizontal
-                    Detectors.append(detector(f_ctr,1,f_flt,p_flt,pth))
+                    Detectors.append(Detector1D(f_ctr,1,f_flt,p_flt,pth))
     return tuple(Detectors)
             
 

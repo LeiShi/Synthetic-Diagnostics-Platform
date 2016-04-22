@@ -13,7 +13,8 @@ import FPSDP.Plasma.DielectricTensor as dt
 import FPSDP.Plasma.Analytical_Profiles.TestParameter as tp
 
 #p2d = tp.create_profile2D(True)
-tp.set_parameter1D(Te_0=10*tp.cgs['keV'])
+tp.set_parameter1D(Te_0=10*tp.cgs['keV'], Te_shape='uniform', 
+                   ne_shape='uniform')
 
 p1d = tp.create_profile1D()
 p1d.setup_interps()

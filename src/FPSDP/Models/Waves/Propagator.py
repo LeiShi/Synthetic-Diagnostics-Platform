@@ -11,6 +11,8 @@ from __future__ import print_function
 import sys
 from time import clock
 from abc import ABCMeta, abstractmethod, abstractproperty
+from math import cos
+import warnings
 
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq
@@ -35,12 +37,32 @@ class Propagator(object):
     def power_flow(self):
         pass
     
+    @property
+    def properties(self):
+        """Serializable data for transferring in parallel run"""
+        return Propagator_property(self)
+        
+
+class Propagator_property(object):
+
+    def __init__(self, propagator):
+        self.E = propagator.E
+        self.eps0 = propagator.eps0
+        self.deps = propagator.deps
+        self.dimension = propagator.dimension
+        if(self.dimension == 1):
+            self.x_coords = propagator.x_coords
+        else:
+            self.x_coords = propagator.calc_x_coords
+        self.y_coords = propagator.y_coords
+        self.z_coords = propagator.z_coords
+        self.power_flow = propagator.power_flow
 
 class ParaxialPerpendicularPropagator1D(Propagator):
     r""" The paraxial propagator for perpendicular propagation of 1D waves.    
 
     Initialization
-    ==============
+    **************
     
     ParaxialPerpendicularPropagator1D(self, plasma, dielectric_class, 
                                       polarization, direction, unitsystem=cgs, 
@@ -70,7 +92,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
     :raise AssertionError: if parameters passed in are not as expected.
 
     Geometry
-    ========
+    ********
     
     The usual coordinates system is used.
     
@@ -90,7 +112,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         
     
     Approximations
-    ==============
+    **************
     
     Paraxial approximation:
         wave propagates mainly along x direction. Refraction and diffraction 
@@ -101,7 +123,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         amplitude can be Fourier transformed along both of these directions.
         
     Method
-    ======
+    *******
     
     Electromagnetic wave equation in plasma is solved under above 
     approximations. WKB kind of solution is assumed, and it's phase and 
@@ -119,7 +141,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         E = E_0(x) \exp\left( \mathrm{i} \int\limits^x k(x')\mathrm{d}x'\right)
         :label: WKB_solution
         
-    The 0th order equation is then:
+    1. The 0th order equation is then:
     
     .. math::
         (\epsilon - n^2 {\bf I} + n^2\hat{x}\hat{x}) \cdot
@@ -150,9 +172,9 @@ class ParaxialPerpendicularPropagator1D(Propagator):
              \begin{pmatrix} -\epsilon_{xy} \\ \epsilon_{xx} \\ 0 
              \end{pmatrix}
         
-    The 2nd order equation is:
+    2. The 2nd order equation is:
     
-    O-mode:    
+    a. O-mode:    
     
     .. math::
     
@@ -171,10 +193,11 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         \left( k_y^2 + P k_z^2 \right) \hat{E}_0 + 
         \frac{\omega^2}{c^2}\delta \epsilon_{OO} \hat{E}_0 = 0,
     
-    X-mode:
+    b. X-mode:
     
     .. math::
-        2\mathrm{i}(kE_0' + \frac{1}{2}k'E_0) + 
+        2\mathrm{i}\left[k\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)' + 
+        \frac{1}{2}k'\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)\right] + 
         \left[ \frac{\partial^2}{\partial y^2} + 
         \left( \frac{S^2+D^2}{S^2}- \frac{(S^2-D^2)D^2}{(S-P)S^2}\right)
         \frac{\partial^2}{\partial z^2}\right] E_0 + 
@@ -184,14 +207,16 @@ class ParaxialPerpendicularPropagator1D(Propagator):
     :math:`\hat{E}_0`.
     
     .. math::
-        2\mathrm{i}(k\hat{E}_0' + \frac{1}{2}k'\hat{E}_0) - 
+         2\mathrm{i}\left[k\left(\frac{S}{(S^2+D^2)^{1/2}}\hat{E}_0\right)' + 
+        \frac{1}{2}k'\left(\frac{S}{(S^2+D^2)^{1/2}}\hat{E}_0\right)\right] - 
         \left[ k_y^2 + \left( \frac{S^2+D^2}{S^2}- 
         \frac{(S^2-D^2)D^2}{(S-P)S^2}\right) k_z^2 \right] \hat{E}_0 + 
         \frac{S^2+D^2}{S^2} \frac{\omega^2}{c^2}\delta \epsilon_{XX} \hat{E}_0 
         = 0,
     
     
-    Letting :math:`F \equiv |k|^{1/2}\hat{E}_0` we have
+    Letting :math:`F \equiv |k|^{1/2}\frac{S}{(S^2+D^2)^{1/2}}\hat{E}_0`
+    we have
     
     .. math::
     
@@ -214,9 +239,30 @@ class ParaxialPerpendicularPropagator1D(Propagator):
      
     Equation :eq:`WKB_solution` and :eq:`2nd_order_solution` gives us the whole
     solution up to the 2nd order.
+    
+    3. corrections to finite kz
+    
+    Since the paraxial approximation is only accurate up to 
+    :math:`o((k_z/k_0)^2)`. If :math:`k_z > k_0/10`, the error can be at a 
+    level of 1%. Since we want to extend the validity of our paraxial model 
+    into the regimes where :math:`k_z` is reasonably low, but finite, we need
+    to find a way to remedy this error. We will give a warning when marginal
+    kz is beyond :math:`k_0/10` to let users aware of this potential lose of 
+    accuracy. Another method, mainly concerning the decay of the wave field, is
+    to correct the decay step by taking into account the propagation direction
+    of the main ray. 
+    
+    .. math::
+        ds = \frac{dx}{\cos \theta_h \cos \theta_v}
+        
+    where :math:`\theta_h` and :math:`\theta_v` are tilted angles in horizontal
+    and vertical directions of the antenna respectively. 
+    
+    When propagating the wave, pure phase part will still be advancing in 
+    :math:`dx`, while decay part will use :math:`ds`.
 
     Numerical Scheme
-    ====================
+    ****************
     
     We need to numerically evaluate the phase advance for electric field with 
     each k_y,k_z value, then we inverse Fourier transform it back to y,z space.
@@ -251,7 +297,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         
     
     References
-    ==========
+    **********
     
     .. [1] WKB Approximation on Wikipedia. 
            https://en.wikipedia.org/wiki/WKB_approximation       
@@ -259,14 +305,15 @@ class ParaxialPerpendicularPropagator1D(Propagator):
     
 
     def __init__(self, plasma, dielectric_class, polarization, 
-                 direction, unitsystem=cgs, tol=1e-14, max_harmonic=4, 
-                 max_power=4, mute=True):
+                 direction, base_dielectric_class=ColdElectronColdIon,
+                 unitsystem=cgs, tol=1e-14, max_harmonic=4, 
+                 max_power=4, mute=False):
         assert isinstance(plasma, PlasmaProfile) 
         assert issubclass(dielectric_class, Dielectric)
         assert polarization in ['X','O']
         assert direction in [1, -1]
         
-        self.main_dielectric = ColdElectronColdIon(plasma)
+        self.main_dielectric = base_dielectric_class(plasma)
         if issubclass(dielectric_class, HotDielectric):
             self.fluc_dielectric = dielectric_class(plasma, 
                                                     max_harmonic=max_harmonic,
@@ -277,7 +324,7 @@ class ParaxialPerpendicularPropagator1D(Propagator):
         self.direction = direction
         self.tol = tol
         self.unit_system = unitsystem
-        self.mute = mute
+        self.dimension = 1
         if not mute:
             print('Propagator 1D initialized.', file=sys.stdout)
         
@@ -391,15 +438,15 @@ function is called.', file=sys.stderr)
                   file=sys.stdout)
         
     
-    def _generate_k(self, mask_order=3, mute=True):
+    def _generate_k(self, mask_order=4, mute=True):
         """Calculate k_0 along the reference ray path
         
         :param mask_order: the decay order where kz will be cut off. 
                            If |E_k| peaks at k0, then we pick the range (k0-dk,
                            k0+dk) to use in calculating delta_epsilon. dk is
-                           determined by the decay length of |E_k| times the
-                           mask_order. i.e. the masked out part have |E_k| less
-                           than exp(-mask_order)*|E_k,max|.
+                           determined by the standard deviation of |E_k| times 
+                           the mask_order. i.e. the masked out part have |E_k| 
+                           less than exp(-mask_order**2/2)*|E_k,max|.
         """
         
         tstart = clock()        
@@ -448,17 +495,37 @@ solver instead of paraxial solver.')
         # find the y index of the peak
         myarg = marg % self.ny
         Ekmax = np.max(np.abs(self.E_k_start))
-        E_margin = Ekmax*np.exp(-mask_order)
-        # create the mask for components smaller than our marginal E
-        mask = np.abs(self.E_k_start[:,myarg]) < E_margin
-        # choose the largest kz in not masked part as the marginal kz
-        kz_margin = np.max(np.abs(self.kz[~mask]))
-        # fill all outside kz with the marginal kz
-        self.masked_kz = np.copy(self.kz)
-        self.masked_kz[mask] = kz_margin
-        #save central kz id
-        self.central_kz = marg // self.ny
-        self.margin_kz = np.argmin(mask)
+        E_margin = Ekmax*np.exp(-mask_order**2/2.)
+        # create the mask for components greater than our marginal E, they will
+        # be considered as significant
+        mask = np.abs(self.E_k_start[:,myarg]) > E_margin
+        self.central_kz_idx = marg // self.ny
+        self.central_kz = self.kz[self.central_kz_idx]
+        # choose the largest kz in kept part as the marginal kz
+        kz_margin = np.max(np.abs(self.kz[mask]))
+        self.delta_kz = kz_margin - self.central_kz
+        if not self._optimize_z:
+            # No kz optimization, all kz fields will be propagated. But with a
+            # filtered value to avoid false alarm of kz too small.
+
+            # fill all outside kz with the marginal kz
+            self.masked_kz = np.copy(self.kz)
+            self.masked_kz[~mask] = kz_margin
+            
+        else:
+            # with kz optimization, E_k_start and kz arrays will shunk to the 
+            # minimum size contatining only the significant components of 
+            # wave-vectors. They will be restored back into spatial space after
+            # propagation.
+            self._mask_z = mask
+            # keep a record of the original E_k_start, for restoration after
+            # propagation
+            self._E_k_origin = self.E_k_start
+            self._nz_origin = self.nz
+            
+            self.E_k_start = self.E_k_start[mask, :]
+            self.masked_kz = self.kz[mask]
+            self.nz = self.masked_kz.shape[0]
         
         tend = clock()
         
@@ -553,7 +620,7 @@ solver instead of paraxial solver.')
         nz=self.nz
         
         ky = self.ky[np.newaxis, :, np.newaxis]
-        kz = self.kz[:, np.newaxis, np.newaxis]
+        kz = self.masked_kz[:, np.newaxis, np.newaxis]
         
         omega2 = self.omega*self.omega
         c = self.unit_system['c']
@@ -565,7 +632,6 @@ solver instead of paraxial solver.')
         
         if self.polarization == 'O':
             de_O = self.deps[2, 2, ... ]
-            # de_kO = np.fft.fft2(de_O, axes=(0,1))
             F_k0 = self.E_k_start * np.sqrt(np.abs(self.k_0[0]))
             if(self._debug):
                 self.dphi_eps = cumtrapz(omega2/c2*de_O/(2*self.k_0), 
@@ -603,17 +669,25 @@ solver instead of paraxial solver.')
             ey = self.e_y
             ex_conj = np.conj(ex)
             ey_conj = np.conj(ey)
+            ey_mod = np.sqrt(ey*ey_conj)
             de_X = ex_conj*dexx*ex + ex_conj*dexy*ey + ey_conj*deyx*ex + \
                    ey_conj*deyy*ey
             de_X = de_X * np.ones((nz,ny,1))
-            # de_kX = np.fft.fft2(de_X, axes=(0,1))
-            F_k0 =self.E_k_start * np.sqrt(np.abs(self.k_0[0]))
+            F_k0 =self.E_k_start * np.sqrt(np.abs(self.k_0[0])) * ey_mod[0]
+                  
+            if self._oblique_correction:
+                oblique_coeff = np.abs(cos(self.tilt_h)*cos(self.tilt_v))
+            else:
+                oblique_coeff = 1
 
             if(self._debug):
                 self.pe = (S2+D2)/S2* omega2/c2 *de_X /\
                                          (2*self.k_0)
-                self.dphi_eps = cumtrapz(self.pe, 
-                                         x=self.x_coords, initial=0)
+                # decay step size needs to be corrected for finite tilted angle
+                self.dphi_eps = cumtrapz(np.real(self.pe), 
+                                         x=self.x_coords, initial=0) + \
+                                1j*cumtrapz(np.imag(self.pe), x=self.x_coords, 
+                                            initial=0) / oblique_coeff
                 self.dphi_ky = cumtrapz(-ky*ky/(2*self.k_0), 
                                         x=self.x_coords, initial=0)
                 self.dphi_kz = cumtrapz(-C*kz*kz/(2*self.k_0), 
@@ -621,11 +695,14 @@ solver instead of paraxial solver.')
                 self.delta_phase = self.dphi_eps + self.dphi_ky + self.dphi_kz
             
             else:
-                self.delta_phase = cumtrapz(((S2+D2)/S2* omega2/c2 *de_X -\
+                self.delta_phase = cumtrapz(((S2+D2)/S2* omega2/c2 *\
+                                             np.real(de_X) -\
                                             ky*ky-C*kz*kz)/(2*self.k_0), 
-                                            x=self.x_coords, initial=0)
+                                            x=self.x_coords, initial=0) +\
+                        1j*cumtrapz(((S2+D2)/S2* omega2/c2 *np.imag(de_X)),\
+                                    x=self.x_coords, initial=0) / oblique_coeff
             self.E_k0 = np.exp(1j*self.delta_phase)*F_k0[..., np.newaxis] / \
-                       np.sqrt(np.abs(self.k_0))
+                       np.sqrt(np.abs(self.k_0)) / ey_mod
                        
         tend = clock()
         
@@ -643,9 +720,20 @@ solver instead of paraxial solver.')
             self._generate_main_phase(mute=mute)
             self.E_k = self.E_k0 * np.exp(1j*self.main_phase)
         else:
-            self.E_k = self.E_k0        
-        self.E = np.fft.ifft2(self.E_k, axes=(0,1))
+            self.E_k = self.E_k0 
         
+        if self._optimize_z:
+            # restore to the original shape in z
+            self.nz = self._nz_origin
+            self._Ek_calc = self.E_k
+            self.E_k = np.zeros((self.nz, self.ny, self.nx), 
+                               dtype='complex')
+            self.E_k[self._mask_z] = self._Ek_calc                
+        if self._keepFFTz:
+            self.E = self.E_k
+        else:
+            self.E = np.fft.ifft2(self.E_k, axes=(0,1))
+            
         tend = clock()
         
         if not mute:
@@ -654,8 +742,10 @@ solver instead of paraxial solver.')
             
        
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
-                  z_E, x_coords=None, time=None, mute=True, debug_mode=False, 
-                  include_main_phase=False):
+                  z_E, x_coords=None, time=None, tilt_v=0, tilt_h=0, mute=True,
+                  debug_mode=False, include_main_phase=False, keepFFTz=False, 
+                  normalize_E=False, kz_mask_order=4, oblique_correction=True,
+                  tolrel=1e-3, optimize_z=True):
         r"""propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None, regular_E_mesh=True, time=None)
         
@@ -684,18 +774,49 @@ solver instead of paraxial solver.')
         :type x_coords: 1d array of float. Must be monotonic.
         :param int time: chosen time step of perturbation in plasma. If None, 
                          only equilibrium plasma is used. 
+        :param float tilt_v: tilted angle of the main ray in vertical direction
+                             , in radian. Positive means tilted upwards.
+        :param float tilt_h: tilted angle of the main ray in horizontal 
+                             direction, in radian. Positive means tilted 
+                             towards positive Z direction.
         :param bool mute: if True, no intermediate outputs for progress.
         :param bool debug_mode: if True, additional detailed information will 
-<<<<<<< HEAD
                                 be saved for later inspection. 
         :param bool include_main_phase: if True, the calculated E field will 
                                         have contribution from eikonal phase 
                                         term :math:`\exp(i\int k_0 dx)`. 
                                         Default to be False.
-=======
-                                be saved for later inspection.                           
->>>>>>> master
-        
+        :param bool keepFFTz: if True, result E field won't take inverse fft in
+                              z direction, thus still represent components in 
+                              kz space. Default is False.
+        :param bool normalize_E: if True, maximum incidental E field will be 
+                                 normalized to 1 before propagation, and be
+                                 rescaled back afterwards. This may be good for 
+                                 extreme amplitude incidental waves. Default is
+                                 False.
+        :param kz_mask_order: mask order to pass into _generate_k. After taking
+                              FFT on E0, a Gaussian-like intensity is expected 
+                              in kz space. In order to avoid numerical 
+                              difficulties around high kz and/or zero kz, we 
+                              mask out kz components that are very small 
+                              compared to the central kz component. 
+                              kz_mask_order controls how small components are 
+                              cut off. In unit of standard deviation, e.g. 
+                              kz_mask_order=4 means kzs farther than 4 standard
+                              deviation away from central kz will be masked out
+                              . Default is 4, which means kzs where 
+                              E(kz) < 3e-4 Emax will be ignored.
+        :param oblique_correction: if True, correction to oblique incident
+                                   wave will be added. The decay part will have
+                                   :math:`\cos(\theta_h)\cos(\theta_v)` term.
+                                   Default is True.
+        :type oblique_correction: bool
+        :param bool optimize_z: 
+            if True, an optimization in Z direction will be applied. A filter
+            in kz space will be set, wave vectors outside a certain margin from
+            the central wave vector will be masked out, and won't propagate.
+            In oblique cases, this optimization may provide a maximum 10 times
+            speed boost. Default is True. 
         """ 
 
         tstart = clock()        
@@ -712,24 +833,46 @@ solver instead of paraxial solver.')
             self.time = time
         self._debug = debug_mode
         self._include_main_phase = include_main_phase
+        self._keepFFTz = keepFFTz
+        self._normalize_E = normalize_E
+        self._oblique_correction = oblique_correction
+        self._optimize_z = optimize_z
         
         self.omega = omega
-        
-        self.E_start = E_start            
+        self.tilt_v = tilt_v
+        self.tilt_h = tilt_h
+        if (abs(cos(tilt_v)*cos(tilt_h)-1) > tolrel):
+            if self._oblique_correction:
+                warnings.warn('Tilted angle beyond relative error tolerance! \
+{0:.3}, The phase of the result won\'t be as accurate as expected. However, \
+the decay of the wave is corrected.'.format(tolrel))
+            else:
+                warnings.warn('Tilted angle beyond relative error tolerance \
+{0:.3}! The phase and amplitude of the result won\'t be as accurate as \
+expected.'.format(tolrel))
+        if self._normalize_E:
+            self.E_norm = np.max(np.abs(E_start))
+            self.E_start = E_start/self.E_norm
+        else:
+            self.E_start = E_start            
         self.y_coords = np.copy(y_E)
         self.z_coords = np.copy(z_E)
          
         if (x_coords is None):
             self.x_coords = np.linspace(x_start, x_end, nx+1)
         else:
-            self.x_coords = x_coords        
+            self.x_coords = x_coords
+        self.nx = len(self.x_coords)
         
         self._generate_epsilon0(mute=mute)
-        self._generate_k(mute=mute)
+        self._generate_k(mute=mute, mask_order=kz_mask_order)
         self._generate_delta_epsilon(mute=mute)
         self._generate_eOX(mute=mute)
         self._generate_F(mute=mute)
         self._generate_E(mute=mute)
+        
+        if self._normalize_E:
+            self.E *= self.E_norm
         
         tend = clock()
         
@@ -752,7 +895,8 @@ infomation is available in Propagator object.\nTotal Time used: {:.3}s\n'.\
         c = cgs['c']
         E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
         E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
-        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega) *\
+                     (self.e_y*np.conj(self.e_y) + self.e_z*np.conj(self.e_z))
 
         return power_norm
 
@@ -778,8 +922,12 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     :param direction: propagation direction. 1 means propagating along positive
                       x direction, -1 along negative x direction.
     :type direction: int, either 1 or -1.
+    :param float ray_y: y coordinate of central ray.   
+    :param unitsystem: Unit System to be used. Optional, for now, only cgs is 
+                       supported.
     :param float tol: the tolerance for testing zero components and determining
                       resonance and cutoff. Default to be 1e-14
+    
                       
     :param int max_harmonic: highest order harmonic to keep. 
                              Only used in hot electron models.
@@ -918,14 +1066,15 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     
     
     .. math::
-        2\mathrm{i}(kE_0' + \frac{1}{2}k'E_0) + 
+        2\mathrm{i}\left[k\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)' + 
+        \frac{1}{2}k'\left(\frac{S}{(S^2+D^2)^{1/2}}E_0\right)\right] + 
         \left[ \frac{\partial^2}{\partial y^2} + 
         \left( \frac{S^2+D^2}{S^2}- \frac{(S^2-D^2)D^2}{(S-P)S^2}\right)
         \frac{\partial^2}{\partial z^2}\right] E_0 + \frac{S^2+D^2}{S^2}
         \frac{\omega^2}{c^2}\delta \epsilon_{XX} E_0 = 0,
     
-    Letting :math:`F \equiv k^{1/2}E_0`, and Fourier transform along z 
-    direction, we have
+    Letting :math:`F \equiv k^{1/2}\frac{S}{(S^2+D^2)^{1/2}} E_0`, and Fourier 
+    transform along z direction, we have
     
     .. math::
     
@@ -944,6 +1093,27 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     y.
     
     The scheme is described in the next section.
+    
+    c. corrections to finite kz
+    
+    Since the paraxial approximation is only accurate up to 
+    :math:`o((k_z/k_0)^2)`. If :math:`k_z > k_0/10`, the error can be at a 
+    level of 1%. Since we want to extend the validity of our paraxial model 
+    into the regimes where :math:`k_z` is reasonably low, but finite, we need
+    to find a way to remedy this error. We will give a warning when marginal
+    kz is beyond :math:`k_0/10` to let users aware of this potential lose of 
+    accuracy. Another method, mainly concerning the decay of the wave field, is
+    to correct the decay step by taking into account the propagation direction
+    of the main ray. 
+    
+    .. math::
+        ds = \frac{dx}{\cos \theta_h \cos \theta_v}
+        
+    where :math:`\theta_h` and :math:`\theta_v` are tilted angles in horizontal
+    and vertical directions of the antenna respectively. 
+    
+    When propagating the wave, pure phase part will still be advancing in 
+    :math:`dx`, while decay part will use :math:`ds`.
 
     6. Numerical Scheme
     
@@ -1057,14 +1227,15 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     """
     
     def __init__(self, plasma, dielectric_class, polarization, 
-                 direction, ray_y, unitsystem=cgs, tol=1e-14, 
-                 max_harmonic=4, max_power=4):
+                 direction, ray_y, unitsystem=cgs, 
+                 base_dielectric_class=ColdElectronColdIon, tol=1e-14, 
+                 max_harmonic=4, max_power=4, mute=False):
         assert isinstance(plasma, PlasmaProfile) 
         assert issubclass(dielectric_class, Dielectric)
         assert polarization in ['X','O']
         assert direction in [1, -1]
         
-        self.main_dielectric = ColdElectronColdIon(plasma)
+        self.main_dielectric = base_dielectric_class(plasma)
         self.ray_y = ray_y
         if issubclass(dielectric_class, HotDielectric):
             self.fluc_dielectric = dielectric_class(plasma, 
@@ -1076,8 +1247,10 @@ class ParaxialPerpendicularPropagator2D(Propagator):
         self.direction = direction
         self.tol = tol
         self.unit_system = unitsystem
+        self.dimension = 2
         
-        print('Propagator 2D initialized.', file=sys.stdout)
+        if not mute:
+            print('Propagator 2D initialized.', file=sys.stdout)
     
 
     def _SDP(self, omega):
@@ -1200,7 +1373,7 @@ function is called.', file=sys.stderr)
                   file=sys.stdout)
  
                                 
-    def _generate_k(self, mute=True, mask_order=3):
+    def _generate_k(self, mute=True, mask_order=4):
         """Calculate k_0 along the reference ray path
         
         Need Attributes:
@@ -1240,6 +1413,10 @@ function is called.', file=sys.stderr)
             self.masked_kz
             
             self.E_k_start
+            
+            self.margin_kz: index of the marginal kz kept in self.kz
+            
+            self.central_kz: index of the central kz in self.kz
         """
         
         tstart = clock()        
@@ -1289,18 +1466,38 @@ solver instead of paraxial solver.')
         # find the y index of the peak
         myarg = marg % self.ny
         Ekmax = np.max(np.abs(self.E_k_start))
-        E_margin = Ekmax*np.exp(-mask_order)
-        # create the mask for components smaller than our marginal E
-        mask = np.abs(self.E_k_start[:,myarg]) < E_margin
-        # choose the largest kz in not masked part as the marginal kz
-        kz_margin = np.max(np.abs(self.kz[~mask]))
-        # fill all outside kz with the marginal kz
-        self.masked_kz = np.copy(self.kz)
-        self.masked_kz[mask] = kz_margin
-        
-        self.central_kz = marg // self.ny
-        self.margin_kz = np.argmin(mask)
-        
+        E_margin = Ekmax*np.exp(-mask_order**2/2.)
+        # create the mask for components greater than our marginal E, they will
+        # be considered as significant
+        mask = np.abs(self.E_k_start[:,myarg]) > E_margin
+        self.central_kz_idx = marg // self.ny
+        self.central_kz = self.kz[self.central_kz_idx]
+        # choose the largest kz in kept part as the marginal kz
+        kz_margin = np.max(np.abs(self.kz[mask]))
+        self.delta_kz = kz_margin - self.central_kz
+        if not self._optimize_z:
+            # No kz optimization, all kz fields will be propagated. But with a
+            # filtered value to avoid false alarm of kz too small.
+
+            # fill all outside kz with the marginal kz
+            self.masked_kz = np.copy(self.kz)
+            self.masked_kz[~mask] = kz_margin
+            
+        else:
+            # with kz optimization, E_k_start and kz arrays will shunk to the 
+            # minimum size contatining only the significant components of 
+            # wave-vectors. They will be restored back into spatial space after
+            # propagation.
+            self._mask_z = mask
+            # keep a record of the original E_k_start, for restoration after
+            # propagation
+            self._E_k_origin = self.E_k_start
+            self._nz_origin = self.nz
+            
+            self.E_k_start = self.E_k_start[mask, :]
+            self.masked_kz = self.kz[mask]
+            self.nz = self.masked_kz.shape[0]
+            
         tend = clock()
         
         if not mute:
@@ -1393,6 +1590,7 @@ solver instead of paraxial solver.')
             self.e_x = -exy * norm
             self.e_y = exx * norm
             self.e_z = 0
+            self._ey_mod = np.sqrt(self.e_y * np.conj(self.e_y))
         
         tend = clock()        
         
@@ -1480,9 +1678,9 @@ solver instead of paraxial solver.')
         """
         
         tstart = clock()
-
         # F = sqrt(k)*E
-        self.F_k_start = np.sqrt(np.abs(self.k_0[0]))*self.E_k_start
+        self.F_k_start = np.sqrt(np.abs(self.k_0[0])) * self._ey_mod[0] *\
+                         self.E_k_start
         self.Fk = np.empty((self.nz, self.ny, self.nx_calc), dtype='complex')
         self.Fk[:,:,0] = self.F_k_start
         
@@ -1550,7 +1748,13 @@ solver instead of paraxial solver.')
             dx = self.calc_x_coords[i]-self.calc_x_coords[i-1]
         
         C = self.C[...,i]
-        phase = dx* C/(2*self.k_0[i])
+        if self._oblique_correction:
+            oblique_coeff = np.abs(cos(self.tilt_h)*cos(self.tilt_v))
+        else:
+            oblique_coeff = 1
+        phase = dx* (np.real(C) + \
+                 1j*np.imag(C)/oblique_coeff) / \
+                (2*self.k_0[i])
         
         if self._debug:
             if forward:
@@ -1631,18 +1835,20 @@ solver instead of paraxial solver.')
             S = np.real(self.eps0[0,0])
             D = np.imag(self.eps0[1,0])
             P = np.real(self.eps0[2,2])
-            S2 = S*S
-            D2 = D*D
             # vacuum case needs special attention. C coefficient has a 0/0 part
             # the limit gives C=1, which is correct for vacuum.
             vacuum_idx = np.abs(D) < self.tol
-            non_vacuum = np.logical_not(vacuum_idx)            
+            non_vacuum = np.logical_not(vacuum_idx) 
+            S2 = (S*S)[non_vacuum]
+            D2 = (D*D)[non_vacuum]
             C = np.empty_like(self.calc_x_coords)
             C[vacuum_idx] = 1
-            C[non_vacuum] = (S2+D2)/S2 - (S2-D2)*D2/(S2*(S-P))
+            C[non_vacuum] = (S2+D2)/S2 - (S2-D2)*D2/\
+                            (S2*(S[non_vacuum]-P[non_vacuum]))
             
-            self.phase_kz = cumtrapz(- C*self.kz*self.kz / (2*self.k_0), 
-                                           x=self.calc_x_coords, initial=0)
+            self.phase_kz = cumtrapz(- C*self.masked_kz*self.masked_kz / \
+                                       (2*self.k_0), 
+                                     x=self.calc_x_coords, initial=0)
         
         tend = clock()        
         if not mute:                                   
@@ -1681,8 +1887,19 @@ solver instead of paraxial solver.')
             self._generate_main_phase(mute=mute) 
             self.Fk = self.Fk * np.exp(1j * self.main_phase)
         self.Fk = self.Fk * np.exp(1j * self.phase_kz)
-        self.F = np.fft.ifft(self.Fk, axis=0)
-        self.E = self.F / np.sqrt(np.abs(self.k_0))
+        if self._optimize_z:
+            # restore to the original shape in z
+            self.nz = self._nz_origin
+            self._Fk_calc = self.Fk
+            self.Fk = np.zeros((self.nz, self.ny, self.nx_calc), 
+                               dtype='complex')
+            self.Fk[self._mask_z] = self._Fk_calc
+        if self._keepFFTz:
+            self.F = self.Fk
+        else:
+            self.F = np.fft.ifft(self.Fk, axis=0)
+                        
+        self.E = self.F / (np.sqrt(np.abs(self.k_0)) * self._ey_mod)
         
         tend = clock()
         if not mute:
@@ -1691,8 +1908,11 @@ solver instead of paraxial solver.')
             
        
     def propagate(self, omega, x_start, x_end, nx, E_start, y_E, 
-                  z_E, x_coords=None, regular_E_mesh=True, time=None, 
-                  mute=True, debug_mode=False, include_main_phase=False):
+                  z_E, x_coords=None, time=None, tilt_v=0, tilt_h=0, 
+                  regular_E_mesh=True,  mute=True, debug_mode=False, 
+                  include_main_phase=False, keepFFTz=False, normalize_E=True, 
+                  kz_mask_order=4, oblique_correction=True, tolrel=1e-3, 
+                  optimize_z=True):
         r"""propagate(self, time, omega, x_start, x_end, nx, E_start, y_E, 
                   z_E, x_coords=None)
         
@@ -1721,14 +1941,52 @@ solver instead of paraxial solver.')
         :type x_coords: 1d array of float. Must be monotonic.
         :param int time: chosen time step of perturbation in plasma. If None, 
                          only equilibrium plasma is used. 
+        :param float tilt_v: tilted angle of the main ray in vertical direction
+                             , in radian. Positive means tilted upwards.
+        :param float tilt_h: tilted angle of the main ray in horizontal 
+                             direction, in radian. Positive means tilted 
+                             towards positive Z direction.
         :param bool mute: if True, no intermediate outputs for progress.
         :param bool debug_mode: if True, additional detailed information will 
                                 be saved for later inspection. 
         :param bool include_main_phase: if True, the calculated E field will 
                                         have contribution from eikonal phase 
                                         term :math:`\exp(i\int k_0 dx)`. 
-                                        Default to be False.                            
- 
+                                        Default to be False. 
+        :param bool keepFFTz: if True, the result E field will keep Fourier 
+                              components in z-direction, both in returned value
+                              , and stored self.E attribute. Default is False.
+        :param bool normalize_E: if True, incidental E field will be normalized
+                                 so that the maximum amplitude is 1, before
+                                 propagation, and rescaled back after 
+                                 propagation. Default is True.
+        :param kz_mask_order: mask order to pass into _generate_k. After taking 
+                              FFT on E0, a Gaussian-like intensity is expected 
+                              in kz space. In order to avoid numerical 
+                              difficulties around high kz and/or zero kz, we 
+                              mask out kz components that are very small 
+                              compared to the central kz component. 
+                              kz_mask_order controls how small components are 
+                              cut off. In unit of standard deviation, e.g. 
+                              kz_mask_order=4 means kzs farther than 4 standard 
+                              deviation away from central kz will be masked out
+                              . Default is 4, which means kzs where 
+                              E(kz) < 3e-4 Emax will be ignored.
+        :type kz_mask_order: int
+        :param oblique_correction: if True, correction to oblique incident
+                                   wave will be added. The decay part will have
+                                   :math:`\cos(\theta_h)\cos(\theta_v)` term.
+                                   Default is True.
+        :type oblique_correction: bool  
+        :param float tolrel: Optional, a relative error tolarence for oblique
+                             effect. If (kz*ky/k0)^2 exceeds tolrel, a warning
+                             will be generated. 
+        :param bool optimize_z: 
+            if True, an optimization in Z direction will be applied. A filter
+            in kz space will be set, wave vectors outside a certain margin from
+            the central wave vector will be masked out, and won't propagate.
+            In oblique cases, this optimization may provide a maximum 10 times
+            speed boost. Default is True.                       
         """ 
         
         tstart = clock()
@@ -1744,11 +2002,31 @@ solver instead of paraxial solver.')
             self.eq_only = False            
             self.time = time  
         self._debug = debug_mode
-        self._include_main_phase = include_main_phase            
+        self._include_main_phase = include_main_phase 
+        self._keepFFTz = keepFFTz 
+        self._normalize_E = normalize_E
+        self._oblique_correction = oblique_correction
+        self._optimize_z = optimize_z          
             
         self.omega = omega
+        self.tilt_h = tilt_h
+        self.tilt_v = tilt_v
         
-        self.E_start = E_start            
+        if (abs(cos(tilt_v)*cos(tilt_h)-1) > tolrel):
+            if self._oblique_correction:
+                warnings.warn('Tilted angle beyond relative error tolerance! \
+{0:.3}, The phase of the result won\'t be as accurate as expected. However, \
+the decay of the wave is corrected.'.format(tolrel))
+            else:
+                warnings.warn('Tilted angle beyond relative error tolerance \
+{0:.3}! The phase and amplitude of the result won\'t be as accurate as \
+expected.'.format(tolrel))
+        
+        if (self._normalize_E):
+            self._E_norm = np.max(np.abs(E_start))
+            self.E_start = E_start/self._E_norm
+        else:
+            self.E_start = E_start            
         self.y_coords = np.copy(y_E)
         self.ny = len(self.y_coords)
         self.z_coords = np.copy(z_E)
@@ -1761,11 +2039,14 @@ solver instead of paraxial solver.')
         self.nx = len(self.x_coords)
         
         self._generate_epsilon(mute=mute)
-        self._generate_k(mute=mute)
+        self._generate_k(mute=mute, mask_order=kz_mask_order)
         self._generate_delta_epsilon(mute=mute)
         self._generate_eOX(mute=mute)        
         self._generate_F(mute=mute)
         self._generate_E(mute=mute)
+        
+        if(self._normalize_E):
+            self.E *= self._E_norm
         
         tend = clock()
         
@@ -1779,16 +2060,29 @@ infomation is available in Propagator object. Total time used: {:.3}'.\
 
     @property
     def power_flow(self):
-        """Calculates the total power flow going through y-z plane.
+        r"""Calculates the total power flow going through y-z plane.
         Normalized with the local velocity, so the value should be
         conserved in lossless plasma region.
+        
+        Poynting flux is shown to be [stix92]_:
+        
+        .. math::
+            P_x = \frac{c^2k}{8\pi\omega} (|E_y|^2 + |E_z|^2)
+            
+        .. [stix92] Waves in Plamsas, T.H.Stix, American Physics Inst.
         """
-
+        e2 = np.real(np.conj(self.e_y)*self.e_y + np.conj(self.e_z)*self.e_z)
         E2 = np.real(np.conj(self.E) * self.E)
         c = cgs['c']
-        E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
+        if self._keepFFTz:
+            dz = self.z_coords[1]-self.z_coords[0]
+            E2_integrate_z = trapz(np.fft.fftshift(E2, axes=0), 
+                                   x=np.fft.fftshift(self.kz[:,0,0]), axis=0)\
+                             * dz*dz/(2*np.pi) 
+        else:
+            E2_integrate_z = trapz(E2, x=self.z_coords, axis=0)
         E2_integrate_yz = trapz(E2_integrate_z,x=self.y_coords, axis=0)
-        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega)
+        power_norm = c/(8*np.pi)*E2_integrate_yz * (c*self.k_0/self.omega) *e2
 
         return power_norm
     

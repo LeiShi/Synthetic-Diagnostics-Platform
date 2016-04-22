@@ -1349,11 +1349,13 @@ def compute_beam_config(Rsource,phisource, Rtan,R=np.array([])):
     print 'The direction of the beam is :', direc
     if R.shape[0] != 0:
         phifoc = np.arccos(Rtan/R) + phitan
-        print 'If you want the fibers on the central line of the beam, Phi = ',-phifoc
+        print 'If you want the fibers on the central line of the beam, Phi = '\
+               ,-phifoc
 
 
 
-def interpolation_toroidal_plane(phi=-2.38,t=130,Nr=1000,Nz=1000,R=(1.82,2.3),Z=(-0.25,0.25)):
+def interpolation_toroidal_plane(phi=-2.38,t=130,Nr=1000,Nz=1000,R=(1.82,2.3),
+                                 Z=(-0.25,0.25)):
     """ Create a R-Z mesh and interpolate the data on it.
     Is useful for checking if the data are well interpolated
 

@@ -27,8 +27,8 @@ p2d_uni = tp.simulate_1D(p1d, p2d.grid)
 p2d.setup_interps()
 p2d_uni.setup_interps()
 
-start_plane = tp.Grid.Cartesian2D(DownLeft=(-20,-20), UpRight=(20,20), 
-                                  NR=65, NZ=64)
+start_plane = tp.Grid.Cartesian2D(DownLeft=(-20,-20), UpRight=(40,20), 
+                                  NR=65, NZ=256)
 x_start = 250
 x_end = 150
 nx = 100
@@ -38,13 +38,13 @@ Z2D,Y2D = start_plane.get_ndmesh()
 X2D = np.ones_like(Y2D)*x_start
 
 omega = 8e11
-gb = lb.GaussianBeam(2*np.pi*3e10/omega, 260, 0, 2, tilt_h=0, P_total=1)
+gb = lb.GaussianBeam(2*np.pi*3e10/omega, 260, 0, 2, tilt_h=np.pi/20)
 
 E_start = gb([Z2D, Y2D, X2D])
 
 
 def prop1d(mode, dielectric, max_harmonic, max_power,
-		   has_main_phase=False):    
+		   has_main_phase=False, optimize_z=True):    
     propagator1d = prop.ParaxialPerpendicularPropagator1D(p1d, 
                                                      dielectric, 
                                                      mode, direction=-1,
@@ -53,13 +53,13 @@ def prop1d(mode, dielectric, max_harmonic, max_power,
 
     E = propagator1d.propagate(omega, x_start, x_end, nx, E_start, 
                          Y1D, Z1D, mute=False, debug_mode=True, 
-
-			 include_main_phase=has_main_phase)
+                         include_main_phase=has_main_phase,
+                         optimize_z=optimize_z)
     return (E, propagator1d)
     
     
 def prop2d(mode, dielectric, max_harmonic, max_power, 
-	           has_main_phase=False):    
+	           has_main_phase=False, optimize_z=True):    
     propagator = prop.ParaxialPerpendicularPropagator2D(p2d, dielectric, 
                                                         mode, direction = -1, 
                                                         ray_y=0, 
@@ -69,13 +69,13 @@ def prop2d(mode, dielectric, max_harmonic, max_power,
     
     E = propagator.propagate(omega, x_start, x_end, nx, E_start, 
                              Y1D, Z1D, mute=False, debug_mode=True, 
-			     include_main_phase=has_main_phase)
+			     include_main_phase=has_main_phase, optimize_z=optimize_z)
                              
     return (E, propagator)
     
 
 def prop2d_uni(mode, dielectric, max_harmonic, max_power,
-			  has_main_phase=False):    
+			  has_main_phase=False, optimize_z=True):    
     propagator = prop.ParaxialPerpendicularPropagator2D(p2d_uni, dielectric, 
                                                         mode, direction = -1, 
                                                         ray_y=0, 
@@ -85,7 +85,7 @@ def prop2d_uni(mode, dielectric, max_harmonic, max_power,
     
     E = propagator.propagate(omega, x_start, x_end, nx, E_start, 
                              Y1D, Z1D, mute=False, debug_mode=True,
-			     include_main_phase=has_main_phase)
+			     include_main_phase=has_main_phase, optimize_z=optimize_z)
                              
     return (E, propagator)
                              

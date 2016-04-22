@@ -106,6 +106,14 @@ from scipy.special import wofz, gamma
 from scipy.interpolate import RegularGridInterpolator
 
 from ..Geometry.Grid import cubicspace
+from ..GeneralSettings.Exceptions import FPSDPError, MathsWarning
+
+class PDFError(FPSDPError):
+    def __init__(self, s):
+        self.message = s
+        
+class PDFWarning(MathsWarning):
+    pass
 
 
 def Z(z):
@@ -303,7 +311,7 @@ def _F12(phi, psi, phi_nonzero, psi_nonzero):
     Do not call directly. Use Fq(phi,psi,1) instead.
     """   
     if not phi_nonzero:
-        warnings.warn('F12 enconters phi=0 input, it diverges at {} points. \
+        raise PDFError('F12 enconters phi=0 input, it diverges at {} points. \
 Check the data to see what\'s going on.'.format(len(phi)))
         return np.zeros_like(phi) + np.nan
     else:
@@ -450,7 +458,7 @@ def Fmq(phi, psi, m, nq, phi_nonzero=None,
     else:
         if (m == 0):
             warnings.warn('0-th derivative is encountered. Try use Fq directly\
-             if possible.')
+             if possible.', PDFWarning)
             return Fq(phi, psi, nq, phi_nonzero, psi_nonzero)
         elif (m == 1):
             return _Fq_1(phi, psi, nq, phi_nonzero, psi_nonzero)
@@ -505,8 +513,8 @@ def _F32_1(phi, psi, phi_nonzero, psi_nonzero):
    
     """
     if not phi_nonzero:
-        warnings.warn('zero phi encountered in F32_1, divergence occurs. Check\
-input to make sure this is not an error.')
+        raise PDFError('zero phi encountered in F32_1, divergence occurs. \
+Check input to make sure this is not an error.')
         return np.ones_like(phi)*np.nan
     elif psi_nonzero and phi_nonzero:
         return (Z_1(psi-phi)-Z_1(-psi-phi))/(4*psi*phi)
@@ -568,8 +576,8 @@ def _F52_2(phi, psi, phi_nonzero, psi_nonzero):
    
     """
     if not phi_nonzero:
-        warnings.warn('zero phi encountered in F52_2, divergence occurs. Check\
-input to make sure this is not an error.')
+        raise PDFError('zero phi encountered in F52_2, divergence occurs. \
+Check input to make sure this is not an error.')
         return np.ones_like(phi)*np.nan
     elif psi_nonzero and phi_nonzero:
         plus = psi - phi
@@ -634,8 +642,8 @@ def _F72_3(phi, psi, phi_nonzero, psi_nonzero):
    
     """
     if not phi_nonzero:
-        warnings.warn('zero phi encountered in F72_3, divergence occurs. Check\
-input to make sure this is not an error.')
+        raise PDFError('zero phi encountered in F72_3, divergence occurs. \
+Check input to make sure this is not an error.')
         return np.ones_like(phi)*np.nan
     elif psi_nonzero and phi_nonzero:
         plus = psi - phi
@@ -707,8 +715,8 @@ def _F92_4(phi, psi, phi_nonzero, psi_nonzero):
    
     """
     if not phi_nonzero:
-        warnings.warn('zero phi encountered in F92_4, divergence occurs. Check\
-input to make sure this is not an error.')
+        raise PDFError('zero phi encountered in F92_4, divergence occurs. \
+Check input to make sure this is not an error.')
         return np.ones_like(phi)*np.nan
     elif psi_nonzero and phi_nonzero:
         plus = psi - phi
