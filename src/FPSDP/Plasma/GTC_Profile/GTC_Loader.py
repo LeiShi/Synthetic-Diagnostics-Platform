@@ -351,54 +351,85 @@ Cartesian3D grids are supported.'))
                                          trifinder = self.trifinder_eq)
         
     def load_equilibrium(self, SOL_width = 0.1, extrapolation_points = 20):
-        """ read in equilibrium field data from equilibriumB_fpsdp.json and equilibrium1D_fpsdp.json
+        """ read in equilibrium field data from equilibriumB_fpsdp.json and 
+        equilibrium1D_fpsdp.json
         
-        :param double SOL_width: *(optional)*, width of the scrape-off layer outside the closed flux surface region, used to determine the equilibrium decay length. Default to be 0.1. Unit: minor radius *a*=1
-        :param int extrapolation_points: *(optional)* number of sample points added within SOL region, used for extrapolation of equilibrium density and temperature. Default to be 20.        
+        :param double SOL_width: 
+            *(optional)*, width of the scrape-off layer outside the closed flux
+            surface region, used to determine the equilibrium decay length. 
+            Default to be 0.1. Unit: minor radius *a*=1
+        :param int extrapolation_points: 
+            *(optional)* number of sample points added within SOL region, used 
+            for extrapolation of equilibrium density and temperature. 
+            Default to be 20.        
         
         Create Attributes:
-            :var B_phi: :math:`\\Phi` component of equilibrium magnetic field on eq grid
+            :var B_phi: :math:`\\Phi` component of equilibrium magnetic field 
+                        on eq grid
             :vartype B_phi: 1D double array of length N_eq            
             :var B_R: *R* component of equilibrium magnetic field on eq grid
             :vartype B_R: 1D double array of length N_eq 
             :var B_Z: *Z* component of equilibrium magnetic field
             :vartype B_Z: 1D double array of length N_eq 
             
-            :var B_phi_interp: interpolated B_phi. Out_of_bound value is set to be *nan* and will be dealt with later.
-            :vartype B_phi_interp: scipy.interpolate.LinearNDInterpolator object
-            :var B_R_interp: interpolated B_R. Out_of_bound value is set to be *nan* and will be dealt with later.
-            :vartype B_R_interp: scipy.interpolate.LinearNDInterpolator object
-            :var B_Z_interp: interpolated B_Z. Out_of_bound value is set to be *nan* and will be dealt with later.
-            :vartype B_Z_interp: scipy.interpolate.LinearNDInterpolator object
+            :var B_phi_interp: interpolated B_phi. Out_of_bound value is set to
+                               be *nan* and will be dealt with later.
+            :vartype B_phi_interp: 
+                :class:`<scipy.interpolate.LinearNDInterpolator>` object
+            :var B_R_interp: interpolated B_R. Out_of_bound value is set to be 
+                             *nan* and will be dealt with later.
+            :vartype B_R_interp: 
+                :class:`<scipy.interpolate.LinearNDInterpolator>` object
+            :var B_Z_interp: interpolated B_Z. Out_of_bound value is set to be
+                             *nan* and will be dealt with later.
+            :vartype B_Z_interp: 
+                :class:`<scipy.interpolate.LinearNDInterpolator>` object
             
-            :var a_1D: *a* coordinate for 1D interpolation, includes *a* array read from *equilibrium1D_fpsdp.json* file, and extension on larger *a* values. 
+            :var a_1D: *a* coordinate for 1D interpolation, includes *a* array 
+                       read from *equilibrium1D_fpsdp.json* file, and extension
+                       on larger *a* values. 
             :vartype a_1D: 1D double array of length *N_1D*
-            :var ne0_1D: equilibrium electron density on *a_1D*, read in from *equilibrium1D_fpsdp.json* file, and use 3rd order polynomial to extrapolate outside values. Unit: :math:`m^{-3}`
+            :var ne0_1D: equilibrium electron density on *a_1D*, read in from 
+                         *equilibrium1D_fpsdp.json* file, and use 3rd order 
+                         polynomial to extrapolate outside values. 
+                         Unit: :math:`m^{-3}`
             :vartype ne0_1D: 1D double array of length *N_1D*
-            :var Te0_1D: equilbirium electron temperature on *a_1D*, read in from *equilibrium1D_fpsdp.json* file, and use 3rd order polynomial to extrapolate outside values. Unit: keV
+            :var Te0_1D: equilbirium electron temperature on *a_1D*, read in 
+                         from *equilibrium1D_fpsdp.json* file, and use 3rd 
+                         order polynomial to extrapolate outside values. 
+                         Unit: keV
             :vartype Te0_1D: 1D double array of length *N_1D*
             
-            :var ne0_interp:linear interpolator created with *ne0_1D* on *a_1D*. Out_of_bound value set to 0.
-            :vartype ne0_interp: scipy.interpolate.interp1d object
-            :var Te0_interp:linear interpolator created with *Te0_1D* on *a_1D*. Out_of_bound value set to 0.
-            :vartype ne0_interp: scipy.interpolate.interp1d object
+            :var ne0_interp: 
+                linear interpolator created with *ne0_1D* on *a_1D*. 
+                Out_of_bound value set to 0.
+            :vartype ne0_interp: :class:`<scipy.interpolate.interp1d>` object
+            :var Te0_interp:
+                linear interpolator created with *Te0_1D* on *a_1D*. 
+                Out_of_bound value set to 0.
+            :vartype ne0_interp: :class:`<scipy.interpolate.interp1d>` object
         """
         
         eqB_fname = os.path.join( self.path, 'equilibriumB_fpsdp.json')
         with open(eqB_fname,'r') as eqBfile:
             raw_eqB = json.load(eqBfile)
         
-        # data is normalized to B0, so need to multiply with B0 to get actual value
+        # data is normalized to B0, so need to multiply with B0 to get actual 
+        # value
         self.B_phi = np.array(raw_eqB['B_phi_eq'])*self.B0
         self.B_R = np.array(raw_eqB['B_R_eq'])*self.B0
         self.B_Z = np.array(raw_eqB['B_Z_eq'])*self.B0
         self.B_total = np.array(raw_eqB['B_eq'])*self.B0
         
-        self.B_phi_interp = linear_interp(self.triangulation_eq,self.B_phi,trifinder = self.trifinder_eq) #outside points will be masked and dealt with later.
-        self.B_R_interp = linear_interp(self.triangulation_eq,self.B_R, trifinder = self.trifinder_eq)
-        self.B_Z_interp = linear_interp(self.triangulation_eq,self.B_Z, trifinder = self.trifinder_eq)
+        # outside points will be masked and dealt with later.
+        self.B_phi_interp = linear_interp(self.triangulation_eq, self.B_phi,
+                                          trifinder = self.trifinder_eq) 
+        self.B_R_interp = linear_interp(self.triangulation_eq, self.B_R, 
+                                        trifinder = self.trifinder_eq)
+        self.B_Z_interp = linear_interp(self.triangulation_eq, self.B_Z, 
+                                        trifinder = self.trifinder_eq)
 
-        #Now reading in 1D equilibrium quantities        
+        # Now read in 1D equilibrium quantities        
         eq1D_fname = os.path.join(self.path, 'equilibrium1d_fpsdp.json')
         with open(eq1D_fname,'r') as eq1Dfile:
             raw_eq1D = json.load(eq1Dfile)
@@ -416,10 +447,9 @@ Cartesian3D grids are supported.'))
         
         # outside needs extrapolation
         a_out = np.linspace(1,1+SOL_width,extrapolation_points)      
-        # ne0 and Te0 will be extrapolated using 3rd order polynomial curves that fits the value and derivative at a=1, and decays to 0 at SOL outter edge.        
-        # first, calculate the derivative using simple finite difference scheme
-        #dne0 = (sorted_ne0[-1]-sorted_ne0[-2])/(sorted_a[-1]-sorted_a[-2])
-        #dTe0 = (sorted_Te0[-1]-sorted_Te0[-2])/(sorted_a[-1]-sorted_a[-2])
+        # ne0 and Te0 will be extrapolated using 2nd order polynomial curves 
+        # that fits the value at a=1, and decays to 0 and flat at SOL outter 
+        # edge.        
         
         #set up the polynomial curve
         ne_curve = poly2_curve(sorted_a[-1],sorted_ne0[-1],a_out[-1],0)
@@ -431,28 +461,46 @@ Cartesian3D grids are supported.'))
         self.a_1D = np.append(sorted_a,a_out)*raw_a_max
         self.ne0_1D = np.append(sorted_ne0,ne0_out)
         self.Te0_1D = np.append(sorted_Te0,Te0_out)
-        #set up interpolators using extrapolated samples, points outside the extended *a* range can be safely set to 0.
-        self.ne0_interp = interp1d(self.a_1D,self.ne0_1D, bounds_error = False, fill_value = 0)
-        self.Te0_interp = interp1d(self.a_1D,self.Te0_1D, bounds_error = False, fill_value = 0)
+        #set up interpolators using extrapolated samples, points outside the 
+        # extended *a* range can be safely set to 0.
+        self.ne0_interp = interp1d(self.a_1D, self.ne0_1D, bounds_error=False, 
+                                   fill_value=0)
+        self.Te0_interp = interp1d(self.a_1D, self.Te0_1D, bounds_error=False, 
+                                   fill_value=0)
         
     def interpolate_eq(self):
         """Interpolate equilibrium quantities on given grid. 
-        *B_R*, *B_Z*, *B_phi* and *a* are interpolated over (Z_eq,R_eq) mesh, and *ne0*, *Te0* are interpolated on *a* space.
-        For interpolation over (Z_eq,R_eq),Grid points outside Equilibrium mesh(i.e. outside LCFS) will be approximated using the following method:
-            For an outside point :math:`(Z_{out},R_{out})`, we search for the closest vertex on the convex hull of the interpolation set, :math:`(Z_n,R_n)`, and the corresponding :math:`a=a_n`. 
-            From the cubic interpolation, we can obtain the derivatives of *a* respect to Z and R at :math:`(Z_n,R_n)`, :math:`\partial a/\partial Z` and :math:`\partial a/\partial R`.
-            Now the *a* value at :math:`(Z_{out}, R_{out})` will be approximated by:
-                
-                ..math::
         
-                    a(Z_{out},R_{out}) = a_n + (Z_{out}-Z_n) \cdot \frac{\partial a}{\partial Z} + (R_{out}-R_n) \cdot \frac{\partial a}{\partial R}
+        *B_R*, *B_Z*, *B_phi* and *a* are interpolated over (Z_eq,R_eq) mesh, 
+        and *ne0*, *Te0* are interpolated on *a* space.
+        
+        For interpolation over (Z_eq,R_eq), Grid points outside Equilibrium 
+        mesh(i.e. outside LCFS) will be approximated using the following 
+        method:
             
-            This first order approximation is good if :math:`(Z_{out},R_{out})` is not far from :math:`(Z_n,R_n)`. In our case, since we are assuming :math:`n_e` and :math:`T_e` are rapidly decaying in *a* outside the LCFS, this approximation is good enough.
+        For an outside point :math:`(Z_{out},R_{out})`, we search for the 
+        closest vertex on the convex hull of the interpolation set, 
+        :math:`(Z_n,R_n)`, and the corresponding :math:`a=a_n`. 
+            
+        From the cubic interpolation, we can obtain the derivatives of *a* 
+        respect to Z and R at :math:`(Z_n,R_n)`, :math:`\partial a/\partial Z` 
+        and :math:`\partial a/\partial R`.
+            
+        Now the *a* value at :math:`(Z_{out}, R_{out})` will be approximated 
+        by:
+                
+        ..math::
         
-               
-        """
-        
-        #outside points are obtained by examining the mask flag from the returned masked array of "linear_interp"
+            a(Z_{out},R_{out}) = a_n + (Z_{out}-Z_n) \cdot \frac{\partial a}
+            {\partial Z} + (R_{out}-R_n) \cdot \frac{\partial a}{\partial R}
+            
+        This first order approximation is good if :math:`(Z_{out},R_{out})` is 
+        not far from :math:`(Z_n,R_n)`. In our case, since we are assuming 
+        :math:`n_e` and :math:`T_e` are rapidly decaying in *a* outside the 
+        LCFS, this approximation is good enough.
+        """        
+        # outside points are obtained by examining the mask flag from the 
+        # returned masked array of "linear_interp"
         Zwant = self.grid.Z2D
         Rwant = self.grid.R2D        
         self.a_on_grid = self.a_eq_interp(Zwant,Rwant)
@@ -461,29 +509,37 @@ Cartesian3D grids are supported.'))
         Zout = Zwant[out_mask]
         Rout = Rwant[out_mask]
         
-        #boundary points are obtained by applying ConvexHull on equilibrium grid points
+        # boundary points are obtained by applying ConvexHull on equilibrium 
+        # grid points
         hull = ConvexHull(self.points_eq)
         p_boundary = self.points_eq[hull.vertices]
         Z_boundary = p_boundary[:,0]
         R_boundary = p_boundary[:,1]
         
-        #Now let's calculate *a* on outside points, first, get the nearest boundary point for each outside point
+        # Now let's calculate *a* on outside points, first, get the nearest 
+        # boundary point for each outside point
         nearest_indices = []
         for i in range(len(Zout)):
             Z = Zout[i]
             R = Rout[i]
-            nearest_indices.append (np.argmin((Z-Z_boundary)**2 + (R-R_boundary)**2) )
+            nearest_indices.append(np.argmin((Z-Z_boundary)**2 + \
+                                   (R-R_boundary)**2) )
             
         # Then, calculate *a* based on the gradient at these nearest points
         Zn = Z_boundary[nearest_indices]
         Rn = R_boundary[nearest_indices]
-        #The value *a* and its gradiant at this nearest point can by easily obtained            
+        # The value *a* and its gradiant at this nearest point can by easily 
+        # obtained            
         an = self.a_eq_interp(Zn,Rn)            
         gradaZ,gradaR = self.a_eq_interp.gradient(Zn,Rn)
         
-        #Now deal with points that didn't get a finite gradient from the interpolator
-        gradaR,gradaZ = self._correct_interpolator_gradient(self.a_eq_interp,gradaR,gradaZ,Rn,Zn,an) 
-        # Finally, we can evaluate the outside a values by gradient at the closest boundary point.                
+        # Now deal with points that didn't get a finite gradient from the 
+        # interpolator
+        gradaR,gradaZ = self._correct_interpolator_gradient(self.a_eq_interp,
+                                                            gradaR, gradaZ, Rn,
+                                                            Zn, an) 
+        # Finally, we can evaluate the outside a values by gradient at the 
+        # closest boundary point.                
         a_out = an + (Zout-Zn)*gradaZ + (Rout-Rn)*gradaR
         
         # Finally, assign these outside values to the original array
@@ -520,24 +576,52 @@ Cartesian3D grids are supported.'))
         Bphi_out = self.B0*self.R0/Rout        
         self.Bphi_on_grid[out_mask] = Bphi_out
         
-    def _correct_interpolator_gradient(self, interpolator, gradR, gradZ, Rn,Zn,fn, tol = (1e-2,1e1), resR = 0.01, resZ = 0.01):
+    def _correct_interpolator_gradient(self, interpolator, gradR, gradZ, Rn, 
+                                       Zn,fn, tol=(1e-2,1e1), resR=0.01, 
+                                       resZ=0.01):
         """ A private use function that make necessary corrections to the gradients calculated by linear interpolators
         
-        :param interpolator: The interpolaor object we are using, normally just *self.a_eq_interp*
-        :param gradR: The gradient respect to R array obtained by interpolator, need to be updated
-        :param gradZ: The gradient respect to Z array obtained by interpolator, need to be updated
-        :param Rn: corresponding R coordinates of the points
-        :param Zn: corresponding Z coordinates of the points
-        :param fn: the value of the quantity at these points
-        :param tol: tolarance for checking zero/infinity gradient points. If the calculated gradient at one boundary point is less than tol[0]*averaged_gradient, it's considered 0; if it's greater than tol[1]*average_gradient, it's considered infinity. All these points will be recalculated by :math:`f'=\frac{f(x+\Delta x)-f(x)}{\Delta x}`, with `\Delta x` taken to be either positive or negative so that `x+\ Delta x` is still inside the convex hull of original data set.        
+        :param interpolator: 
+            The interpolaor object we are using, normally just *self.a_eq_interp*
+        :param gradR: 
+            The gradient respect to R array obtained by interpolator, need to be updated
+        :param gradZ: 
+            The gradient respect to Z array obtained by interpolator, need to be updated
+        :param Rn: 
+            corresponding R coordinates of the points
+        :param Zn: 
+            corresponding Z coordinates of the points
+        :param fn: 
+            the value of the quantity at these points
+        :param tol: 
+            tolarance for checking zero/infinity gradient points. 
+            
+            If the calculated gradient at one boundary point is less than 
+            tol[0]*averaged_gradient, it's considered 0; 
+            
+            if it's greater than tol[1]*averaged_gradient, 
+            it's considered infinity. 
+            All these points will be recalculated by 
+            :math:`f'=\frac{f(x+\Delta x)-f(x)}{\Delta x}`, with `\Delta x` 
+            taken to be either positive or negative so that `x+\ Delta x` is 
+            still inside the convex hull of original data set.        
+        
         :type tol: tuple of 2 floats        
-        :param float resR: relative resolution in R when evaluating gradient. :math:`\Delta R = resR \cdot \Delta R_{grid}`, where `\Delta R_{grid}` is the resolution of the R grid given by *self.grid.ResR*
+        :param float resR: 
+            relative resolution in R when evaluating gradient. 
+            :math:`\Delta R = resR \cdot \Delta R_{grid}`, 
+            where `\Delta R_{grid}` is the resolution of the R grid given by 
+            *self.grid.ResR*
         :param float resZ: same meaning as *resR*, but in Z direction. 
         """
         
         gradient= gradZ**2+gradR**2
         average_gradient = np.median(gradient) 
-        no_gradient_idx = np.logical_or(gradient < tol[0]*tol[0]*average_gradient, gradient >tol[1]*tol[1]*average_gradient) # check if the gradient is too small!
+        
+        # check if the gradient is too small or too large.
+        no_gradient_idx = \
+            np.logical_or(gradient < tol[0]*tol[0]*average_gradient, 
+                          gradient > tol[1]*tol[1]*average_gradient)
         Z_null = Zn[no_gradient_idx]
         R_null = Rn[no_gradient_idx]
         f_null = fn[no_gradient_idx]
@@ -545,48 +629,67 @@ Cartesian3D grids are supported.'))
         new_gradR = np.zeros_like(gradR[no_gradient_idx])
         new_gradZ = np.zeros_like(gradZ[no_gradient_idx])
         
-        dR = self.grid.ResR * resR # manually calculate the da/dR by setting a small increment in R, and calculate the first order difference approximation
+        # manually calculate the da/dR by setting a small increment in R, 
+        # and calculate the first order difference approximation
+        dR = self.grid.ResR * resR 
         R_p = R_null + dR
         f_pR = interpolator(Z_null,R_p)
         new_gradR[~f_pR.mask] = (f_pR-f_null)[~f_pR.mask]/dR
         changed_mark_R = ~f_pR.mask # not masked values are changed
-        if(not changed_mark_R.all()): # If not all points changed, then positive dR make some points out of the convex hull, try the negative dR
+        
+        # If not all points changed, then positive dR make some points out of 
+        # the convex hull, try the negative dR
+        if(not changed_mark_R.all()): 
             R_n = R_null -dR
             f_nR = interpolator(Z_null,R_n)
             new_gradR[~f_nR.mask] = (f_null - f_nR)[~f_nR.mask]/dR
-            #just in case there still are points left out, keep track of all the points that have been covered.
+            # just in case there still are points left out, keep track of all 
+            # the points that have been covered.
             changed_mark_R = np.logical_or(~f_nR.mask,~f_pR.mask)
         gradR[no_gradient_idx] = new_gradR
         
-        dZ = self.grid.ResZ * resZ # manually calculate the da/dZ by setting a small increment in Z, and calculate the first order difference approximation
+        # manually calculate the da/dZ by setting a small increment in Z, and 
+        # calculate the first order difference approximation
+        dZ = self.grid.ResZ * resZ 
+        
         Z_p = Z_null + dZ
         f_pZ = interpolator(Z_p,R_null)
         new_gradZ[~f_pZ.mask] = (f_pZ-f_null)[~f_pZ.mask]/dZ
         changed_mark_Z = ~f_pZ.mask # not masked values are changed
-        if(not changed_mark_Z.all()): # If not all points changed, then positive dZ make some points out of the convex hull, try the negative dZ
+        if(not changed_mark_Z.all()): 
+        # If not all points changed, then positive dZ make some points out of 
+        # the convex hull, try the negative dZ
             Z_n = Z_null -dZ
             f_nZ = interpolator(Z_n,R_null)
             new_gradZ[~f_nZ.mask] = (f_null - f_nZ)[~f_nZ.mask]/dZ
-            #just in case there still are points left out, keep track of all the points that have been covered.
+            # just in case there still are points left out, keep track of all 
+            # the points that have been covered.
             changed_mark_Z = np.logical_or(~f_nZ.mask,~f_pZ.mask)
         all_changed = np.logical_or(changed_mark_R,changed_mark_Z)    
         gradZ[no_gradient_idx] = new_gradZ
-        # Now ALL points should be changed either in R or Z gradient, if not, something really weird must have happened.
+        # Now ALL points should be changed either in R or Z gradient, if not, 
+        # something really weird must have happened.
         if(not all_changed.all()):
-            raise GTC_Loader_Error('Strange thing happened! Some point has been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex hull looks like.')
+            raise GTC_Loader_Error('Strange thing happened! Some point has \
+been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
+ hull looks like.')
         return (gradR,gradZ)
 
     
     def load_fluctuations_2D(self, fname_format = 'snap{0:0>7}_fpsdp.json'):
         """ Read fluctuation data from **snap{time}_fpsdp.json** files
-        Read data into an array with shape (NT,Ngrid_gtc), NT the number of requested timesteps, corresponds to *self.tstep*, Ngrid_gtc is the GTC grid number on each cross-section.
+        Read data into an array with shape (NT,Ngrid_gtc), NT the number of 
+        requested timesteps, corresponds to *self.tstep*, Ngrid_gtc is the GTC 
+        grid number on each cross-section.
         Create Attribute:
-            :var phi: fluctuating electro-static potential on GTC grid for each requested time step, unit: V
+            :var phi: fluctuating electro-static potential on GTC grid for each 
+                      requested time step, unit: V
             :vartype phi: double array with shape (NT,Ngrid_gtc)
             :var Te: electron temperature fluctuation, unit: keV
             :vartype Te: double array with shape (NT,Ngrid_gtc)
             if *HaveElectron*:
-            :var nane: non-adiabatic electron density fluctuation, unit: :math:`m^{-3}`
+            :var nane: non-adiabatic electron density fluctuation, unit: 
+                       :math:`m^{-3}`
             :vartype nane: double array with shape (NT,Ngrid_gtc)                
             if *isEM*:
             :var A_par: parallel vector potential fluctuation
@@ -597,8 +700,8 @@ Cartesian3D grids are supported.'))
         Ngrid_gtc = len(self.R_gtc)
         self.phi = np.empty((NT,Ngrid_gtc))
                
-        self.Te_perp = np.empty_like(self.phi)
-        self.Te_para = np.empty_like(self.phi)
+        self.Pe_perp = np.empty_like(self.phi)
+        self.Pe_para = np.empty_like(self.phi)
         self.dni = np.empty_like(self.phi)
         self.dne_ad = np.empty_like(self.phi)        
         if self.HaveElectron:
@@ -608,13 +711,14 @@ Cartesian3D grids are supported.'))
         
         
         for i in range(NT):
-            snap_fname = os.path.join(self.path,fname_format.format(self.tsteps[i]))
+            snap_fname = os.path.join(self.path,
+                                      fname_format.format(self.tsteps[i]))
             with open(snap_fname,'r') as snap_file:
                 raw_snap = json.load(snap_file)
             
             self.phi[i] = np.array(raw_snap['phi'])
-            self.Te_perp[i] = np.array(raw_snap['Te_perp'])
-            self.Te_para[i] = np.array(raw_snap['Te_para'])
+            self.Pe_perp[i] = np.array(raw_snap['Pe_perp'])
+            self.Pe_para[i] = np.array(raw_snap['Pe_para'])
             self.dni[i] = np.array(raw_snap['densityi'])
             self.dne_ad[i] = np.array(raw_snap['fluidne'])
             if self.HaveElectron:
@@ -626,19 +730,20 @@ Cartesian3D grids are supported.'))
                 
         
     def interpolate_fluc_2D(self):
-        """Interpolate 2D fluctuations onto given Cartesian grid. Grids outside the GTC simulation domain will be given 0.
-        
+        """Interpolate 2D fluctuations onto given Cartesian grid. Grids outside
+        the GTC simulation domain will be given 0.
         """
         NT = len(self.tsteps)
         NZ = self.grid.NZ
         NR = self.grid.NR
         
-        points_on_grid =np.transpose( np.array([self.grid.Z2D,self.grid.R2D]), (1,2,0))        
+        points_on_grid =np.transpose( np.array([self.grid.Z2D,self.grid.R2D]),
+                                     (1,2,0))        
         
         self.phi_on_grid = np.empty((NT,NZ,NR))
         
-        self.Te_perp_on_grid = np.empty_like(self.phi_on_grid)
-        self.Te_para_on_grid = np.empty_like(self.phi_on_grid)
+        self.Pe_perp_on_grid = np.empty_like(self.phi_on_grid)
+        self.Pe_para_on_grid = np.empty_like(self.phi_on_grid)
         self.dni_on_grid = np.empty_like(self.phi_on_grid)
         self.dne_ad_on_grid = np.empty_like(self.phi_on_grid)
         if self.HaveElectron:
@@ -648,32 +753,43 @@ Cartesian3D grids are supported.'))
         
         
         for i in range(NT):
-            phi_interp = LinearNDInterpolator(self.Delaunay_gtc,self.phi[i],fill_value = 0)
+            phi_interp = LinearNDInterpolator(self.Delaunay_gtc, self.phi[i],
+                                              fill_value = 0)
             self.phi_on_grid[i] = phi_interp(points_on_grid)
             
-            Te_perp_interp = LinearNDInterpolator(self.Delaunay_gtc,self.Te_perp[i],fill_value = 0)
-            self.Te_perp_on_grid[i] = Te_perp_interp(points_on_grid)
+            Pe_perp_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                  self.Pe_perp[i], 
+                                                  fill_value=0)
+            self.Pe_perp_on_grid[i] = Pe_perp_interp(points_on_grid)
 
-            Te_para_interp = LinearNDInterpolator(self.Delaunay_gtc,self.Te_para[i],fill_value = 0)
-            self.Te_para_on_grid[i] = Te_para_interp(points_on_grid)  
+            Pe_para_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                  self.Pe_para[i],
+                                                  fill_value=0)
+            self.Pe_para_on_grid[i] = Pe_para_interp(points_on_grid)  
             
-            dni_interp = LinearNDInterpolator(self.Delaunay_gtc,self.dni[i],fill_value = 0)
+            dni_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                              self.dni[i], fill_value=0)
             self.dni_on_grid[i] = dni_interp(points_on_grid)
             
-            dne_ad_interp = LinearNDInterpolator(self.Delaunay_gtc,self.dne_ad[i],fill_value = 0)
+            dne_ad_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                 self.dne_ad[i], fill_value=0)
             self.dne_ad_on_grid[i] = dne_ad_interp(points_on_grid)
             
             if self.HaveElectron:
-                nane_interp = LinearNDInterpolator(self.Delaunay_gtc,self.nane[i],fill_value = 0)
+                nane_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                   self.nane[i], fill_value=0)
                 self.nane_on_grid[i] = nane_interp(points_on_grid)
             if self.isEM:   
-                A_para_interp = LinearNDInterpolator(self.Delaunay_gtc,self.A_para[i],fill_value = 0)
+                A_para_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                     self.A_para[i],
+                                                     fill_value=0)
                 self.A_para_on_grid[i] = A_para_interp(points_on_grid)
             
     
     def interpolate_on_grid(self, grid):
         """Interpolate required quantities on new grid. Useful for loading same
-        simulation data for multiple diagnostics which requires different grids.
+        simulation data for multiple diagnostics which requires different 
+        grids.
         """
         # TODO complete the interpolation function
         pass
