@@ -15,6 +15,7 @@ Created on Mon Sep 21 14:07:39 2015
 import json
 import re
 import os
+import warnings
 
 import numpy as np
 from scipy.spatial import Delaunay, ConvexHull
@@ -28,15 +29,31 @@ from ...IO import f90nml
 from ...Maths.Funcs import poly2_curve
 from ...Diagnostics.AvailableDiagnostics import Available_Diagnostics
 from ..PlasmaProfile import ECEI_Profile
-from ...GeneralSettings.Exceptions import PlasmaError
+from ...GeneralSettings.Exceptions import PlasmaError, PlasmaWarning
+from ...GeneralSettings.UnitSystem import cgs
 
+
+# unit converting dictionary
+# The quantities read from GTC output file should be MULTIPLIED by the 
+# corresponding entries to get into cgs unit
+GTC_to_cgs = {
+    'length':1,
+    'density':1,
+    'temperature':cgs['keV']/1000,
+    'magnetic_field':1,
+    'electric_potential':1,
+    'magnetic_potential':1,
+    'pressure':1}
 
 class GTC_Loader_Error(PlasmaError):
     def __init__(self,message):
         self.message = message
     def __str__(self):
         return str(self.message)
-
+        
+class GTC_Loader_Warning(PlasmaWarning):
+    """class for GTC_Loader induced Warnings
+    """
 
 def get_interp_planes(loader):
     """Get the plane numbers used for interpolation for each point 
@@ -99,6 +116,86 @@ class GTC_Loader:
     Instances are initialized with a given "grid" containing user specified 
     mesh, and a path containing all GTC output files. After initialization, GTC
     data on the mesh will be ready to use.
+    
+    Initialization
+    ---------------
+    
+    __init__(self, gtc_path, grid, tsteps, 
+             fname_pattern_2D=r'snap(?P<time>\d+)_fpsdp.json', 
+             fname_pattern_3D = r'PHI_(?P<time>\d+)_\d+.ncd', 
+             Mode = 'full')
+        
+    :param string gtc_path: The path where GTC output files are located. 
+    :param grid: User defined spatial grid. All GTC data will be 
+                 interpolated onto this grid.
+    :type grid: :class:`Grid <FPSDP.Geometry.Grid>` object. Only 
+                Cartesian2D and Cartesian3D are supported for now.
+    :param tsteps: 
+        time steps requested. Use GTC simulation step counting. 
+        Will be checked at the beginning to make sure all requested time 
+        steps have been outputted. 
+    :type tsteps: list or 1D numpy array of int
+    :param fname_pattern_2D: 
+        (Optional) Regular Expression to fit 2D output files. Do not change
+        unless you have changed the output file name convention.
+    :type fname_pattern_2D: raw string
+    :param fname_pattern_3D: 
+        (Optional) Regular Expression to fit 3D output files. Do not change
+        unless you have changed the output file name convention.
+    :type fname_pattern_3D: raw string
+    :param string Mode:
+        (Optional) choice among 3 possible iniialization modes: 
+        
+        **full**(Default): 
+            load both equilibrium and fluctuations, and interpolate them on
+            given *grid*            
+        **eq_only**: 
+            load only equilibrium, and interpolate it on given *grid*
+        **least**: 
+            DO NOT load any GTC output files, only initialize the loader 
+            with initial parameters. This mode is mainly used for debug.
+    
+    Calculation of dTe
+    -------------------
+    
+    Since we have 2 degrees of freedom in perpendicular direction, and only
+    1 degree of freedom in parallel direction. The perpendicular energy 
+    should be 2*(1/2 Te), and parallel energy is 1/2 Te.
+    
+    .. math::
+        T_{e\perp}(x) 
+        \equiv \frac{\int (1/2)m_e v_\perp^2 f(x, v)dv}{\int f(x, v) dv}
+        = \frac{P_{e\perp}(x)}{n_e(x)}
+    
+    .. math::
+        \frac{1}{2}T_{e\parallel}(x) \equiv 
+        \frac{\int (1/2)m_e v_\parallel^2 f(x, v)dv}{\int f(x, v) dv}
+        = \frac{P_{e\parallel}(x)}{n_e(x)}
+                
+    Then :math:`dT_e(x) = T_e(x)-T_{e0}(x)`, where :math:`T_{e0}(x)` is 
+    defined by the equilibrium distribution function :math:`f_0(x, v)`.
+    
+    We write :math:`f(x, v) = f_0(x, v) + df(x, v)`, and define the 
+    corresponding :math:`dP_e` and :math:`dn_e` as the integration of 
+    :math:`df`. We finally have the expression for :math:`dT_e`:
+    
+    .. math::
+       dT_{e\perp}(x) = 
+       \left(\frac{P_{e\perp}}{n_e} -\frac{P_{e0\perp}}{n_{e0}}\right)
+       = \frac{dP_{e\perp} - T_{e0}dn_e}{n_{e0}} 
+       
+    .. math::
+       \frac{1}{2}dT_{e\parallel}(x) = 
+       \left(\frac{P_{e\parallel}}{n_e}
+       -\frac{P_{e0\parallel}}{n_{e0}}\right)
+       = \frac{2 \, dP_{e\parallel} - T_{e0}dn_e}{n_{e0}}
+                
+    Note that we use a isotropic equilibrium temperature, so 
+    
+    .. math::
+        T_{e0\perp} = T_{e0\parallel} = T_{e0}
+            
+    
     """
     
     def __init__(self, gtc_path, grid, tsteps, 
@@ -146,13 +243,13 @@ class GTC_Loader:
         if isinstance(grid, Cartesian2D):
             print('2D grid detected.')
             self.dimension = 2
-            # First, use :py:func:`check_time_availability` to analyze the 
+            # First, use :py:func:`<check_time_availability>` to analyze the 
             # existing files and check if all required time steps are 
             # available.
             # If any requested time steps are not there, raise an error and 
             # print out all existing time steps.
             try:
-                self.time_all = check_time_availability(self.path, self.tsteps,
+                self._time_all =check_time_availability(self.path, self.tsteps,
                                                         fname_pattern_2D)
             except GTC_Loader_Error as e:
                 print e.message[0]
@@ -163,7 +260,7 @@ class GTC_Loader:
             print('3D grid detected.')
             self.dimension = 3
             try:
-                self.time_all = check_time_availability(os.path.join(self.path,
+                self._time_all =check_time_availability(os.path.join(self.path,
                                                                     'phi_dir'),
                                                         self.tsteps,
                                                         fname_pattern_3D)
@@ -243,12 +340,12 @@ Cartesian3D grids are supported.'))
         gtcout_nml = f90nml.read(GTCout_fname)
         
         
-        self.HaveElectron = (gtcin_nml['input_parameters']['nhybrid'] == 1)
+        self.HaveElectron = (gtcin_nml['input_parameters']['nhybrid'] > 0)
         self.isEM = (gtcin_nml['input_parameters']['magnetic'] == 1)
         self.snapstep = gtcin_nml['input_parameters']['msnap']
         
         self.psi1 = gtcout_nml['input_parameters']['psi1']        
-        #NEED INFO on gtc.in.out and gtc.out
+        #NEED INFO on gtc.in and gtc.out
         
     def load_grid(self):
         """ Read in Grid information from grid_fpsdp.json file.
@@ -305,12 +402,14 @@ Cartesian3D grids are supported.'))
             
             
         """
+        l2cgs = GTC_to_cgs['length']
+        b2cgs = GTC_to_cgs['magnetic_field']
         grid_fname = os.path.join(self.path, 'grid_fpsdp.json')
         with open(grid_fname) as gridfile:
             raw_grids = json.load(gridfile)
-        self.R0= raw_grids['R0']/100  #convert from cm to m
-        self.Z0 = raw_grids['Z0']/100
-        self.B0 = raw_grids['B0']/10000 #convert from Gauss to Tesla      
+        self.R0= raw_grids['R0'] * l2cgs
+        self.Z0 = raw_grids['Z0'] * l2cgs
+        self.B0 = raw_grids['B0'] * b2cgs       
         self.R_gtc = np.array(raw_grids['R_gtc'])*self.R0
         self.Z_gtc = np.array(raw_grids['Z_gtc'])*self.R0
         self.points_gtc = np.transpose(np.array([self.Z_gtc,self.R_gtc]))
@@ -320,8 +419,6 @@ Cartesian3D grids are supported.'))
         self.Z_eq = np.array(raw_grids['Z_eq'])*self.R0
         self.points_eq = np.transpose(np.array([self.Z_eq,self.R_eq]))
         self.a_eq = np.array(raw_grids['a_eq'])
-        # self.a_eq_max = np.max(self.a_eq)
-        # self.a_eq /= self.a_eq_max
       
         # use Delaunay Triangulation package provided by **scipy** to do the 2D
         # triangulation on GTC mesh
@@ -409,6 +506,8 @@ Cartesian3D grids are supported.'))
                 Out_of_bound value set to 0.
             :vartype ne0_interp: :class:`<scipy.interpolate.interp1d>` object
         """
+        n2cgs = GTC_to_cgs['density']
+        T2cgs = GTC_to_cgs['temperature']
         
         eqB_fname = os.path.join( self.path, 'equilibriumB_fpsdp.json')
         with open(eqB_fname,'r') as eqBfile:
@@ -417,17 +516,18 @@ Cartesian3D grids are supported.'))
         # data is normalized to B0, so need to multiply with B0 to get actual 
         # value
         self.B_phi = np.array(raw_eqB['B_phi_eq'])*self.B0
-        self.B_R = np.array(raw_eqB['B_R_eq'])*self.B0
-        self.B_Z = np.array(raw_eqB['B_Z_eq'])*self.B0
         self.B_total = np.array(raw_eqB['B_eq'])*self.B0
         
         # outside points will be masked and dealt with later.
         self.B_phi_interp = linear_interp(self.triangulation_eq, self.B_phi,
-                                          trifinder = self.trifinder_eq) 
-        self.B_R_interp = linear_interp(self.triangulation_eq, self.B_R, 
-                                        trifinder = self.trifinder_eq)
-        self.B_Z_interp = linear_interp(self.triangulation_eq, self.B_Z, 
-                                        trifinder = self.trifinder_eq)
+                                          trifinder=self.trifinder_eq) 
+        self.B_total_interp = linear_interp(self.triangulation_eq, 
+                                            self.B_total,
+                                            trifinder=self.trifinder_eq)
+        # self.B_R_interp = linear_interp(self.triangulation_eq, self.B_R, 
+        #                                trifinder=self.trifinder_eq)
+        # self.B_Z_interp = linear_interp(self.triangulation_eq, self.B_Z, 
+        #                                trifinder=self.trifinder_eq)
 
         # Now read in 1D equilibrium quantities        
         eq1D_fname = os.path.join(self.path, 'equilibrium1d_fpsdp.json')
@@ -439,9 +539,9 @@ Cartesian3D grids are supported.'))
         raw_a_max = np.max(raw_a)
         sorting = np.argsort(raw_a)
         sorted_a = raw_a[sorting]/raw_a_max
-        raw_ne0 = np.array(raw_eq1D['ne0'])
+        raw_ne0 = np.array(raw_eq1D['ne0']) * n2cgs
         sorted_ne0 = raw_ne0[sorting]
-        raw_Te0 = np.array(raw_eq1D['Te0'])
+        raw_Te0 = np.array(raw_eq1D['Te0']) * T2cgs
         sorted_Te0 = raw_Te0[sorting]
         
         
@@ -469,7 +569,7 @@ Cartesian3D grids are supported.'))
                                    fill_value=0)
         
     def interpolate_eq(self):
-        """Interpolate equilibrium quantities on given grid. 
+        r"""Interpolate equilibrium quantities on given grid. 
         
         *B_R*, *B_Z*, *B_phi* and *a* are interpolated over (Z_eq,R_eq) mesh, 
         and *ne0*, *Te0* are interpolated on *a* space.
@@ -531,62 +631,66 @@ Cartesian3D grids are supported.'))
         # The value *a* and its gradiant at this nearest point can by easily 
         # obtained            
         an = self.a_eq_interp(Zn,Rn)            
-        gradaZ,gradaR = self.a_eq_interp.gradient(Zn,Rn)
+        gradaZ_bdy,gradaR_bdy = self.a_eq_interp.gradient(Zn,Rn)
         
         # Now deal with points that didn't get a finite gradient from the 
         # interpolator
-        gradaR,gradaZ = self._correct_interpolator_gradient(self.a_eq_interp,
-                                                            gradaR, gradaZ, Rn,
-                                                            Zn, an) 
+        gradaR_bdy, gradaZ_bdy = self._correct_interpolator_gradient\
+                                     (self.a_eq_interp, gradaR_bdy, gradaZ_bdy,
+                                      Rn, Zn, an) 
         # Finally, we can evaluate the outside a values by gradient at the 
         # closest boundary point.                
-        a_out = an + (Zout-Zn)*gradaZ + (Rout-Rn)*gradaR
+        a_out = an + (Zout-Zn)*gradaZ_bdy + (Rout-Rn)*gradaR_bdy
         
         # Finally, assign these outside values to the original array
         self.a_on_grid[out_mask] = a_out
         
-        #Now we are ready to interpolate ne and Te on our grid
+        # Now we are ready to interpolate ne and Te on our grid
         self.ne0_on_grid = self.ne0_interp(self.a_on_grid.data)
         self.Te0_on_grid = self.Te0_interp(self.a_on_grid.data)
         
-        #B_R,B_Z and B_phi can be interpolated exactly like *a*
-               
-        self.BR_on_grid = self.B_R_interp(Zwant,Rwant)
-        self.BZ_on_grid = self.B_Z_interp(Zwant,Rwant)
+        # B_total and B_phi can be interpolated exactly like *a*               
+        self.Btotal_on_grid = self.B_total_interp(Zwant, Rwant)
         self.Bphi_on_grid = self.B_phi_interp(Zwant,Rwant)
         
-        #BRn = self.B_R_interp(Zn,Rn)
-        #gradBR_Z, gradBR_R = self.B_R_interp.gradient(Zn,Rn)
-        #gradBR_R,gradBR_Z = self._correct_interpolator_gradient(self.B_R_interp, gradBR_R,gradBR_Z,Rn,Zn,BRn, tol = (1e-3,1e2))
-        #BR_out = BRn + (Zout-Zn)*gradBR_Z + (Rout-Rn)*gradBR_R
-        BR_out = -gradaZ/Rout *self.R0*self.R0*self.B0
+        # B_R and B_Z can by obtained from gradaR and gradaZ since *a* is the
+        # poloidal flux. 
+        R2D = self.grid.R2D
+        Z2D = self.grid.Z2D
+        gradaZ, gradaR = self.a_eq_interp.gradient(Z2D, R2D)
+        self.BR_on_grid = -1/R2D * gradaZ * self.R0 * self.R0 * self.B0
+        self.BZ_on_grid = 1/R2D * gradaR * self.R0 * self.R0 * self.B0
+        
+        # We use the boundary gradient to calculate the outside BR and BZ field        
+        BR_out = -gradaZ_bdy/Rout *self.R0*self.R0*self.B0
         self.BR_on_grid[out_mask] = BR_out
         
-        #BZn = self.B_Z_interp(Zn,Rn)
-        #gradBZ_Z, gradBZ_R = self.B_Z_interp.gradient(Zn,Rn)
-        #gradBZ_R,gradBZ_Z = self._correct_interpolator_gradient(self.B_Z_interp, gradBZ_R,gradBZ_Z,Rn,Zn,BZn)        
-        #BZ_out = BZn + (Zout-Zn)*gradBZ_Z + (Rout-Rn)*gradBZ_R
-        BZ_out = gradaR/Rout*self.R0*self.R0*self.B0 # psi is normalized
+        BZ_out = gradaR_bdy/Rout*self.R0*self.R0*self.B0 # psi is normalized
         self.BZ_on_grid[out_mask] = BZ_out
         
-        #Bphin = self.B_phi_interp(Zn,Rn)
-        #gradBphi_Z, gradBphi_R = self.B_phi_interp.gradient(Zn,Rn)
-        #gradBphi_R,gradBphi_Z = self._correct_interpolator_gradient(self.B_phi_interp, gradBphi_R,gradBphi_Z,Rn,Zn,Bphin)        
-        #Bphi_out = Bphin + (Zout-Zn)*gradBphi_Z + (Rout-Rn)*gradBphi_R
+        # Outside B_phi is taken to be simply decaying as 1/R
         Bphi_out = self.B0*self.R0/Rout        
         self.Bphi_on_grid[out_mask] = Bphi_out
+        
+        # Outside B_total is now calculated from its three components.
+        Btotal_out = np.sqrt(BR_out**2 + BZ_out**2 + Bphi_out**2)
+        self.Btotal_on_grid[out_mask] = Btotal_out
         
     def _correct_interpolator_gradient(self, interpolator, gradR, gradZ, Rn, 
                                        Zn,fn, tol=(1e-2,1e1), resR=0.01, 
                                        resZ=0.01):
-        """ A private use function that make necessary corrections to the gradients calculated by linear interpolators
+        """ A private use function that make necessary corrections to the 
+        gradients calculated by linear interpolators
         
         :param interpolator: 
-            The interpolaor object we are using, normally just *self.a_eq_interp*
+            The interpolaor object we are using, normally just 
+            *self.a_eq_interp*
         :param gradR: 
-            The gradient respect to R array obtained by interpolator, need to be updated
+            The gradient respect to R array obtained by interpolator, need to 
+            be updated
         :param gradZ: 
-            The gradient respect to Z array obtained by interpolator, need to be updated
+            The gradient respect to Z array obtained by interpolator, need to 
+            be updated
         :param Rn: 
             corresponding R coordinates of the points
         :param Zn: 
@@ -700,8 +804,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
         Ngrid_gtc = len(self.R_gtc)
         self.phi = np.empty((NT,Ngrid_gtc))
                
-        self.Pe_perp = np.empty_like(self.phi)
-        self.Pe_para = np.empty_like(self.phi)
+        self.dPe_perp = np.empty_like(self.phi)
+        self.dPe_para = np.empty_like(self.phi)
         self.dni = np.empty_like(self.phi)
         self.dne_ad = np.empty_like(self.phi)        
         if self.HaveElectron:
@@ -717,13 +821,18 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
                 raw_snap = json.load(snap_file)
             
             self.phi[i] = np.array(raw_snap['phi'])
-            self.Pe_perp[i] = np.array(raw_snap['Pe_perp'])
-            self.Pe_para[i] = np.array(raw_snap['Pe_para'])
-            self.dni[i] = np.array(raw_snap['densityi'])
-            self.dne_ad[i] = np.array(raw_snap['fluidne'])
+            self.dPe_perp[i] = np.array(raw_snap['Pe_perp']) * self.Te0_1D[0] \
+                              * self.ne0_1D[0]
+            self.dPe_para[i] = np.array(raw_snap['Pe_para']) * self.Te0_1D[0] \
+                              * self.ne0_1D[0]
+            self.dni[i] = np.array(raw_snap['densityi']) * self.ne0_1D[0]
+            self.dne_ad[i] = np.array(raw_snap['fluidne']) * self.ne0_1D[0]
             if self.HaveElectron:
-                self.nane[i] = np.array(raw_snap['densitye'])
+                self.nane[i] = np.array(raw_snap['densitye']) * self.ne0_1D[0]
             if self.isEM:
+                warnings.warn('Magnetic perturbations are not properly \
+normalized. Quantative calculation using perturbed vector potential requires \
+special attention.', GTC_Loader_Warning)
                 self.A_para[i] = np.array(raw_snap['apara'])
                 
         
@@ -742,8 +851,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
         
         self.phi_on_grid = np.empty((NT,NZ,NR))
         
-        self.Pe_perp_on_grid = np.empty_like(self.phi_on_grid)
-        self.Pe_para_on_grid = np.empty_like(self.phi_on_grid)
+        self.dPe_perp_on_grid = np.empty_like(self.phi_on_grid)
+        self.dPe_para_on_grid = np.empty_like(self.phi_on_grid)
         self.dni_on_grid = np.empty_like(self.phi_on_grid)
         self.dne_ad_on_grid = np.empty_like(self.phi_on_grid)
         if self.HaveElectron:
@@ -757,15 +866,15 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
                                               fill_value = 0)
             self.phi_on_grid[i] = phi_interp(points_on_grid)
             
-            Pe_perp_interp = LinearNDInterpolator(self.Delaunay_gtc,
-                                                  self.Pe_perp[i], 
+            dPe_perp_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                  self.dPe_perp[i], 
                                                   fill_value=0)
-            self.Pe_perp_on_grid[i] = Pe_perp_interp(points_on_grid)
+            self.dPe_perp_on_grid[i] = dPe_perp_interp(points_on_grid)
 
-            Pe_para_interp = LinearNDInterpolator(self.Delaunay_gtc,
-                                                  self.Pe_para[i],
+            dPe_para_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                  self.dPe_para[i],
                                                   fill_value=0)
-            self.Pe_para_on_grid[i] = Pe_para_interp(points_on_grid)  
+            self.dPe_para_on_grid[i] = dPe_para_interp(points_on_grid)  
             
             dni_interp = LinearNDInterpolator(self.Delaunay_gtc,
                                               self.dni[i], fill_value=0)
@@ -784,9 +893,101 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
                                                      self.A_para[i],
                                                      fill_value=0)
                 self.A_para_on_grid[i] = A_para_interp(points_on_grid)
+       
+    @property         
+    def dne_on_grid(self):
+        """ total electron density perturbation on grid
+        """
+        try:
+            if not self.HaveElectron:
+                return self.dne_ad_on_grid
+            else:
+                return self.dne_ad_on_grid + self.nane_on_grid
+        except AttributeError as e:
+            print('dne_on_grid is only available when fluctuations are loaded.\
+ Use full mode in initialization to enable fluctuation loading.')
+            raise e
             
+    @property
+    def ne_on_grid(self):
+        """ total electron density on grid"""
+        try:
+            return self.ne0_on_grid + self.dne_on_grid
+        except AttributeError:
+            warnings.warn('fluctuation is no loaded, ne0 is returned.', 
+                          GTC_Loader_Warning)
+            return self.ne0_on_grid
+            
+    def calculate_fluc_Te(self, component, tol=1e-14):
+        r"""
+        Calculate electron temperature fluctuation based on pressure 
+        perturbation and density perturbation read from GTC output data.
+        
+        Since we have 2 degrees of freedom in perpendicular direction, and only
+        1 degree of freedom in parallel direction. The perpendicular energy 
+        should be 2*(1/2 Te), and parallel energy is 1/2 Te.
+        
+        .. math::
+            T_{e\perp}(x) 
+            \equiv \frac{\int (1/2)m_e v_\perp^2 f(x, v)dv}{\int f(x, v) dv}
+            = \frac{P_{e\perp}(x)}{n_e(x)}
+        
+        .. math::
+            \frac{1}{2}T_{e\parallel}(x) \equiv 
+            \frac{\int (1/2)m_e v_\parallel^2 f(x, v)dv}{\int f(x, v) dv}
+            = \frac{P_{e\parallel}(x)}{n_e(x)}
+                    
+        Then :math:`dT_e(x) = T_e(x)-T_{e0}(x)`, where :math:`T_{e0}(x)` is 
+        defined by the equilibrium distribution function :math:`f_0(x, v)`.
+        
+        We write :math:`f(x, v) = f_0(x, v) + df(x, v)`, and define the 
+        corresponding :math:`dP_e` and :math:`dn_e` as the integration of 
+        :math:`df`. We finally have the expression for :math:`dT_e`:
+        
+        .. math::
+           dT_{e\perp}(x) = 
+           \left(\frac{P_{e\perp}}{n_e} -\frac{P_{e0\perp}}{n_{e0}}\right)
+           = \frac{dP_{e\perp} - T_{e0}dn_e}{n_{e0}} 
+           
+        .. math::
+           \frac{1}{2}dT_{e\parallel}(x) = 
+           \left(\frac{P_{e\parallel}}{n_e}
+           -\frac{P_{e0\parallel}}{n_{e0}}\right)
+           = \frac{2 \, dP_{e\parallel} - T_{e0}dn_e}{n_{e0}}
+                    
+        Note that we use a isotropic equilibrium temperature, so 
+        
+        .. math::
+            T_{e0\perp} = T_{e0\parallel} = T_{e0}
+        """
+        in_idx = np.abs(self.ne0_on_grid) > tol
+        dT = np.zeros_like(self.dPe_perp_on_grid)
+        if component=='perp':
+            for i, t in enumerate(self.tsteps):
+                dT[i][in_idx] = (self.dPe_perp_on_grid \
+                          - self.Te0_on_grid*self.nane_on_grid)[i][in_idx] \
+                         / self.ne0_on_grid[in_idx]
+            return dT
+        elif component=='para':
+            for i, t in enumerate(self.tsteps):
+                dT[i][in_idx] = (2*self.dPe_para_on_grid \
+                          - self.Te0_on_grid*self.nane_on_grid)[i][in_idx] \
+                         / self.ne0_on_grid[in_idx]
+            return dT
+        else:
+            raise ValueError('component {0} not valid. options are "perp" or \
+"para"'.format(component))
     
-    def interpolate_on_grid(self, grid):
+    @property
+    def dTe_perp_on_grid(self):
+        return self.calculate_fluc_Te('perp')
+        
+    @property
+    def dTe_para_on_grid(self):
+        return self.calculate_fluc_Te('para')
+        
+    
+    def interpolate_on_grid(self, grid=None):
         """Interpolate required quantities on new grid. Useful for loading same
         simulation data for multiple diagnostics which requires different 
         grids.
@@ -803,19 +1004,15 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
         :type diagnostics: string
         :param grid: The grid on which all required profiles will be given. If 
                      not specified, ``self.grid`` will be used.
-        :type grid: :py:class:`...Geometry.Grid.Grid` derived class
+        :type grid: :py:class:`<...Geometry.Grid.Grid>` derived class
         """
         if (diagnostics is None) or (diagnostics not in Available_Diagnostics):
             raise ValueError('Diagnostic not specified! Currently available \
             diagnostics are:\n{}'.format(Available_Diagnostics))
-        
-        if grid is None:
-            grid = self.grid
             
         if (diagnostics == 'ECEI1D'):
             self.interpolate_on_grid(grid)
-            ne_total = self.ne0_on_grid + self.nane_on_grid + \
-                       self.dne_ad_on_grid
+            ne_total = self.ne_on_grid
             Te_para = self.Te0_on_grid + self.Te_para_on_grid
             Te_perp = self.Te0_on_grid + self.Te_perp_on_grid
             B = np.sqrt(self.Bphi_on_grid*self.Bphi_on_grid + self.BR_on_grid*\
@@ -823,8 +1020,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
             return ECEI_Profile(grid, ne_total, Te_para, Te_perp, B)
         elif (diagnostics == 'ECEI2D'):
             self.interpolate_on_grid(grid)
-            ne_total = self.ne0_on_grid
-            #TODO complete ECEI2D profile output
+            
+            
         else:
             raise NotImplemented('GTC profile generator for {} is not \
 implemented! Modify FPSDP.Plasma.GTC_Profile.GTC_Loader.create_profile to \
