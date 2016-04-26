@@ -39,11 +39,18 @@ from ...GeneralSettings.UnitSystem import cgs
 GTC_to_cgs = {
     'length':1,
     'density':1,
+	# temperature is in energy unit, originally eV
     'temperature':cgs['keV']/1000,
     'magnetic_field':1,
-    'electric_potential':1,
-    'magnetic_potential':1,
-    'pressure':1}
+	# potential is using energy unit, which is gotten by multiplying it with 
+	# elementary charge
+    'electric_potential':cgs['keV']/1000,
+	# magnetic vector potential is originally normalized to the same unit as 
+	# electric potential.
+    'magnetic_potential':cgs['keV']/1000,
+	# pressure is in energy density unit, originally eV/cm^3. We need to cast 
+	# it into erg/cm^3
+    'pressure': cgs['keV']/1000}
 
 class GTC_Loader_Error(PlasmaError):
     def __init__(self,message):
@@ -819,21 +826,29 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
                                       fname_format.format(self.tsteps[i]))
             with open(snap_fname,'r') as snap_file:
                 raw_snap = json.load(snap_file)
-            
-            self.phi[i] = np.array(raw_snap['phi'])
-            self.dPe_perp[i] = np.array(raw_snap['Pe_perp']) * self.Te0_1D[0] \
-                              * self.ne0_1D[0]
-            self.dPe_para[i] = np.array(raw_snap['Pe_para']) * self.Te0_1D[0] \
-                              * self.ne0_1D[0]
-            self.dni[i] = np.array(raw_snap['densityi']) * self.ne0_1D[0]
-            self.dne_ad[i] = np.array(raw_snap['fluidne']) * self.ne0_1D[0]
+            # our phi is in energy unit, which is actually e*phi. It's 
+			# originally in eV, we'll cast it into erg.
+            self.phi[i] = np.array(raw_snap['phi']) \
+				          * GTC_to_cgs['electric_potential']
+			# dPe is in energy density unit, which is originally eV/cm^3, we
+			# will cast it into erg/cm^3
+            self.dPe_perp[i] = np.array(raw_snap['Pe_perp'])\
+								* GTC_to_cgs['pressure']
+            self.dPe_para[i] = np.array(raw_snap['Pe_para'])\
+								* GTC_to_cgs['pressure']
+            self.dni[i] = np.array(raw_snap['densityi'])\
+								* GTC_to_cgs['density']
+            self.dne_ad[i] = np.array(raw_snap['fluidne'])\
+								* GTC_to_cgs['density']
             if self.HaveElectron:
-                self.nane[i] = np.array(raw_snap['densitye']) * self.ne0_1D[0]
+                self.nane[i] = np.array(raw_snap['densitye'])\
+								* GTC_to_cgs['density']
             if self.isEM:
                 warnings.warn('Magnetic perturbations are not properly \
 normalized. Quantative calculation using perturbed vector potential requires \
 special attention.', GTC_Loader_Warning)
-                self.A_para[i] = np.array(raw_snap['apara'])
+                self.A_para[i] = np.array(raw_snap['apara'])\
+								  * GTC_to_cgs['magnetic_potential']
                 
         
                 
