@@ -28,7 +28,7 @@ from ...Geometry.Support import DelaunayTriFinder
 from ...IO import f90nml
 from ...Maths.Funcs import poly2_curve
 from ...Diagnostics.AvailableDiagnostics import Available_Diagnostics
-from ..PlasmaProfile import ECEI_Profile
+from ..PlasmaProfile import ECEI_Profile, IonClass
 from ...GeneralSettings.Exceptions import PlasmaError, PlasmaWarning
 from ...GeneralSettings.UnitSystem import cgs
 
@@ -346,10 +346,23 @@ Cartesian3D grids are supported.'))
         GTCout_fname = os.path.join(self.path, 'gtc.out')
         gtcout_nml = f90nml.read(GTCout_fname)
         
-        
         self.HaveElectron = (gtcin_nml['input_parameters']['nhybrid'] > 0)
         self.isEM = (gtcin_nml['input_parameters']['magnetic'] == 1)
         self.snapstep = gtcin_nml['input_parameters']['msnap']
+        
+        # time step in GTC is normalized to R0/cs, cs = sqrt(Te0/m_i)
+        # We will need the equilibrium data to get dt in seconds
+        # Now, we store the GTC normalized time step for future use
+        self._dt_gtc = gtcin_nml['input_parameters']['tstep']
+        
+        # Ion information is NOT fully implemented. Further work is needed 
+        # before using ion related information.
+        ion_mass = gtcin_nml['input_parameters']['aion']
+        ion_charge = gtcin_nml['input_parameters']['qion']
+        fast_ion_mass = gtcin_nml['input_parameters']['afast']
+        fast_ion_charge = gtcin_nml['input_parameters']['qfast']
+        self.ions = [IonClass(ion_mass, ion_charge, 'thermal_ion'), 
+                     IonClass(fast_ion_mass, fast_ion_charge, 'fast_ion')]
         
         self.psi1 = gtcout_nml['input_parameters']['psi1']        
         #NEED INFO on gtc.in and gtc.out
@@ -574,6 +587,17 @@ Cartesian3D grids are supported.'))
                                    fill_value=0)
         self.Te0_interp = interp1d(self.a_1D, self.Te0_1D, bounds_error=False, 
                                    fill_value=0)
+                                   
+    @property
+    def time(self):
+        """The time for all time steps in real unit, i.e. seconds
+        """
+        # GTC time is normalized to R0/cs, cs = sqrt(Te0/m_i),  m_i is the main
+        # ion mass.
+        m_i = self.ions[0].mass * cgs['m_p']
+        cs = np.sqrt(self.Te0_1D[0]/m_i)
+        time_unit = self.R0/cs
+        return np.array(self.tsteps) * self._dt_gtc * time_unit
         
     def interpolate_eq(self):
         r"""Interpolate equilibrium quantities on given grid. 
@@ -1025,18 +1049,16 @@ special attention.', GTC_Loader_Warning)
             raise ValueError('Diagnostic not specified! Currently available \
             diagnostics are:\n{}'.format(Available_Diagnostics))
             
-        if (diagnostics == 'ECEI1D'):
+        if (diagnostics in ['ECEI1D', 'ECEI2D']):
             self.interpolate_on_grid(grid)
-            ne_total = self.ne_on_grid
-            Te_para = self.Te0_on_grid + self.Te_para_on_grid
-            Te_perp = self.Te0_on_grid + self.Te_perp_on_grid
-            B = np.sqrt(self.Bphi_on_grid*self.Bphi_on_grid + self.BR_on_grid*\
-                        self.BR_on_grid + self.BZ_on_grid*self.BZ_on_grid)
-            return ECEI_Profile(grid, ne_total, Te_para, Te_perp, B)
-        elif (diagnostics == 'ECEI2D'):
-            self.interpolate_on_grid(grid)
-            
-            
+            if grid is None:
+                grid = self.grid
+                
+            return ECEI_Profile(grid, self.ne0_on_grid, self.Te0_on_grid, 
+                                self.Btotal_on_grid, self.tsteps, 
+                                self.dne_on_grid, self.dTe_para_on_grid, 
+                                self.dTe_perp_on_grid)
+        # TODO finish FWR2D profile class and GTC writing fun
         else:
             raise NotImplemented('GTC profile generator for {} is not \
 implemented! Modify FPSDP.Plasma.GTC_Profile.GTC_Loader.create_profile to \
