@@ -746,9 +746,12 @@ analyze it now, this may take a few minutes? (y/n)')
             integ = np.copy(self.intkz_list[self.detector._central_index])
             if self.time is None:    
                 Te = self.plasma.get_Te0([self.Y2D, self.X2D])
-            else:
+            elif self.time.ndim == 0:
                 Te = self.plasma.get_Te([self.Y2D, self.X2D], eq_only=False, 
                                         time=self.time)
+            else:
+                Te = self.plasma.get_Te([self.Y2D, self.X2D], eq_only=False, 
+                                        time=self.time[-1])
             integ /= Te
         except AttributeError:
             print('view_spot is only available after diagnosing.\
