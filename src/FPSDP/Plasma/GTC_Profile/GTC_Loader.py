@@ -39,8 +39,9 @@ from ...GeneralSettings.UnitSystem import cgs
 GTC_to_cgs = {
     'length':1,
     'density':1,
-	# temperature is in energy unit, originally eV
+	# equilibrium temperature is in energy unit, originally eV
     'temperature':cgs['keV']/1000,
+        # magnetic field is already in Gauss in GTC output
     'magnetic_field':1,
 	# potential is using energy unit, which is gotten by multiplying it with 
 	# elementary charge
@@ -48,9 +49,9 @@ GTC_to_cgs = {
 	# magnetic vector potential is originally normalized to the same unit as 
 	# electric potential.
     'magnetic_potential':cgs['keV']/1000,
-	# pressure is in energy density unit, originally eV/cm^3. We need to cast 
-	# it into erg/cm^3
-    'pressure': cgs['keV']/1000}
+	# pressure is special due to the changable normalization in GTC
+        # normalization is explicitly done in interpolate_fluc_2D method
+    'pressure': 1}
 
 class GTC_Loader_Error(PlasmaError):
     def __init__(self,message):
@@ -295,7 +296,9 @@ Cartesian3D grids are supported.'))
             # interpolators for B_phi,B_R,B_Z on extended grids, and 
             # interpolators for equilibrium density and temperature over 'a'.
             self.load_equilibrium(SOL_width=0.1) 
-        
+            
+            # check the grid resolution to warn user if grid is not optimal
+            self.check_grid_resolution()
             # interpolate equilibrium quantities
             self.interpolate_eq()
             
@@ -363,7 +366,16 @@ Cartesian3D grids are supported.'))
         fast_ion_charge = gtcin_nml['input_parameters']['qfast']
         self.ions = [IonClass(ion_mass, ion_charge, 'thermal_ion'), 
                      IonClass(fast_ion_mass, fast_ion_charge, 'fast_ion')]
-        
+
+        # iload, eload determines the normalization of perturbed quantities.
+        # iload(eload) = 1 normalize all quantities to the on-axis value
+        # iload(eload) = 2 has density normalized to local equilibrium density, but 
+        # temperature to on-axis temperature
+        # iload(eload) = 3 has both density and temperature normalized to local 
+        # equilibrium
+        self.iload = gtcin_nml['input_parameters']['iload']
+        self.eload = gtcin_nml['input_parameters']['eload']
+
         self.psi1 = gtcout_nml['input_parameters']['psi1']        
         #NEED INFO on gtc.in and gtc.out
         
@@ -592,12 +604,33 @@ Cartesian3D grids are supported.'))
     def time(self):
         """The time for all time steps in real unit, i.e. seconds
         """
-        # GTC time is normalized to R0/cs, cs = sqrt(Te0/m_i),  m_i is the main
-        # ion mass.
+        # GTC time is normalized to 1/omega_cp, oemga_ci = e*B0/m_p c,  m_p is the 
+        # proton mass.
+        m_p = cgs['m_p']
+        e = cgs['e']
+        c = cgs['c']
+        omega_ci = self.B0*e/(m_p*c)
+        time_unit = 1/omega_ci
+        return np.array(self.tsteps) * self._dt_gtc * time_unit
+
+    def check_grid_resolution(self):
+        """Check grid resolution by comparing it to on-axis rho_s
+        rho_s = c_s/omega_ci
+        """
         m_i = self.ions[0].mass * cgs['m_p']
         cs = np.sqrt(self.Te0_1D[0]/m_i)
-        time_unit = self.R0/cs
-        return np.array(self.tsteps) * self._dt_gtc * time_unit
+        e = cgs['e']
+        c = cgs['c']
+        omega_ci = self.B0*e/(m_i*c)
+        rho_s = cs/omega_ci
+        if(self.grid.ResR > rho_s):
+            warnings.warn('Grid may be too coarse in R: ResR = {0:.3}cm, rho_s = {1:.3}cm'.format(self.grid.ResR, rho_s))
+        if(self.grid.ResZ > rho_s):
+            warnings.warn('Grid may be too coarse in Z: ResZ = {0:.3}cm, rho_s = {1:.3}cm'.format(self.grid.ResZ, rho_s))
+        if(self.grid.ResR < rho_s/10):
+            warnings.warn('Grid may be too fine in R: ResR = {0:.3}cm, rho_s = {1:.3}cm'.format(self.grid.ResR, rho_s))
+        if(self.grid.ResZ < rho_s/10):
+            warnings.warn('Grid may be too fine in Z: ResZ = {0:.3}cm, rho_s = {1:.3}cm'.format(self.grid.ResZ, rho_s))
         
     def interpolate_eq(self):
         r"""Interpolate equilibrium quantities on given grid. 
@@ -932,6 +965,29 @@ special attention.', GTC_Loader_Warning)
                                                      self.A_para[i],
                                                      fill_value=0)
                 self.A_para_on_grid[i] = A_para_interp(points_on_grid)
+
+        # Now, normalization should be taken care of
+        if (self.iload == 1):
+            ni_norm = self.ne0_1D[0] / self.ions[0].charge
+        else:
+            ni_norm = self.ne0_on_grid / self.ions[0].charge
+
+        if (self.eload == 1):
+            ne_norm = self.ne0_1D[0]
+            Te_norm = self.Te0_1D[0]
+        elif (self.eload == 2):
+            ne_norm = self.ne0_on_grid
+            Te_norm = self.Te0_1D[0]
+        else:
+            ne_norm = self.ne0_on_grid
+            Te_norm = self.Te0_on_grid
+        
+        Pe_norm = ne_norm * Te_norm
+        self.dPe_para_on_grid *= Pe_norm 
+        self.dPe_perp_on_grid *= Pe_norm
+        self.dni_on_grid *= ne_norm
+        self.dne_ad_on_grid *= ne_norm
+        self.nane_on_grid *= ne_norm
        
     @property         
     def dne_on_grid(self):
