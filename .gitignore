@@ -216,4 +216,3 @@ pip-log.txt
 .mr.developer.cfg
 
 #compiled python source files
-*.pyc
