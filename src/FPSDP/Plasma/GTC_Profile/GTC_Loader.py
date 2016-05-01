@@ -206,7 +206,7 @@ class GTC_Loader:
     
     """
     
-    def __init__(self, gtc_path, grid, tsteps, 
+    def __init__(self, gtc_path, grid, tsteps=None, 
                  fname_pattern_2D=r'snap(?P<time>\d+)_fpsdp.json', 
                  fname_pattern_3D = r'PHI_(?P<time>\d+)_\d+.ncd', 
                  Mode = 'full'):
@@ -251,19 +251,27 @@ class GTC_Loader:
         if isinstance(grid, Cartesian2D):
             print('2D grid detected.')
             self.dimension = 2
+            if (Mode == 'full'):
             # First, use :py:func:`<check_time_availability>` to analyze the 
             # existing files and check if all required time steps are 
             # available.
             # If any requested time steps are not there, raise an error and 
             # print out all existing time steps.
-            try:
-                self._time_all =check_time_availability(self.path, self.tsteps,
-                                                        fname_pattern_2D)
-            except GTC_Loader_Error as e:
-                print e.message[0]
-                print 'Available time steps are:'
-                print str(e.message[1])
-                raise 
+                self.Mode = Mode
+                try:
+                    self._time_all =check_time_availability(self.path, 
+                                                            self.tsteps,
+                                                            fname_pattern_2D)
+                except GTC_Loader_Error as e:
+                    print e.message[0]
+                    print 'Available time steps are:'
+                    print repr(e.message[1])
+                    raise 
+            elif (Mode == 'eq_only' or Mode == 'least'):
+                self.Mode = Mode
+            else:
+                raise GTC_Loader_Error('Invalid Mode: {0}. \n\
+   Available Modes are: "full", "eq_only", "least"'.format(Mode))
         elif isinstance(grid, Cartesian3D):
             print('3D grid detected.')
             self.dimension = 3
@@ -604,13 +612,10 @@ Cartesian3D grids are supported.'))
     def time(self):
         """The time for all time steps in real unit, i.e. seconds
         """
-        # GTC time is normalized to 1/omega_cp, oemga_ci = e*B0/m_p c,  m_p is the 
-        # proton mass.
-        m_p = cgs['m_p']
-        e = cgs['e']
-        c = cgs['c']
-        omega_ci = self.B0*e/(m_p*c)
-        time_unit = 1/omega_ci
+        # GTC time step is normalized to R0/cs, cs=sqrt(Te0/mi)
+        m_i = self.ions[0].mass*cgs['m_p']
+        cs = np.sqrt(self.Te0_1D[0]/m_i)
+        time_unit = self.R0/cs
         return np.array(self.tsteps) * self._dt_gtc * time_unit
 
     def check_grid_resolution(self):
@@ -985,7 +990,7 @@ special attention.', GTC_Loader_Warning)
         Pe_norm = ne_norm * Te_norm
         self.dPe_para_on_grid *= Pe_norm 
         self.dPe_perp_on_grid *= Pe_norm
-        self.dni_on_grid *= ne_norm
+        self.dni_on_grid *= ni_norm
         self.dne_ad_on_grid *= ne_norm
         self.nane_on_grid *= ne_norm
        
@@ -1104,16 +1109,25 @@ special attention.', GTC_Loader_Warning)
         if (diagnostics is None) or (diagnostics not in Available_Diagnostics):
             raise ValueError('Diagnostic not specified! Currently available \
             diagnostics are:\n{}'.format(Available_Diagnostics))
+        
+        if self.Mode == 'least':
+            warnings.warn('least mode has no data loaded. No plasma profile \
+created.')
+            return
             
         if (diagnostics in ['ECEI1D', 'ECEI2D']):
             self.interpolate_on_grid(grid)
             if grid is None:
                 grid = self.grid
-                
-            return ECEI_Profile(grid, self.ne0_on_grid, self.Te0_on_grid, 
-                                self.Btotal_on_grid, self.tsteps, 
-                                self.dne_on_grid, self.dTe_para_on_grid, 
-                                self.dTe_perp_on_grid)
+            if self.Mode == 'full': 
+                return ECEI_Profile(grid, self.ne0_on_grid, self.Te0_on_grid, 
+                                    self.Btotal_on_grid, self.time, 
+                                    self.dne_on_grid, self.dTe_para_on_grid, 
+                                    self.dTe_perp_on_grid)
+            elif self.Mode == 'eq_only':
+                return ECEI_Profile(grid, self.ne0_on_grid, self.Te0_on_grid,
+                                    self.Btotal_on_grid)
+                                
         # TODO finish FWR2D profile class and GTC writing fun
         else:
             raise NotImplemented('GTC profile generator for {} is not \
