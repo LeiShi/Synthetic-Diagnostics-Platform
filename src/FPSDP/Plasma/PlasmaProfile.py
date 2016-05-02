@@ -17,6 +17,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 from ..Geometry.Grid import Grid
 from ..GeneralSettings.UnitSystem import UnitSystem, cgs
+from ..GeneralSettings.Exceptions import PlasmaWarning
 
 class IonClass(object):
     """General class for a kind of ions
@@ -637,8 +638,10 @@ consider calling setup_interps function first.'
                 return self.get_ne0(coordinates) + self.get_dne(coordinates, 
                                                                 time)
             else:
-                raise ValueError('get_ne is called with eq_only=False, but no \
-electron density perturbation data available.')
+                warnings.warn('get_ne is called with eq_only=False, but no \
+electron density perturbation data available. Equilibrium data is returned.',
+                              PlasmaWarning)
+                return self.get_ne0(coordinates)
                 
     def get_B(self, coordinates, eq_only=True, time=None):
         """wrapper for getting magnetic field strength
@@ -656,8 +659,10 @@ electron density perturbation data available.')
                 return self.get_B0(coordinates) + self.get_dB(coordinates, 
                                                               time)
             else:
-                raise ValueError('get_B is called with eq_only=False, but no \
-electron density perturbation data available.')
+                warnings.warn('get_B is called with eq_only=False, but no \
+magnetic field perturbation data available. Equilibrium value is returned.',
+                               PlasmaWarning)
+                return self.get_B0(coordinates)
 
     def get_Te(self, coordinates, eq_only=True, perpendicular = True, 
                time=None):
@@ -681,17 +686,19 @@ electron density perturbation data available.')
                 return self.get_Te0(coordinates) + \
                        self.get_dTe_perp(coordinates, time)
             else:
-                raise ValueError('get_Te is called with eq_only=False, \
+                warnings.warn('get_Te is called with eq_only=False, \
 perpendicular=True but no electron perpendicular temperature perturbation data\
- available.')
+ available. Equilibrium data is returned.', PlasmaWarning)
+                return self.get_Te0(coordinates) 
         else:
             if self.has_dTe_para:
                 return self.get_Te0(coordinates) + \
                        self.get_dTe_para(coordinates, time)
             else:
-                raise ValueError('get_Te is called with eq_only=False, \
+                warnings.warn('get_Te is called with eq_only=False, \
 perpendicular=False but no electron parallel temperature perturbation data\
- available.')
+ available. Equilibrium data is returned.', PlasmaWarning)
+                return self.get_Te0(coordinates) 
 
 
     
