@@ -703,9 +703,9 @@ class poly2_curve(poly_curve):
     
     connect (x1,y1) and (x2,y2) with given slope :math:`dy/dx` at x2.
     :param float x1:
-    :param float y1: value at 
+    :param float y1: value at x1 
     :param float x2:
-    :param float y2:
+    :param float y2: value at x2
     :param float yp2: derivative at x2
     
     """
