@@ -487,7 +487,8 @@ Cartesian3D grids are supported.'))
         self.a_eq_interp = linear_interp(self.triangulation_eq, self.a_eq, 
                                          trifinder = self.trifinder_eq)
         
-    def load_equilibrium(self, SOL_width = 0.1, extrapolation_points = 20):
+    def load_equilibrium(self, SOL_width = 0.1, extrapolation_points = 20, 
+                         fill_coeff = 1e-5):
         """ read in equilibrium field data from equilibriumB_fpsdp.json and 
         equilibrium1D_fpsdp.json
         
@@ -498,7 +499,11 @@ Cartesian3D grids are supported.'))
         :param int extrapolation_points: 
             *(optional)* number of sample points added within SOL region, used 
             for extrapolation of equilibrium density and temperature. 
-            Default to be 20.        
+            Default to be 20.
+        :param float fill_coeff:
+            *(optional)*, residule coefficient for ne0 and Te0 values outside 
+            extrapolation area. The outside values will be the coefficient 
+            times the LCFS value read from GTC. Default is 1e-5. 
         
         Create Attributes:
             :var B_phi: :math:`\\Phi` component of equilibrium magnetic field 
@@ -592,8 +597,10 @@ Cartesian3D grids are supported.'))
         # edge.        
         
         #set up the polynomial curve
-        ne_curve = poly2_curve(sorted_a[-1],sorted_ne0[-1],a_out[-1],0)
-        Te_curve = poly2_curve(sorted_a[-1],sorted_Te0[-1],a_out[-1],0)
+        ne_fill = fill_coeff * sorted_ne0[-1]
+        Te_fill = fill_coeff * sorted_Te0[-1]
+        ne_curve = poly2_curve(sorted_a[-1],sorted_ne0[-1],a_out[-1], ne_fill)
+        Te_curve = poly2_curve(sorted_a[-1],sorted_Te0[-1],a_out[-1], Te_fill)
         #evaluate extrapolated curve at sample points
         ne0_out = ne_curve(a_out)
         Te0_out = Te_curve(a_out)        
@@ -604,9 +611,14 @@ Cartesian3D grids are supported.'))
         #set up interpolators using extrapolated samples, points outside the 
         # extended *a* range can be safely set to 0.
         self.ne0_interp = interp1d(self.a_1D, self.ne0_1D, bounds_error=False, 
-                                   fill_value=0)
+                                   fill_value=ne_fill)
         self.Te0_interp = interp1d(self.a_1D, self.Te0_1D, bounds_error=False, 
-                                   fill_value=0)
+                                   fill_value=Te_fill)
+                                   
+        # Generate equilibrium data on GTC grid, for later use in calculating
+        # dTe on this mesh
+        self.ne0_gtc = self.ne0_interp(self.a_gtc)
+        self.Te0_gtc = self.Te0_interp(self.a_gtc)
                                    
     @property
     def time(self):
@@ -892,8 +904,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
 			# originally in eV, we'll cast it into erg.
             self.phi[i] = np.array(raw_snap['phi']) \
 				          * GTC_to_cgs['electric_potential']
-			# dPe is in energy density unit, which is originally eV/cm^3, we
-			# will cast it into erg/cm^3
+            # dPe output is normalized based on GTC running parameter 
+            # It will be taken care later
             self.dPe_perp[i] = np.array(raw_snap['Pe_perp'])\
 								* GTC_to_cgs['pressure']
             self.dPe_para[i] = np.array(raw_snap['Pe_para'])\
@@ -910,11 +922,32 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
 normalized. Quantative calculation using perturbed vector potential requires \
 special attention.', GTC_Loader_Warning)
                 self.A_para[i] = np.array(raw_snap['apara'])\
-								  * GTC_to_cgs['magnetic_potential']
-                
-        
-                
-        
+						     * GTC_to_cgs['magnetic_potential']
+        # Now, we take care of dPe and dne normalization
+        if (self.iload == 1):
+            ni_norm = self.ne0_1D[0] / self.ions[0].charge
+        else:
+            ni_norm = self.ne0_gtc / self.ions[0].charge
+
+        if (self.eload == 1):
+            ne_norm = self.ne0_1D[0]
+            Te_norm = self.Te0_1D[0]
+        elif (self.eload == 2):
+            ne_norm = self.ne0_gtc
+            Te_norm = self.Te0_1D[0]
+        else:
+            ne_norm = self.ne0_gtc
+            Te_norm = self.Te0_gtc
+            
+        # Note that dne_ad is always normalized to local equilibrium density
+        self.dne_ad *= self.ne0_gtc
+        self.dni *= ni_norm
+        self.nane *= ne_norm            
+
+        Pe_norm = ne_norm * Te_norm
+        self.dPe_para *= Pe_norm
+        self.dPe_perp *= Pe_norm
+                      
     def interpolate_fluc_2D(self):
         """Interpolate 2D fluctuations onto given Cartesian grid. Grids outside
         the GTC simulation domain will be given 0.
@@ -971,29 +1004,19 @@ special attention.', GTC_Loader_Warning)
                                                      fill_value=0)
                 self.A_para_on_grid[i] = A_para_interp(points_on_grid)
 
-        # Now, normalization should be taken care of
-        if (self.iload == 1):
-            ni_norm = self.ne0_1D[0] / self.ions[0].charge
-        else:
-            ni_norm = self.ne0_on_grid / self.ions[0].charge
-
-        if (self.eload == 1):
-            ne_norm = self.ne0_1D[0]
-            Te_norm = self.Te0_1D[0]
-        elif (self.eload == 2):
-            ne_norm = self.ne0_on_grid
-            Te_norm = self.Te0_1D[0]
-        else:
-            ne_norm = self.ne0_on_grid
-            Te_norm = self.Te0_on_grid
-        
-        Pe_norm = ne_norm * Te_norm
-        self.dPe_para_on_grid *= Pe_norm 
-        self.dPe_perp_on_grid *= Pe_norm
-        self.dni_on_grid *= ni_norm
-        self.dne_ad_on_grid *= ne_norm
-        self.nane_on_grid *= ne_norm
-       
+    @property
+    def dne(self):
+        """ total electron density perturbation on GTC mesh """
+        try:
+            if not self.HaveElectron:
+                return self.dne_ad
+            else:
+                return self.dne_ad + self.nane
+        except AttributeError as e:
+            print('dne_on_grid is only available when fluctuations are loaded.\
+ Use full mode in initialization to enable fluctuation loading.')
+            raise e
+            
     @property         
     def dne_on_grid(self):
         """ total electron density perturbation on grid
@@ -1018,7 +1041,7 @@ special attention.', GTC_Loader_Warning)
                           GTC_Loader_Warning)
             return self.ne0_on_grid
             
-    def calculate_fluc_Te(self, component, tol=1e-14):
+    def calculate_fluc_Te(self, component, mesh,tol=1e-14):
         r"""
         Calculate electron temperature fluctuation based on pressure 
         perturbation and density perturbation read from GTC output data.
@@ -1060,31 +1083,52 @@ special attention.', GTC_Loader_Warning)
         .. math::
             T_{e0\perp} = T_{e0\parallel} = T_{e0}
         """
-        in_idx = np.abs(self.ne0_on_grid) > tol
-        dT = np.zeros_like(self.dPe_perp_on_grid)
-        if component=='perp':
+        if mesh == 'GTC':
+            dT = np.zeros_like(self.dPe_perp)
+            if component == 'perp':
+                dPe = self.dPe_perp
+            elif component == 'para':
+                dPe = self.dPe_para
+            else:
+                raise ValueError('component {0} not valid. options are "perp" or \
+"para"'.format(component))
             for i, t in enumerate(self.tsteps):
-                dT[i][in_idx] = (self.dPe_perp_on_grid \
-                          - self.Te0_on_grid*self.nane_on_grid)[i][in_idx] \
-                         / self.ne0_on_grid[in_idx]
+                dT[i] = (dPe[i] - self.Te0_gtc*self.nane)[i] / self.ne0_gtc
             return dT
-        elif component=='para':
+        elif mesh == 'grid':
+            in_idx = np.abs(self.ne0_on_grid) > tol
+            dT = np.zeros_like(self.dPe_perp_on_grid)
+            if component == 'perp':
+                dPe = self.dPe_perp_on_grid
+            elif component == 'para':
+                dPe = self.dPe_para_on_grid
+            else:
+                raise ValueError('component {0} not valid. options are "perp" or \
+"para"'.format(component))
             for i, t in enumerate(self.tsteps):
-                dT[i][in_idx] = (2*self.dPe_para_on_grid \
-                          - self.Te0_on_grid*self.nane_on_grid)[i][in_idx] \
-                         / self.ne0_on_grid[in_idx]
+                dT[i][in_idx] = (dPe[i][in_idx] - (self.Te0_on_grid\
+                                 *self.nane_on_grid)[i][in_idx]) \
+                                 / self.ne0_on_grid[in_idx]
             return dT
         else:
-            raise ValueError('component {0} not valid. options are "perp" or \
-"para"'.format(component))
+            raise ValueError('mesh {0} not valid. options are "GTC" or \
+"grid"'.format(mesh))
+    
+    @property
+    def dTe_perp(self):
+        return self.calculate_fluc_Te('perp', 'GTC')        
+        
+    @property
+    def dTe_para(self):
+        return self.calculate_fluc_Te('para', 'GTC')
     
     @property
     def dTe_perp_on_grid(self):
-        return self.calculate_fluc_Te('perp')
+        return self.calculate_fluc_Te('perp', 'grid')
         
     @property
     def dTe_para_on_grid(self):
-        return self.calculate_fluc_Te('para')
+        return self.calculate_fluc_Te('para', 'grid')
         
     
     def interpolate_on_grid(self, grid=None):
