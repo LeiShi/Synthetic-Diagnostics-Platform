@@ -893,6 +893,7 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
             self.nane = np.empty_like(self.phi)
         if self.isEM:
             self.A_para = np.empty_like(self.phi)
+            self.dTe_ad = np.empty_like(self.phi)
         
         
         for i in range(NT):
@@ -904,12 +905,7 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
 			# originally in eV, we'll cast it into erg.
             self.phi[i] = np.array(raw_snap['phi']) \
 				          * GTC_to_cgs['electric_potential']
-            # dPe output is normalized based on GTC running parameter 
-            # It will be taken care later
-            self.dPe_perp[i] = np.array(raw_snap['Pe_perp'])\
-								* GTC_to_cgs['pressure']
-            self.dPe_para[i] = np.array(raw_snap['Pe_para'])\
-								* GTC_to_cgs['pressure']
+            
             self.dni[i] = np.array(raw_snap['densityi'])\
 								* GTC_to_cgs['density']
             self.dne_ad[i] = np.array(raw_snap['fluidne'])\
@@ -917,27 +913,25 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
             if self.HaveElectron:
                 self.nane[i] = np.array(raw_snap['densitye'])\
 								* GTC_to_cgs['density']
+                # dPe output is normalized based on GTC running parameter 
+                # It will be taken care later
+                self.dPe_perp[i] = np.array(raw_snap['Pe_perp'])\
+								* GTC_to_cgs['pressure']
+                self.dPe_para[i] = np.array(raw_snap['Pe_para'])\
+								* GTC_to_cgs['pressure']
             if self.isEM:
                 warnings.warn('Magnetic perturbations are not properly \
 normalized. Quantative calculation using perturbed vector potential requires \
 special attention.', GTC_Loader_Warning)
                 self.A_para[i] = np.array(raw_snap['apara'])\
 						     * GTC_to_cgs['magnetic_potential']
+                self.dTe_ad[i] = np.array(raw_snap['Te_adiabatic'])
+                self.dpsi[i] = np.array(raw_snap['delta_psi'])
         # Now, we take care of dPe and dne normalization
-        if (self.iload == 1):
-            ni_norm = self.ne0_1D[0] / self.ions[0].charge
-        else:
-            ni_norm = self.ne0_gtc / self.ions[0].charge
-
-        if (self.eload == 1):
-            ne_norm = self.ne0_1D[0]
-            Te_norm = self.Te0_1D[0]
-        elif (self.eload == 2):
-            ne_norm = self.ne0_gtc
-            Te_norm = self.Te0_1D[0]
-        else:
-            ne_norm = self.ne0_gtc
-            Te_norm = self.Te0_gtc
+        ni_norm = self.ne0_gtc / self.ions[0].charge
+        ne_norm = self.ne0_gtc
+        # Temperature normalization is to on-axis equilibrium Te0
+        Te_norm = self.Te0_1D[0]
             
         # Note that dne_ad is always normalized to local equilibrium density
         self.dne_ad *= self.ne0_gtc
@@ -1056,8 +1050,8 @@ special attention.', GTC_Loader_Warning)
             = \frac{P_{e\perp}(x)}{n_e(x)}
         
         .. math::
-            \frac{1}{2}T_{e\parallel}(x) \equiv 
-            \frac{\int (1/2)m_e v_\parallel^2 f(x, v)dv}{\int f(x, v) dv}
+            T_{e\parallel}(x) \equiv 
+            \frac{\int m_e v_\parallel^2 f(x, v)dv}{\int f(x, v) dv}
             = \frac{P_{e\parallel}(x)}{n_e(x)}
                     
         Then :math:`dT_e(x) = T_e(x)-T_{e0}(x)`, where :math:`T_{e0}(x)` is 
@@ -1073,10 +1067,10 @@ special attention.', GTC_Loader_Warning)
            = \frac{dP_{e\perp} - T_{e0}dn_e}{n_{e0}} 
            
         .. math::
-           \frac{1}{2}dT_{e\parallel}(x) = 
+           \fracdT_{e\parallel}(x) = 
            \left(\frac{P_{e\parallel}}{n_e}
            -\frac{P_{e0\parallel}}{n_{e0}}\right)
-           = \frac{2 \, dP_{e\parallel} - T_{e0}dn_e}{n_{e0}}
+           = \frac{dP_{e\parallel} - T_{e0}dn_e}{n_{e0}}
                     
         Note that we use a isotropic equilibrium temperature, so 
         
