@@ -894,6 +894,7 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
         if self.isEM:
             self.A_para = np.empty_like(self.phi)
             self.dTe_ad = np.empty_like(self.phi)
+            self.dpsi = np.empty_like(self.phi)
         
         
         for i in range(NT):
