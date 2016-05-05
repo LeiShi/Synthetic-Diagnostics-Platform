@@ -51,9 +51,13 @@ class ECEI_Analyzer(object):
                                             self._triangulation)
         if kind=='linear':
             self._kind = kind
+            self._Te_interpolator = LinearTriInterpolator(self._triangulation, 
+                                                          self._Te,
                                                     trifinder=self._trifinder)
         elif kind == 'cubic':
             self._kind = kind
+            self._Te_interpolator = CubicTriInterpolator(self._triangulation, 
+                                                         self._Te,
                                                    trifinder=self._trifinder)
         else:
             raise ValueError('Wrong kind of interpolation: {0}. Available \
