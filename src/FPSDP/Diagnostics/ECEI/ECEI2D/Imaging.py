@@ -416,8 +416,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
     def view_points(self):
         return self.get_view_points()
     
-    def get_view_spots(self, channelID='all'):
-        """view_spot list of all channels"""
+    def get_view_spots(self, channelID='all'):        
         if channelID == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -434,10 +433,31 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         
     @property
     def view_spots(self):
+        """view_spot list of all channels"""
         return self.get_view_spots()
         
+    def get_diag_x(self, channelID='all'):
+        if channelID == 'all':
+            channelID = np.arange(self._ND)
+        else:
+            channelID = np.array(channelID)
+        if not self._parallel:
+            diag_x = [self.channels[i].diag_x for i in channelID]
+        else:
+            diag_x = []
+            for i in channelID:
+                eid = self._client.ids[i%self._engine_num]
+                engine = self._client[eid]
+                diag_x.append(engine['eces[{0}].diag_x'.format(i)])
+        return tuple(diag_x)
+        
+    @property
+    def diag_xs(self):
+        """ diag_x list of all chanels"""
+        return self.get_diag_x()
+    
     def get_X1Ds(self, channelID='all'):
-        """list containing X1D arrays of all channels"""
+        
         if channelID == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -454,10 +474,11 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
     
     @property
     def X1Ds(self):
+        """list containing X1D arrays of all channels"""
         return self.get_X1Ds()
     
     def get_Y1Ds(self, channelID='all'):
-        """list containing X1D arrays of all channels"""
+        
         if channelID == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -474,10 +495,11 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         
     @property
     def Y1Ds(self):
+        """list containing X1D arrays of all channels"""
         return self.get_Y1Ds()
         
     def get_Z1Ds(self, channelID='all'):
-        """list containing X1D arrays of all channels"""
+        
         if channelID == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -494,6 +516,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         
     @property
     def Z1Ds(self):
+        """list containing X1D arrays of all channels"""
         return self.get_Z1Ds()
         
     
