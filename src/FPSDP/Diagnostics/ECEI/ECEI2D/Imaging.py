@@ -365,7 +365,7 @@ oblique_correction=oblique_correction, mute=mute)'.format(i))
                 engine = self._client[eid]
                 self.Te[ci] = np.asarray(engine['eces[{0}].Te'.format(ci)])
             if wait_time >= wait_time_single*len(channelID):
-                raise Exception('Parallel Set_coords takes too long. Check if \
+                raise Exception('Parallel diagnose() takes too long. Check if \
 something went wrong. Time elapsed: {0}s'.format(wait_time))
             tend = systime.clock()
             if not mute:
