@@ -743,7 +743,8 @@ analyze it now, this may take a few minutes? (y/n)')
         """observed emission intensity distribution in Y-X plane 
         """
         try:
-            integ = np.copy(self.intkz_list[self.detector._central_index])
+            integ = np.copy(self.intkz_list[self.detector._central_index]*\
+                            2*np.pi)
             if self.time is None:    
                 Te = self.plasma.get_Te0([self.Y2D, self.X2D])
             elif self.time.ndim == 0:
@@ -758,7 +759,7 @@ analyze it now, this may take a few minutes? (y/n)')
 Call diagnose() first.', file=sys.stderr)
         
 
-        return np.abs(integ)/np.max(np.abs(integ))
+        return np.abs(integ)
         
     @property
     def properties(self):
