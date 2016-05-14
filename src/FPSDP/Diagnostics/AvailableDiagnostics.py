@@ -13,13 +13,13 @@ Users should not modify this module.
 Developers should add new capabilities or update existing ones when they've
 been fully tested and ready to use.
 """
-from .Reflectometry import FWR2D, FWR3D
-from .ECEI import ECEI1D, ECEI2D
-from . import BES
+#from .Reflectometry import FWR2D, FWR3D
+#from .ECEI import ECEI1D, ECEI2D
+#from . import BES
 
 
 Available_Diagnostics = ['FWR2D','FWR3D','ECEI1D','ECEI2D','BES']
 
-Entry_Modules = {'FWR2D':FWR2D, 'FWR3D':FWR3D, 'ECEI1D':ECEI1D, 'BES':BES, 
-                 'ECEI2D':ECEI2D}
+#Entry_Modules = {'FWR2D':FWR2D, 'FWR3D':FWR3D, 'ECEI1D':ECEI1D, 'BES':BES, 
+#                 'ECEI2D':ECEI2D}
 
