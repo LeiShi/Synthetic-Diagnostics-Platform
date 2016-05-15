@@ -893,8 +893,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
             self.nane = np.empty_like(self.phi)
         if self.isEM:
             self.A_para = np.empty_like(self.phi)
-            self.dTe_ad = np.empty_like(self.phi)
-            self.dpsi = np.empty_like(self.phi)
+            #self.dTe_ad = np.empty_like(self.phi)
+            #self.dpsi = np.empty_like(self.phi)
         
         
         for i in range(NT):
@@ -926,8 +926,8 @@ normalized. Quantative calculation using perturbed vector potential requires \
 special attention.', GTC_Loader_Warning)
                 self.A_para[i] = np.array(raw_snap['apara'])\
 						     * GTC_to_cgs['magnetic_potential']
-                self.dTe_ad[i] = np.array(raw_snap['Te_adiabatic'])
-                self.dpsi[i] = np.array(raw_snap['delta_psi'])
+                #self.dTe_ad[i] = np.array(raw_snap['Te_adiabatic'])
+                #self.dpsi[i] = np.array(raw_snap['delta_psi'])
         # Now, we take care of dPe and dne normalization
         ni_norm = self.ne0_gtc / self.ions[0].charge
         ne_norm = self.ne0_gtc
