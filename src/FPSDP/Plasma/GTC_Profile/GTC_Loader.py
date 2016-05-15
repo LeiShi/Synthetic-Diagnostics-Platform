@@ -1134,18 +1134,18 @@ special attention.', GTC_Loader_Warning)
         # TODO complete the interpolation function
         pass
         
-    def create_profile(self, diagnostics=None, grid=None):
-        """Create required profile object for specific diagnostics
+    def create_profile(self, diagnostic=None, grid=None):
+        """Create required profile object for specific diagnostic
         
-        :param diagnostcs: Specify the synthetic diagnostic that uses the 
+        :param diagnostc: Specify the synthetic diagnostic that uses the 
                            profile. If not given, a list of available 
                            diagnostics will be printed.
-        :type diagnostics: string
+        :type diagnostic: string
         :param grid: The grid on which all required profiles will be given. If 
                      not specified, ``self.grid`` will be used.
         :type grid: :py:class:`<...Geometry.Grid.Grid>` derived class
         """
-        if (diagnostics is None) or (diagnostics not in Available_Diagnostics):
+        if (diagnostic is None) or (diagnostic not in Available_Diagnostics):
             raise ValueError('Diagnostic not specified! Currently available \
             diagnostics are:\n{}'.format(Available_Diagnostics))
         
@@ -1154,7 +1154,7 @@ special attention.', GTC_Loader_Warning)
 created.')
             return
             
-        if (diagnostics in ['ECEI1D', 'ECEI2D']):
+        if (diagnostic in ['ECEI1D', 'ECEI2D']):
             self.interpolate_on_grid(grid)
             if grid is None:
                 grid = self.grid

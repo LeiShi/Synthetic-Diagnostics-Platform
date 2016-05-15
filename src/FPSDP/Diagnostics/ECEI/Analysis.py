@@ -29,15 +29,14 @@ class ECEI_Analyzer(object):
     
     """
     
-    def __init__(self, ECEI, X_aims, Y_aims):
+    def __init__(self, Te, X_aims, Y_aims):
         self._X = np.array(X_aims)
         self._Y = np.array(Y_aims)
         assert self._X.ndim == 1
         assert self._Y.ndim == 1
-        self._ecei = ECEI
+        self._Te = Te
         self._name = "ECEI analyzer"
         self._points = np.transpose(np.array([self._Y, self._X]))
-        self._Te = self._ecei.Te
     
     def _setup_Te_interpolator(self, kind='linear'):
         """setup interpolator for measured Te

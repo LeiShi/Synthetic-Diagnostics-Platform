@@ -545,6 +545,7 @@ class PlasmaCharProfile(object):
         self.ne0 = plasma.ne0
         self.Te0 = plasma.Te0
         self.B0 = plasma.B0
+        self._coords = self._plasma.grid.get_ndmesh()
         
     @property
     def plasma(self):
@@ -557,6 +558,7 @@ class PlasmaCharProfile(object):
         self.Te0 = p.Te0
         self.B0 = p.B0
         self._plasma.setup_interps()
+        self._coords = self._plasma.grid.get_ndmesh()
         
     def set_coords(self, coordinates=None):
         """set the coordinates of locations where all characteristic properties 
@@ -633,7 +635,8 @@ class PlasmaCharProfile(object):
         else:
             raise NotImplementedError('Only 1D or 2D plasma profile are \
 supported.')
-        if (not np.all(np.argsort(omega_ece) == np.arange(len(omega_ece)))):
+        if (not np.all(np.argsort(omega_ece) == np.arange(len(omega_ece))) and\
+           not np.all(np.argsort(omega_ece[::-1])==np.arange(len(omega_ece)))):
             warnings.warn('ece frequency is not monotonically increasing! \
 Result from find_cold_ECE_res may not be valid.')
         return search_root(x, omega_ece, omega)

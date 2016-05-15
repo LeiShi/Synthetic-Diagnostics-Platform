@@ -519,6 +519,12 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         """list containing X1D arrays of all channels"""
         return self.get_Z1Ds()
         
+    #def save(self, filename='./ecei_save'):
+    #    """save all channel information to *filename*.npz
+    #    """
+        
+        
+        
     
                 
     

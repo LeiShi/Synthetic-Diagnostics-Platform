@@ -551,6 +551,13 @@ def search_root(x, y, y0):
     assert y.ndim == 1
     assert x.shape == y.shape
     
+    if (y[0] > y[-1]):
+        x = x[::-1]
+        y = y[::-1]
+        
+    assert np.all(np.argsort(y) == np.arange(len(y))), 'y must be monotonically \
+increasing or decreasing!'
+    
     ny = len(y)
 
     x0 = np.zeros_like(y0, dtype='float')
