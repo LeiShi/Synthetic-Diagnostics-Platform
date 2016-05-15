@@ -31,7 +31,7 @@ class M3DC1_Loader(object):
     __init__(self, m3dpath, tor_slice=0)
     """
     
-    def __init__(self, m3dpath='./', tor_slice=0, tol=1e-10):
+    def __init__(self, m3dpath='./', tor_slice=1):
         """
         :param str path: loading directory of M3DC1 files, default to be current
         :param int tor_slice: toroidal slice number to be loaded, used for 
@@ -39,8 +39,14 @@ class M3DC1_Loader(object):
         """
         
         self._path = m3dpath
-        self._tor_slice = tor_slice
+        self._tor_slice = np.array(tor_slice)
         
+        self._load_equilibrium()
+        self._load_fluctuation()
+        
+        
+    def _load_equilibrium(self, tol=1e-14):
+
         eq_file = path.join(self._path, 'C1.h5_equ_ufile.cdf')
         eqf = ncfile(eq_file, 'r')
         
@@ -71,19 +77,52 @@ class M3DC1_Loader(object):
         
         eqf.close()
         
-        fluc_file = path.join(self._path, 
-                         'C1.h5_{0:0>4}_ufile.cdf'.format(self._tor_slice))
-        flucf = ncfile(fluc_file, 'r')
-        
-        self.time = np.array([0])
-        self.dne = np.empty((1, NZ, NR))
-        self.dTe = np.empty_like(self.dne)
-        self.dB = np.empty_like(self.dne)
-        
-        self.dne[0] = flucf.variables['ne'].data*1e-6 - self.ne0
-        self.dTe[0] = flucf.variables['te'].data*cgs['keV'] - self.Te0
-        self.dB[0] = flucf.variables['bb'].data*1e4 - self.B0
-        
+    def _load_fluctuation(self, tol=1e-14):
+        NR = self.grid.NR
+        NZ = self.grid.NZ
+        if self._tor_slice.ndim == 0:
+            fluc_file = path.join(self._path, 
+                             'C1.h5_{0:0>4}_ufile.cdf'.format(self._tor_slice))
+            flucf = ncfile(fluc_file, 'r')
+            
+            self.time = np.array([0])
+            self.dne = np.empty((1, NZ, NR))
+            self.dTe = np.empty_like(self.dne)
+            self.dB = np.empty_like(self.dne)
+            
+            Tef = np.copy(flucf.variables['te'].data)
+            # Similar to equilibrium, any negative total Te should also be set 
+            # to marginal positive value
+            Te_margin = tol*np.max(Tef)
+            Tef[Tef < Te_margin] = Te_margin        
+            
+            self.dne[0] = flucf.variables['ne'].data*1e-6 - self.ne0
+            self.dTe[0] = Tef*cgs['keV'] - self.Te0
+            self.dB[0] = flucf.variables['bb'].data*1e4 - self.B0
+            
+        elif self._tor_slice.ndim == 1:
+            nt = len(self._tor_slice)
+            self.time = np.arange(nt)
+            self.dne = np.empty((nt, NZ, NR))
+            self.dTe = np.empty_like(self.dne)
+            self.dB = np.empty_like(self.dne)
+            
+            for i, tor in enumerate(self._tor_slice):
+                fluc_file = path.join(self._path, 
+                             'C1.h5_{0:0>4}_ufile.cdf'.format(tor))
+                flucf = ncfile(fluc_file, 'r')
+                Tef = np.copy(flucf.variables['te'].data)
+                # Similar to equilibrium, any negative total Te should also be
+                # set to marginal positive value
+                Te_margin = tol*np.max(Tef)
+                Tef[Tef < Te_margin] = Te_margin        
+                
+                self.dne[i] = flucf.variables['ne'].data*1e-6 - self.ne0
+                self.dTe[i] = Tef*cgs['keV'] - self.Te0
+                self.dB[i] = flucf.variables['bb'].data*1e4 - self.B0
+        else:
+            raise ValueError('invalid tor_slice dimension. Only 1D or scalar\
+are allowed. tor_slice shape: {}'.format(self._tor_slice.shape))
         
     def create_profile(self, diagnostic):
         """Create required profile object for specific diagnostics
