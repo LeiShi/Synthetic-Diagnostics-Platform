@@ -17,6 +17,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 from ..Geometry.Grid import Grid
 from ..GeneralSettings.UnitSystem import UnitSystem, cgs
+from ..GeneralSettings.Exceptions import PlasmaWarning
 
 class IonClass(object):
     """General class for a kind of ions
@@ -87,7 +88,11 @@ class PlasmaProfile(object):
 class ECEI_Profile(PlasmaProfile):
     """Plasma profile for synthetic Electron Cyclotron Emission Imaging.
     
-    ECEI needs the following plasma quantities:
+    Initialization
+    ---------------
+
+    __init__(self, grid, ne0, Te0, B0, time=None, dne=None, dTe_para=None, 
+                 dTe_perp=None, dB=None, unitsystem = cgs)
     
     :var ne0: equilibrium electron density
     :var Te0: equilibrium electron temperature
@@ -98,7 +103,68 @@ class ECEI_Profile(PlasmaProfile):
                   to B
     
     These should all be passed in compatible with the ``grid`` specification.
+    
     :raises AssertionError: if any of the above quantities are not compatible
+    
+    Methods
+    --------
+    
+    Following methods are provided:
+    
+    setup_interps(self, equilibrium_only = False):
+        Create interpolators for plasma quantities. This is useful if repeated
+        call of "get_*" methods is required.
+        
+    get_ne0(self, coordinates):
+        return ne0 interpolated at *coordinates*
+        
+    get_Te0(self, coordinates):
+        return Te0 interpolated at *coordinates*
+        
+    get_B0(self, coordinates):
+        return B0 interpolated at *coordinates*
+        
+    get_dne(self, coordinates, time=None):
+        return dne interpolated at *coordinates*, for each time step in *time*
+        
+    get_dB(self, coordinates, time=None):
+        return dB interpolated at *coordinates*, for each time step in *time*
+        
+    get_dTe_para(self, coordinates, time=None):
+        return dTe_para interpolated at *coordinates*, for each time step in 
+        *time*
+        
+    get_dTe_perp(self, coordinates, time=None):
+        return dTe_perp interpolated at *coordinates*, for each time step in 
+        *time*
+        
+    get_ne(self, coordinates, eq_only=True, time=None):
+        wrapper for getting total electron densities        
+        
+        If eq_only is True, only equilibirum density is returned
+        otherwise, the total density is returned.
+        
+        If time is None, *all* available time steps will be used for fluctuated
+        part. This only apply to eq_only=False case.
+        
+    get_B(self, coordinates, eq_only=True, time=None):
+        wrapper for getting total magnetic field
+        
+    get_Te(self, coordinates, eq_only=True, perpendicular = True, time=None):
+        wrapper for getting electron temperature
+        
+        If eq_only is True, only equilibirum Te is returned
+        otherwise, the total Te is returned.
+        
+        if perpendicular is True, perturbed perpendicular Te is added.
+        Otherwise, perturbed parallel Te is added.        
+        
+        if time is None, all available time steps for perturbations are 
+        returned. Otherwise the given time steps are returned.     
+    
+    physical_quantities(self):
+        return info string containing physical quantities included in the
+        profile.
     """
     def __init__(self, grid, ne0, Te0, B0, time=None, dne=None, dTe_para=None, 
                  dTe_perp=None, dB=None, unitsystem = cgs):
@@ -572,8 +638,10 @@ consider calling setup_interps function first.'
                 return self.get_ne0(coordinates) + self.get_dne(coordinates, 
                                                                 time)
             else:
-                raise ValueError('get_ne is called with eq_only=False, but no \
-electron density perturbation data available.')
+                warnings.warn('get_ne is called with eq_only=False, but no \
+electron density perturbation data available. Equilibrium data is returned.',
+                              PlasmaWarning)
+                return self.get_ne0(coordinates)
                 
     def get_B(self, coordinates, eq_only=True, time=None):
         """wrapper for getting magnetic field strength
@@ -591,12 +659,14 @@ electron density perturbation data available.')
                 return self.get_B0(coordinates) + self.get_dB(coordinates, 
                                                               time)
             else:
-                raise ValueError('get_B is called with eq_only=False, but no \
-electron density perturbation data available.')
+                warnings.warn('get_B is called with eq_only=False, but no \
+magnetic field perturbation data available. Equilibrium value is returned.',
+                               PlasmaWarning)
+                return self.get_B0(coordinates)
 
     def get_Te(self, coordinates, eq_only=True, perpendicular = True, 
                time=None):
-        """wrapper for getting electron densities
+        """wrapper for getting electron temperature
         
         If eq_only is True, only equilibirum Te is returned
         otherwise, the total Te is returned.
@@ -616,17 +686,19 @@ electron density perturbation data available.')
                 return self.get_Te0(coordinates) + \
                        self.get_dTe_perp(coordinates, time)
             else:
-                raise ValueError('get_Te is called with eq_only=False, \
+                warnings.warn('get_Te is called with eq_only=False, \
 perpendicular=True but no electron perpendicular temperature perturbation data\
- available.')
+ available. Equilibrium data is returned.', PlasmaWarning)
+                return self.get_Te0(coordinates) 
         else:
             if self.has_dTe_para:
                 return self.get_Te0(coordinates) + \
                        self.get_dTe_para(coordinates, time)
             else:
-                raise ValueError('get_Te is called with eq_only=False, \
+                warnings.warn('get_Te is called with eq_only=False, \
 perpendicular=False but no electron parallel temperature perturbation data\
- available.')
+ available. Equilibrium data is returned.', PlasmaWarning)
+                return self.get_Te0(coordinates) 
 
 
     

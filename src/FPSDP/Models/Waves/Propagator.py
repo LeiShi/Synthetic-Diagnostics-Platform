@@ -984,7 +984,7 @@ class ParaxialPerpendicularPropagator2D(Propagator):
     tensor along main light path, normally use Cold or Warm formulation, and
     :math:`\delta\epsilon` the deviation of full dielectric tensor from 
     :math:`\epsilon_0` due to fluctuations, away from main light path, and/or
-    relativstic kinetic effects. 
+    relativistic kinetic effects. 
         
     5. Method
     
