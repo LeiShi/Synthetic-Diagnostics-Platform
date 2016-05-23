@@ -926,7 +926,7 @@ normalized. Quantative calculation using perturbed vector potential requires \
 special attention.', GTC_Loader_Warning)
                 self.A_para[i] = np.array(raw_snap['apara'])\
 						     * GTC_to_cgs['magnetic_potential']
-                self.dpsi[i] = np.array(raw_snap['delta_psi'])*self.a_gtc
+                self.dpsi[i] = np.array(raw_snap['delta_psi'])
 
                 # flux surface. Te0 is a function of psi(i.e. "a"). 
         # Now, we take care of dPe and dne normalization
@@ -1051,7 +1051,7 @@ special attention.', GTC_Loader_Warning)
             T_{e, ad} = T_0(\psi + \delta \psi)-T_0(\psi)
         """
         if (mesh == 'GTC'):
-            psi = self.a_gtc[np.newaxis,:] + self.dpsi
+            psi = self.a_gtc + self.dpsi
             Te = self.Te0_interp(psi)
             dTe = Te - self.Te0_gtc
             return dTe
