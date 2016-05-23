@@ -893,8 +893,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
             self.nane = np.empty_like(self.phi)
         if self.isEM:
             self.A_para = np.empty_like(self.phi)
-            #self.dTe_ad = np.empty_like(self.phi)
-            #self.dpsi = np.empty_like(self.phi)
+            self.dTe_ad = np.empty_like(self.phi)
+            self.dpsi = np.empty_like(self.phi)
         
         
         for i in range(NT):
@@ -926,8 +926,9 @@ normalized. Quantative calculation using perturbed vector potential requires \
 special attention.', GTC_Loader_Warning)
                 self.A_para[i] = np.array(raw_snap['apara'])\
 						     * GTC_to_cgs['magnetic_potential']
-                #self.dTe_ad[i] = np.array(raw_snap['Te_adiabatic'])
-                #self.dpsi[i] = np.array(raw_snap['delta_psi'])
+                self.dpsi[i] = np.array(raw_snap['delta_psi'])*self.a_gtc
+
+                # flux surface. Te0 is a function of psi(i.e. "a"). 
         # Now, we take care of dPe and dne normalization
         ni_norm = self.ne0_gtc / self.ions[0].charge
         ne_norm = self.ne0_gtc
@@ -964,6 +965,7 @@ special attention.', GTC_Loader_Warning)
             self.nane_on_grid = np.empty_like(self.phi_on_grid)
         if self.isEM:
             self.A_para_on_grid = np.empty_like(self.phi_on_grid)
+            self.dpsi_on_grid = np.empty_like(self.phi_on_grid)
         
         
         for i in range(NT):
@@ -999,6 +1001,11 @@ special attention.', GTC_Loader_Warning)
                                                      fill_value=0)
                 self.A_para_on_grid[i] = A_para_interp(points_on_grid)
 
+                dpsi_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                   self.dpsi[i],
+                                                   fill_value=0)
+
+                self.dpsi_on_grid[i] = dpsi_interp(points_on_grid)
     @property
     def dne(self):
         """ total electron density perturbation on GTC mesh """
@@ -1035,8 +1042,41 @@ special attention.', GTC_Loader_Warning)
             warnings.warn('fluctuation is no loaded, ne0 is returned.', 
                           GTC_Loader_Warning)
             return self.ne0_on_grid
-            
-    def calculate_fluc_Te(self, component, mesh,tol=1e-14):
+    
+    def calculate_adiabatic_Te(self, mesh, tol=1e-14):
+        r""" Adiabatic Te fluctuation is calculated using perturbed flux 
+        surface.
+
+        .. math::
+            T_{e, ad} = T_0(\psi + \delta \psi)-T_0(\psi)
+        """
+        if (mesh == 'GTC'):
+            psi = self.a_gtc[np.newaxis,:] + self.dpsi
+            Te = self.Te0_interp(psi)
+            dTe = Te - self.Te0_gtc
+            return dTe
+        elif (mesh == 'grid'):
+            psi = self.a_on_grid +self.dpsi_on_grid
+            Te = self.Te0_interp(psi)
+            dTe = Te - self.Te0_on_grid
+            return dTe
+        else:
+            raise ValueError('mesh {0} not valid. options are "GTC" or \
+"grid"'.format(mesh)) 
+
+    @property
+    def dTe_ad(self):
+        """ Adiabatic Te fluctuation on GTC grid
+        """
+        return self.calculate_adiabatic_Te('GTC')
+
+    @property
+    def dTe_ad_on_grid(self):
+        """ Adiabatic Te fluctuation on GTC grid
+        """
+        return self.calculate_adiabatic_Te('grid')
+        
+    def calculate_fluc_Te(self, component, mesh, tol=1e-14):
         r"""
         Calculate electron temperature fluctuation based on pressure 
         perturbation and density perturbation read from GTC output data.
