@@ -725,10 +725,10 @@ Cartesian3D grids are supported.'))
         
         # Finally, assign these outside values to the original array
         self.a_on_grid[out_mask] = a_out
-        
+        self.a_on_grid = self.a_on_grid.data
         # Now we are ready to interpolate ne and Te on our grid
-        self.ne0_on_grid = self.ne0_interp(self.a_on_grid.data)
-        self.Te0_on_grid = self.Te0_interp(self.a_on_grid.data)
+        self.ne0_on_grid = self.ne0_interp(self.a_on_grid)
+        self.Te0_on_grid = self.Te0_interp(self.a_on_grid)
         
         # B_total and B_phi can be interpolated exactly like *a*               
         self.Btotal_on_grid = self.B_total_interp(Zwant, Rwant)
@@ -926,8 +926,9 @@ normalized. Quantative calculation using perturbed vector potential requires \
 special attention.', GTC_Loader_Warning)
                 self.A_para[i] = np.array(raw_snap['apara'])\
 						     * GTC_to_cgs['magnetic_potential']
-                self.dTe_ad[i] = np.array(raw_snap['Te_adiabatic'])
                 self.dpsi[i] = np.array(raw_snap['delta_psi'])
+
+                # flux surface. Te0 is a function of psi(i.e. "a"). 
         # Now, we take care of dPe and dne normalization
         ni_norm = self.ne0_gtc / self.ions[0].charge
         ne_norm = self.ne0_gtc
@@ -964,6 +965,7 @@ special attention.', GTC_Loader_Warning)
             self.nane_on_grid = np.empty_like(self.phi_on_grid)
         if self.isEM:
             self.A_para_on_grid = np.empty_like(self.phi_on_grid)
+            self.dpsi_on_grid = np.empty_like(self.phi_on_grid)
         
         
         for i in range(NT):
@@ -999,6 +1001,11 @@ special attention.', GTC_Loader_Warning)
                                                      fill_value=0)
                 self.A_para_on_grid[i] = A_para_interp(points_on_grid)
 
+                dpsi_interp = LinearNDInterpolator(self.Delaunay_gtc,
+                                                   self.dpsi[i],
+                                                   fill_value=0)
+
+                self.dpsi_on_grid[i] = dpsi_interp(points_on_grid)
     @property
     def dne(self):
         """ total electron density perturbation on GTC mesh """
@@ -1035,8 +1042,41 @@ special attention.', GTC_Loader_Warning)
             warnings.warn('fluctuation is no loaded, ne0 is returned.', 
                           GTC_Loader_Warning)
             return self.ne0_on_grid
-            
-    def calculate_fluc_Te(self, component, mesh,tol=1e-14):
+    
+    def calculate_adiabatic_Te(self, mesh, tol=1e-14):
+        r""" Adiabatic Te fluctuation is calculated using perturbed flux 
+        surface.
+
+        .. math::
+            T_{e, ad} = T_0(\psi + \delta \psi)-T_0(\psi)
+        """
+        if (mesh == 'GTC'):
+            psi = self.a_gtc + self.dpsi
+            Te = self.Te0_interp(psi)
+            dTe = Te - self.Te0_gtc
+            return dTe
+        elif (mesh == 'grid'):
+            psi = self.a_on_grid +self.dpsi_on_grid
+            Te = self.Te0_interp(psi)
+            dTe = Te - self.Te0_on_grid
+            return dTe
+        else:
+            raise ValueError('mesh {0} not valid. options are "GTC" or \
+"grid"'.format(mesh)) 
+
+    @property
+    def dTe_ad(self):
+        """ Adiabatic Te fluctuation on GTC grid
+        """
+        return self.calculate_adiabatic_Te('GTC')
+
+    @property
+    def dTe_ad_on_grid(self):
+        """ Adiabatic Te fluctuation on GTC grid
+        """
+        return self.calculate_adiabatic_Te('grid')
+        
+    def calculate_fluc_Te(self, component, mesh, tol=1e-14):
         r"""
         Calculate electron temperature fluctuation based on pressure 
         perturbation and density perturbation read from GTC output data.
@@ -1110,21 +1150,36 @@ special attention.', GTC_Loader_Warning)
 "grid"'.format(mesh))
     
     @property
-    def dTe_perp(self):
+    def dTe_na_perp(self):
         return self.calculate_fluc_Te('perp', 'GTC')        
         
     @property
-    def dTe_para(self):
+    def dTe_na_para(self):
         return self.calculate_fluc_Te('para', 'GTC')
     
     @property
-    def dTe_perp_on_grid(self):
+    def dTe_na_perp_on_grid(self):
         return self.calculate_fluc_Te('perp', 'grid')
         
     @property
-    def dTe_para_on_grid(self):
+    def dTe_na_para_on_grid(self):
         return self.calculate_fluc_Te('para', 'grid')
+    
+    @property
+    def dTe_perp(self):
+        return self.dTe_ad + self.dTe_na_perp
         
+    @property
+    def dTe_para(self):
+        return self.dTe_ad + self.dTe_na_para
+        
+    @property
+    def dTe_perp_on_grid(self):
+        return self.dTe_ad_on_grid + self.dTe_na_perp_on_grid
+        
+    @property
+    def dTe_para_on_grid(self):
+        return self.dTe_ad_on_grid + self.dTe_na_para_on_grid
     
     def interpolate_on_grid(self, grid=None):
         """Interpolate required quantities on new grid. Useful for loading same

@@ -191,7 +191,7 @@ Check if something went wrong! Time elapsed: {0}s'.format(wait_time))
                           indices in ``self.channels``. Default is 'all'. 
         :type channelID: list of int.
         """
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         
         if not self._parallel:
@@ -235,7 +235,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         """
         tstart = systime.clock()
         
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         if not self._parallel:
             if not mute:
@@ -306,7 +306,7 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
         :param bool mute: if True, no printed output.
         """
         tstart = systime.clock()
-        if channelID == 'all':
+        if str(channelID) == 'all':
                 channelID = np.arange(self._ND)
         if time is not None:
             time = np.array(time)
@@ -374,7 +374,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         
     def get_channels(self, channelID='all'):
         """Detailed information for all/chosen channels"""
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
             channelID = np.array(channelID)
@@ -398,7 +398,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
     def get_view_points(self, channelID='all'):
         """ actual viewing location for each channel
         """
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
             channelID = np.array(channelID)
@@ -417,7 +417,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         return self.get_view_points()
     
     def get_view_spots(self, channelID='all'):        
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
             channelID = np.array(channelID)
@@ -437,7 +437,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         return self.get_view_spots()
         
     def get_diag_x(self, channelID='all'):
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
             channelID = np.array(channelID)
@@ -458,7 +458,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
     
     def get_X1Ds(self, channelID='all'):
         
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
             channelID = np.array(channelID)
@@ -479,7 +479,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
     
     def get_Y1Ds(self, channelID='all'):
         
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
             channelID = np.array(channelID)
@@ -500,7 +500,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
         
     def get_Z1Ds(self, channelID='all'):
         
-        if channelID == 'all':
+        if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
             channelID = np.array(channelID)
@@ -518,6 +518,12 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
     def Z1Ds(self):
         """list containing X1D arrays of all channels"""
         return self.get_Z1Ds()
+        
+    #def save(self, filename='./ecei_save'):
+    #    """save all channel information to *filename*.npz
+    #    """
+        
+        
         
     
                 

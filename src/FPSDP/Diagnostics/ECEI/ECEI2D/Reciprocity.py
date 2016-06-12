@@ -82,39 +82,39 @@ class ECE2D_property(object):
         is_auto_adjusted: return True if auto_adjust_mesh is called
         is_diagnosed: return True if diagnose is called
     """
-    def __init__(self, ece2d):
-        assert isinstance(ece2d, ECE2D)
-        try:
-            self.X1D = ece2d.X1D
-            self.Y1D = ece2d.Y1D
-            self.Z1D = ece2d.Z1D
-            self._auto_coords_adjusted = ece2d._auto_coords_adjusted
-            self._coords_set = True
-        except AttributeError:
-            self._coords_set = False
-            self._auto_coords_adjusted = False
-            self._debug = False
-            self._diagnosed = False
-            return
-        if self._auto_coords_adjusted:
-            self.diag_x = ece2d.diag_x
-        try:
-            self.E0_list = ece2d.E0_list
-            self.kz_list = ece2d.kz_list
-            self.integrand_list = ece2d.integand_list
-            self._debug = True
-        except AttributeError:
-            self._debug = False            
-        try:
-            self.intkz_list = ece2d.intkz_list
-            self.view_point = ece2d.view_point
-            self.view_spot = ece2d.view_spot
-            self.propagator = ece2d.propagator.properties
-            self._diagnosed = True
-        except AttributeError:
-            self._diagnosed = False
-        
-        
+    def __init__(self, ece2d=None):
+        if ece2d is not None:
+            assert isinstance(ece2d, ECE2D)
+            try:
+                self.X1D = ece2d.X1D
+                self.Y1D = ece2d.Y1D
+                self.Z1D = ece2d.Z1D
+                self._auto_coords_adjusted = ece2d._auto_coords_adjusted
+                self._coords_set = True
+            except AttributeError:
+                self._coords_set = False
+                self._auto_coords_adjusted = False
+                self._debug = False
+                self._diagnosed = False
+                return
+            if self._auto_coords_adjusted:
+                self.diag_x = ece2d.diag_x
+            try:
+                self.E0_list = ece2d.E0_list
+                self.kz_list = ece2d.kz_list
+                self.integrand_list = ece2d.integand_list
+                self._debug = True
+            except AttributeError:
+                self._debug = False            
+            try:
+                self.intkz_list = ece2d.intkz_list
+                self.view_point = ece2d.view_point
+                self.view_spot = ece2d.view_spot
+                self.propagator = ece2d.propagator.properties
+                self._diagnosed = True
+            except AttributeError:
+                self._diagnosed = False
+                
     def is_debug(self):
         return self._debug
     
@@ -126,6 +126,24 @@ class ECE2D_property(object):
         
     def is_coords_set(self):
         return self._coords_set
+        
+    def save(self, filename='./ece_save'):
+        """Save ECEI properties to a numpy compressed save file
+        :param str filename: path to the .npz file. If it's not end with 
+                            '.npz', '.npz' will be appended to the end.
+        """
+        
+        np.savez_compressed(filename, **self.__dict__ )
+        
+    def load(self, filename='./ece_save.npz'):
+        """load a previously saved npz file
+        """
+        f = np.load(filename)
+        temp_dict = {}
+        for key, value in f.items():        
+            temp_dict[key] = value
+        self.__dict__ = temp_dict
+        f.close()
 
 class ECE2D(object):
     """single channel ECE diagnostic
