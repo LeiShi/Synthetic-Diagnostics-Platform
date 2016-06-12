@@ -127,7 +127,7 @@ are allowed. tor_slice shape: {}'.format(self._tor_slice.shape))
     def create_profile(self, diagnostic):
         """Create required profile object for specific diagnostics
         
-        :param diagnostc: Specify the synthetic diagnostic that uses the 
+        :param diagnostic: Specify the synthetic diagnostic that uses the
                            profile. If not given, a list of available 
                            diagnostics will be printed.
         :type diagnostic: string
@@ -136,10 +136,10 @@ are allowed. tor_slice shape: {}'.format(self._tor_slice.shape))
         :type grid: :py:class:`<...geometry.Grid.Grid>` derived class
         """
         if (diagnostic is None) or (diagnostic not in Available_Diagnostics):
-            raise ValueError('Diagnostic not specified! Currently available \
-            diagnostics are:\n{}'.format(Available_Diagnostics))
+            raise ValueError('Diagnostic {} not found! Currently available \
+            diagnostics are:\n{}'.format(diagnostic, Available_Diagnostics))
             
-        if (diagnostic in ['ECEI1D', 'ecei2d']):
+        if diagnostic in ['ecei1d', 'ecei2d']:
             
             return ECEI_Profile(self.grid, self.ne0, self.Te0, self.B0, 
                                 self.time, self.dne, self.dTe, self.dTe, 

@@ -21,7 +21,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from model.lightbeam import GaussianBeam
+from ....model.lightbeam import GaussianBeam
 from ..detector import Detector
 
 

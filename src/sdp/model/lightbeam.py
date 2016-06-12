@@ -13,8 +13,8 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from numpy.lib.scimath import sqrt
 
-from math.coordtransform import rotate
-from settings.unitsystem import cgs
+from ..math.coordtransform import rotate
+from ..settings.unitsystem import cgs
 
 class LightBeam(object):
     r"""Abstract base class for light beams

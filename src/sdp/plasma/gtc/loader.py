@@ -1226,7 +1226,7 @@ created.')
         else:
             raise NotImplemented('GTC profile generator for {} is not \
 implemented! Modify sdp.plasma.gtc.GTC_Loader.create_profile to \
-implement it.')
+implement it.'.format(diagnostic))
         
         
         
