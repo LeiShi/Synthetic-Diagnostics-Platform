@@ -725,10 +725,10 @@ Cartesian3D grids are supported.'))
         
         # Finally, assign these outside values to the original array
         self.a_on_grid[out_mask] = a_out
-        
+        self.a_on_grid = self.a_on_grid.data
         # Now we are ready to interpolate ne and Te on our grid
-        self.ne0_on_grid = self.ne0_interp(self.a_on_grid.data)
-        self.Te0_on_grid = self.Te0_interp(self.a_on_grid.data)
+        self.ne0_on_grid = self.ne0_interp(self.a_on_grid)
+        self.Te0_on_grid = self.Te0_interp(self.a_on_grid)
         
         # B_total and B_phi can be interpolated exactly like *a*               
         self.Btotal_on_grid = self.B_total_interp(Zwant, Rwant)
@@ -1150,21 +1150,36 @@ special attention.', GTC_Loader_Warning)
 "grid"'.format(mesh))
     
     @property
-    def dTe_perp(self):
+    def dTe_na_perp(self):
         return self.calculate_fluc_Te('perp', 'GTC')        
         
     @property
-    def dTe_para(self):
+    def dTe_na_para(self):
         return self.calculate_fluc_Te('para', 'GTC')
     
     @property
-    def dTe_perp_on_grid(self):
+    def dTe_na_perp_on_grid(self):
         return self.calculate_fluc_Te('perp', 'grid')
         
     @property
-    def dTe_para_on_grid(self):
+    def dTe_na_para_on_grid(self):
         return self.calculate_fluc_Te('para', 'grid')
+    
+    @property
+    def dTe_perp(self):
+        return self.dTe_ad + self.dTe_na_perp
         
+    @property
+    def dTe_para(self):
+        return self.dTe_ad + self.dTe_na_para
+        
+    @property
+    def dTe_perp_on_grid(self):
+        return self.dTe_ad_on_grid + self.dTe_na_perp_on_grid
+        
+    @property
+    def dTe_para_on_grid(self):
+        return self.dTe_ad_on_grid + self.dTe_na_para_on_grid
     
     def interpolate_on_grid(self, grid=None):
         """Interpolate required quantities on new grid. Useful for loading same
