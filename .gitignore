@@ -216,7 +216,7 @@ pip-log.txt
 .mr.developer.cfg
 
 #compiled python source files
-src/FPSDP/ece_save.npz
+src/sdp/ece_save.npz
 
 #IDEA folder
-src/FPSDP/.idea
+src/sdp/.idea
