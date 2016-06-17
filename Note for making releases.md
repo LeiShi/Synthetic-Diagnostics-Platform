@@ -12,4 +12,4 @@
 
 6. commit them with LFS, and merge to the master. 
 
-7. update the Readme.rm file and any documentations. 
+7. update the Readme.md file and any documentations. 
