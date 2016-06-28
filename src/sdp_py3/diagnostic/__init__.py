@@ -1,0 +1,1 @@
+from .availdiags import Available_Diagnostics
