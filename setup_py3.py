@@ -19,12 +19,12 @@ setup(name='sdp',
       author_email='FPSDP.main@gmail.com',
       url='https://github.com/LeiShi/Fusion_Plasma_Synthetic_Diagnostics_\
 Platform-Public-',
-      packages = find_packages('./src/python2'),
-	  package_dir = {'sdp':'src/python2/sdp'},
+      packages = find_packages('./src/python3/'),
+	  package_dir = {'sdp':'src/python3/sdp'},
       #include_package_data = True,
       package_data= {'sdp.math' : ['data/*'],
 					 'sdp' : ['./LICENSE', './AUTHORS', './NOTICE']},
-	  #data_files = [('src/python2/sdp', ['./LICENSE', './AUTHORS', './NOTICE'])],
+	  #data_files = [('src/python3/sdp', ['./LICENSE', './AUTHORS', './NOTICE'])],
       license = 'revised-BSD',
       
       # dependencies
