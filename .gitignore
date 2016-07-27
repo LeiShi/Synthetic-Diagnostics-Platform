@@ -201,6 +201,7 @@ var/
 sdist/
 develop-eggs/
 .installed.cfg
+.eggs/
 
 # Installer logs
 pip-log.txt
@@ -215,5 +216,15 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-#compiled python source files
-src/FPSDP/ece_save.npz
+# compiled python source files
+src/sdp/ece_save.npz
+# sdp egg info folder
+sdp.egg-info/
+
+##############
+## PyCharm 
+##############
+
+#IDEA folder
+src/sdp/.idea/
+.idea/
