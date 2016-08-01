@@ -334,6 +334,9 @@ before running ECE.', file=sys.stderr)
             # emission pattern
             try:
                 x_coord = self.x_coord
+                if (self.X1D[0]!=self.x_coord.Xmax or \
+                    self.X1D[-1]!=x_coord.Xmin):
+                    raise AttributeError
             except AttributeError:
                 
                 omega = self.detector.central_omega

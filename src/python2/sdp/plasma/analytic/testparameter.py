@@ -97,6 +97,33 @@ Parameter_DIIID['timesteps']=[0, 1, 2, 3]
 Parameter_DIIID['dt']=2.5e-6
                
 
+# JET-like parameters
+Parameter_JET = OrderedDict()
+Parameter_JET['R_0']=300
+Parameter_JET['a']=100
+Parameter_JET['DownLeft']=(-30,200)
+Parameter_JET['UpRight']=(30,410)
+Parameter_JET['NR']=200*4
+Parameter_JET['NZ']=60*4
+Parameter_JET['ne_0']=2e13 # 2e13 for typical JET plasma
+Parameter_JET['Te_0']=15*cgs['keV'] # 15keV for typical JET plasma
+Parameter_JET['B_0']=3e4 # 3 Tesla on axis
+Parameter_JET['ne_shape']='Hmode'
+Parameter_JET['Te_shape']='Hmode'
+# Fluctuations are now set arbitrarily. Based on what kind of phenomena is being studied.
+Parameter_JET['dne_ne']={'type':'siny',
+                       'params':{'level':0.01, 'k': 2*np.pi/50, 'omega':6.28e5,
+                                 'x0': 222, 'dx':2, 'y0':0, 'phi0':0}}
+Parameter_JET['dte_te']={'type':'siny',
+                       'params':{'level':0.01, 'k': 2*np.pi/50, 'omega':6.28e5,
+                                 'x0': 222, 'dx':2, 'y0':0, 'phi0':0}}
+Parameter_JET['dB_B']={'type':'siny',
+                     'params':{'level':0.00, 'k': 2*np.pi/50, 'omega':6.28e5,
+                               'x0': 222, 'dx':2, 'y0':0, 'phi0':0}}
+Parameter_JET['timesteps']=[0, 1, 2, 3]
+Parameter_JET['dt']=2.5e-6
+
+
 # ITER-like parameters
 Parameter_ITER = OrderedDict()
 Parameter_ITER['R_0']=650
@@ -144,9 +171,13 @@ xgc_test3D = {'Xmin':0.9,'Xmax':1.6,'Ymin':-0.5, 'Ymax':0.5, 'Zmin':-0.1,
 # 'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
 #          'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}
 
+# DIII-D like Hmode parameters:
+# 'Hmode':{'PedWidthT': 0.05,'PedWidthN': 0.05 ,'PedHightT': 0.4, 
+#          'PedHightN': 0.4, 'ne_out': 1e-10, 'Te_out': 1e-10}
+
 ShapeTable = {'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
-              'Hmode':{'PedWidthT': 0.05,'PedWidthN': 0.05 ,'PedHightT': 0.4, 
-                       'PedHightN': 0.4, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
+              'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
+                       'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
               'uniform':None,
               'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
 
@@ -642,7 +673,7 @@ def simulate_1D(p1d, grid2D):
 
 
 #TODO Build the new test plamsa model center.
-
+# The rest is in development.
 class PlasmaModelError(FPSDPError):
     def __init__(self,value):
         self.value = value
