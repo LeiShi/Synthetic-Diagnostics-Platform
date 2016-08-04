@@ -21,14 +21,19 @@ import pkg_resources
 from .diagnostic import Available_Diagnostics as avail_diag
 from .plasma import Available_Simulation_Interfaces as avail_interface
 
+try:
+    version = pkg_resources.get_distribution('sdp').version    
+    license = pkg_resources.resource_string('sdp', 'LICENSE')    
+    notice = pkg_resources.resource_string('sdp', 'NOTICE')    
+    authors = pkg_resources.resource_string('sdp', 'AUTHORS')
+except pkg_resources.DistributionNotFound:
+    version = 'Developing'
+    license = 'Unknown'
+    notice = 'This is a developing version. Make sure you have contacted the \
+Authors of sdp for important information about contributing to SDP. Authors \
+email: fpsdp.main@gmail.com'
+    authors = 'Maintainer: Lei Shi. Email: fpsdp.main@gmail.com'
 
-version = pkg_resources.get_distribution('sdp').version
-
-license = pkg_resources.resource_string('sdp', 'LICENSE')
-
-notice = pkg_resources.resource_string('sdp', 'NOTICE')
-
-authors = pkg_resources.resource_string('sdp', 'AUTHORS')
 
 info = 'Synthetic Diagnostics Platform, Version {0}.\n\
     Available diagnostics: {1} \n\
