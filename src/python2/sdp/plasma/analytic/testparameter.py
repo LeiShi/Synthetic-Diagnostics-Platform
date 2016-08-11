@@ -29,6 +29,11 @@ Parameter2D['Te_0']=1*cgs['keV']
 Parameter2D['B_0']=20000
 Parameter2D['ne_shape']='Hmode'
 Parameter2D['Te_shape']='Hmode'
+Parameter2D['ShapeTable']={'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
+              'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
+                       'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
+              'uniform':{},
+              'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
 
 # 2D fluctuations can be one of three types: 'sinx', 'siny', or 'random'
 # 'sinx' 'params': level, k, omega, y0, dy, x0, phi0
@@ -57,6 +62,12 @@ Parameter1D['Te_0']=1*cgs['keV']
 Parameter1D['B_0']=20000
 Parameter1D['ne_shape']='Hmode'
 Parameter1D['Te_shape']='Hmode'
+Parameter1D['ShapeTable']={'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
+              'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
+                       'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
+              'uniform':{},
+              'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
+
 # fluctuations are specified individually, with 'type' being either 'sin' or 
 # 'random'
 Parameter1D['dne_ne']={'type':'sin', 'params':{'level':0.01, 'k':6.28, 
@@ -84,6 +95,12 @@ Parameter_DIIID['Te_0']=3*cgs['keV']
 Parameter_DIIID['B_0']=20000
 Parameter_DIIID['ne_shape']='Hmode'
 Parameter_DIIID['Te_shape']='Hmode'
+Parameter_DIIID['ShapeTable']={'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
+              'Hmode':{'PedWidthT': 0.05,'PedWidthN': 0.05 ,'PedHightT': 0.4, 
+                       'PedHightN': 0.4, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
+              'uniform':{},
+              'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
+
 Parameter_DIIID['dne_ne']={'type':'siny', 
                        'params':{'level':0.01, 'k': 2*np.pi/50, 'omega':6.28e5, 
                                  'x0': 222, 'dx':2, 'y0':0, 'phi0':0}}
@@ -110,6 +127,12 @@ Parameter_JET['Te_0']=15*cgs['keV'] # 15keV for typical JET plasma
 Parameter_JET['B_0']=3e4 # 3 Tesla on axis
 Parameter_JET['ne_shape']='Hmode'
 Parameter_JET['Te_shape']='Hmode'
+Parameter_JET['ShapeTable']={'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
+              'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
+                       'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
+              'uniform':{},
+              'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
+
 # Fluctuations are now set arbitrarily. Based on what kind of phenomena is being studied.
 Parameter_JET['dne_ne']={'type':'siny',
                        'params':{'level':0.01, 'k': 2*np.pi/50, 'omega':6.28e5,
@@ -137,6 +160,11 @@ Parameter_ITER['Te_0']=27*cgs['keV'] # 20~30 for typical ITER plasma
 Parameter_ITER['B_0']=5.0e4 # 5 Tesla on axis
 Parameter_ITER['ne_shape']='Hmode'
 Parameter_ITER['Te_shape']='Hmode'
+Parameter_ITER['ShapeTable']={'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
+              'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
+                       'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
+              'uniform':{},
+              'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
 # Fluctuations are now set arbitrarily. Based on what kind of phenomena is being studied.
 Parameter_ITER['dne_ne']={'type':'siny',
                        'params':{'level':0.01, 'k': 2*np.pi/50, 'omega':6.28e5,
@@ -165,22 +193,6 @@ xgc_test3D = {'Xmin':0.9,'Xmax':1.6,'Ymin':-0.5, 'Ymax':0.5, 'Zmin':-0.1,
 # DecayScale means within a minor radius, it will decay to exponential of which
 # power.
 
-# TODO Change the ShapeTable structure, make it easy to switch between different machines. One
-
-# ITER-like Hmode parameters:
-# 'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
-#          'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}
-
-# DIII-D like Hmode parameters:
-# 'Hmode':{'PedWidthT': 0.05,'PedWidthN': 0.05 ,'PedHightT': 0.4, 
-#          'PedHightN': 0.4, 'ne_out': 1e-10, 'Te_out': 1e-10}
-
-ShapeTable = {'exp': {'NeDecayScale': 3, 'TeDecayScale':5} , 
-              'Hmode':{'PedWidthT': 0.1, 'PedWidthN': 0.1, 'PedHightT': 0.33,
-                       'PedHightN': 0.95, 'ne_out': 1e-10, 'Te_out': 1e-10}, 
-              'uniform':None,
-              'linear':{'ne_out': 1e-10, 'Te_out': 1e-10}}
-
 # FlucType provides a list of supported fluctuation types
 FlucType2D = ('random', 'siny', 'sinx')
 FlucType1D = ('random', 'sinx')
@@ -191,13 +203,17 @@ def show_parameter2D():
     for key,value in Parameter2D.items():
         print '{0} : {1}'.format(key, value)
         if 'shape' in key:
-            print '    {0} Params: {1}'.format(value, ShapeTable[value])
+            print '    {0} Params: {1}'.format(value, 
+                                              Parameter2D['ShapeTable'][value])
     
 def show_parameter1D():
     """Print out the parameters at the moment
     """
     for key,value in Parameter1D.items():
-        print '{} : {}'.format(key, value) 
+        print '{} : {}'.format(key, value)
+        if 'shape' in key:
+            print '    {0} Params: {1}'.format(value, 
+                                              Parameter1D['ShapeTable'][value])
 
 def set_parameter2D(DownLeft=Parameter2D['DownLeft'], 
                     UpRight=Parameter2D['UpRight'], 
@@ -214,7 +230,9 @@ def set_parameter2D(DownLeft=Parameter2D['DownLeft'],
                     dte_te=Parameter2D['dte_te'],
                     dB_B=Parameter2D['dB_B'],
                     timesteps=Parameter2D['timesteps'],
-                    dt=Parameter2D['dt']):
+                    dt=Parameter2D['dt'],
+                    ShapeTable=Parameter2D['ShapeTable'],
+                    **Params):
     """A explicit method to change the parameters.
 
     Although it's possible to directly assign new values to parameter keywords,
@@ -236,6 +254,27 @@ def set_parameter2D(DownLeft=Parameter2D['DownLeft'],
     Parameter2D['dB_B'] = dB_B
     Parameter2D['timesteps'] = timesteps
     Parameter2D['dt'] = dt
+    Parameter2D['ShapeTable'] = ShapeTable
+    print 'Not used params: {0}'.format(Params)
+    
+def set_shape2D(shape, param, value):
+    """quick change of one parameter in current shape table.
+    :param string shape: shape code, 'Hmode', 'exp', 'uniform', or 'linear'.
+    :param string param: parameter name, depends on which shape code, different 
+                         parameter names are available.
+    :param value: value to be set to parameter. normally a float.
+    """
+    if shape not in Parameter2D['ShapeTable'].keys():
+        print '{0} is not a valid shape. Shapes are {1}.'.format(shape, 
+                                              Parameter2D['ShapeTable'].keys())
+        return False
+    elif param not in Parameter2D['ShapeTable'][shape].keys():
+        print '{0} is not a valid parameter in {1}. Parameters are {2}.'.\
+              format(param, shape, Parameter2D['ShapeTable'][shape].keys())
+        return False
+    else:
+        Parameter2D['ShapeTable'][shape][param] = value
+        return True
     
 def set_parameter1D(Xmin=Parameter1D['Xmin'], 
                     Xmax=Parameter1D['Xmax'], 
@@ -251,7 +290,9 @@ def set_parameter1D(Xmin=Parameter1D['Xmin'],
                     dte_te=Parameter1D['dte_te'],
                     dB_B=Parameter1D['dB_B'],
                     timesteps=Parameter1D['timesteps'],
-                    dt=Parameter1D['dt']):
+                    dt=Parameter1D['dt'],
+                    ShapeTable=Parameter1D['ShapeTable'],
+                    **Params):
     """A explicit method to change the parameters.
 
     Although it's possible to directly assign new values to parameter keywords,
@@ -272,6 +313,8 @@ def set_parameter1D(Xmin=Parameter1D['Xmin'],
     Parameter1D['dB_B'] = dB_B
     Parameter1D['timesteps'] = timesteps
     Parameter1D['dt']=dt
+    Parameter1D['ShapeTable']=ShapeTable
+    print 'Not used params: {0}'.format(Params)
 
 def create_profile1D(fluctuation=False):
     """Create the profiles and return it in a dictionary structure
@@ -298,14 +341,14 @@ def create_profile1D(fluctuation=False):
     # evaluate the density values on each grid point for the given shape
     if (nshp == 'exp') :
         # exponential decay shape
-        DecScale= ShapeTable['exp']['NeDecayScale']
+        DecScale= Parameter1D['ShapeTable']['exp']['NeDecayScale']
         DecLength= a/DecScale
         ne_array= ne_0 * np.exp(-np.abs(XGrid.X1D-R_0)/DecLength )
     elif (nshp == 'Hmode') :
         # linear H mode profile
-        nped = ne_0 * ShapeTable['Hmode']['PedHightN']
-        nout = ne_0 * ShapeTable['Hmode']['ne_out']
-        a_core = a * (1-ShapeTable['Hmode']['PedWidthN'])
+        nped = ne_0  *Parameter1D['ShapeTable']['Hmode']['PedHightN']
+        nout = ne_0 * Parameter1D['ShapeTable']['Hmode']['ne_out']
+        a_core = a * (1-Parameter1D['ShapeTable']['Hmode']['PedWidthN'])
         a_array = np.abs(XGrid.X1D - R_0)
         # linear function connecting axis, top of pedestal and the vacuum
         ne_array = np.select([a_array <= a_core, a_array >= a, 
@@ -317,14 +360,14 @@ def create_profile1D(fluctuation=False):
         ne_array = np.ones_like(XGrid.X1D) * ne_0
     elif (nshp == 'linear'):
         # linear decrease with minor radius
-        nout = ne_0 * ShapeTable['linear']['ne_out']
+        nout = ne_0 * Parameter1D['ShapeTable']['linear']['ne_out']
         a_array = np.abs(XGrid.X1D - R_0)
         # linear function connecting axis, vacuum
         ne_array = np.select([a_array <= a, a_array > a], 
                              [a_array*(nout-ne_0)/a + ne_0, nout])
     else:
         raise KeyError('"{}" is not a valid shape code. Available shapes \
-are {}'.format(nshp, ShapeTable.keys()))
+are {}'.format(nshp, Parameter1D['ShapeTable'].keys()))
     profile['ne']= ne_array
 
     # Te profile
@@ -332,13 +375,13 @@ are {}'.format(nshp, ShapeTable.keys()))
     Te_0 = Parameter1D['Te_0']
 
     if ( tshp == 'exp'):
-        DecLength= a/ShapeTable['exp']['TeDecayScale']
+        DecLength= a/Parameter1D['ShapeTable']['exp']['TeDecayScale']
         Te_array= Te_0 * np.exp(-np.abs(XGrid.X1D-R_0)/DecLength )
     elif (tshp == 'Hmode') :
         # linear H mode profile
-        tped = Te_0 * ShapeTable['Hmode']['PedHightT']
-        tout = Te_0 * ShapeTable['Hmode']['Te_out']
-        a_core = a * (1-ShapeTable['Hmode']['PedWidthT'])
+        tped = Te_0 * Parameter1D['ShapeTable']['Hmode']['PedHightT']
+        tout = Te_0 * Parameter1D['ShapeTable']['Hmode']['Te_out']
+        a_core = a * (1-Parameter1D['ShapeTable']['Hmode']['PedWidthT'])
         a_array = np.abs(XGrid.X1D - R_0)
         # linear function connecting axis, top of pedestal and the vacuum
         Te_array = np.select([a_array<=a_core, a_array>=a, a_array>a_core],
@@ -349,14 +392,14 @@ are {}'.format(nshp, ShapeTable.keys()))
         Te_array = np.ones_like(XGrid.X1D) * Te_0
     elif (tshp == 'linear'):
         # linear decrease with minor radius
-        tout = Te_0 * ShapeTable['linear']['Te_out']
+        tout = Te_0 * Parameter1D['ShapeTable']['linear']['Te_out']
         a_array = np.abs(XGrid.X1D - R_0)
         # linear function connecting axis, vacuum
         Te_array = np.select([a_array <= a, a_array > a], 
                              [a_array*(tout-Te_0)/a + Te_0, tout])
     else:
         raise KeyError('"{}" is not a valid shape code. Available shapes \
-are {}'.format(tshp, ShapeTable.keys()))
+are {}'.format(tshp, Parameter1D['ShapeTable'].keys()))
     profile['Te']= Te_array
 
     # B profile
@@ -453,15 +496,15 @@ def create_profile2D(fluctuation=None, fluc_level=None):
     # evaluate the density values on each grid point for the given shape
     if (nshp == 'exp') :
         # exponential decay shape
-        DecScale= ShapeTable['exp']['NeDecayScale']
+        DecScale= Parameter2D['ShapeTable']['exp']['NeDecayScale']
         DecLength= a/DecScale
         ne_array= ne_0 * np.exp(-np.sqrt(((RZGrid.R2D-R_0)**2 +RZGrid.Z2D**2))\
                   /DecLength )
     elif (nshp == 'Hmode') :
         # linear H mode profile
-        nped = ne_0 * ShapeTable['Hmode']['PedHightN']
-        nout = ne_0 * ShapeTable['Hmode']['ne_out']
-        a_core = a * (1-ShapeTable['Hmode']['PedWidthN'])
+        nped = ne_0 * Parameter2D['ShapeTable']['Hmode']['PedHightN']
+        nout = ne_0 * Parameter2D['ShapeTable']['Hmode']['ne_out']
+        a_core = a * (1-Parameter2D['ShapeTable']['Hmode']['PedWidthN'])
         a_array = np.sqrt(((RZGrid.R2D-R_0)**2+RZGrid.Z2D**2))
         # linear function connecting axis, top of pedestal and the vacuum
         ne_array = np.select([a_array <= a_core, a_array >= a, 
@@ -472,14 +515,14 @@ def create_profile2D(fluctuation=None, fluc_level=None):
         ne_array = np.zeros_like(RZGrid.R2D) + ne_0
     elif (nshp == 'linear'):
         # linear decrease with minor radius
-        nout = ne_0 * ShapeTable['linear']['ne_out']
+        nout = ne_0 * Parameter2D['ShapeTable']['linear']['ne_out']
         a_array = np.sqrt(((RZGrid.R2D-R_0)**2+RZGrid.Z2D**2))
         # linear function connecting axis, vacuum
         ne_array = np.select([a_array <= a, a_array > a], 
                              [a_array*(nout-ne_0)/a + ne_0, nout])                              
     else:
         raise KeyError('"{}" is not a valid shape code. Available shapes \
-are {}'.format(nshp, ShapeTable.keys()))
+are {}'.format(nshp, Parameter2D['ShapeTable'].keys()))
     profile['ne']= ne_array
 
     # Te profile
@@ -487,14 +530,14 @@ are {}'.format(nshp, ShapeTable.keys()))
     Te_0 = Parameter2D['Te_0']
 
     if ( tshp == 'exp'):
-        DecLength= a/ShapeTable['exp']['TeDecayScale']
+        DecLength= a/Parameter2D['ShapeTable']['exp']['TeDecayScale']
         Te_array= Te_0 * np.exp(-np.sqrt(((RZGrid.R2D-R_0)**2 +RZGrid.Z2D**2))\
                   /DecLength )
     elif (tshp == 'Hmode') :
         # linear H mode profile
-        tped = Te_0 * ShapeTable['Hmode']['PedHightT']
-        tout = Te_0 * ShapeTable['Hmode']['Te_out']
-        a_core = a * (1-ShapeTable['Hmode']['PedWidthT'])
+        tped = Te_0 * Parameter2D['ShapeTable']['Hmode']['PedHightT']
+        tout = Te_0 * Parameter2D['ShapeTable']['Hmode']['Te_out']
+        a_core = a * (1-Parameter2D['ShapeTable']['Hmode']['PedWidthT'])
         a_array = np.sqrt(((RZGrid.R2D-R_0)**2+RZGrid.Z2D**2))
         # linear function connecting axis, top of pedestal and the vacuum
         Te_array = np.select([a_array<=a_core, a_array>=a, a_array>a_core],
@@ -504,14 +547,14 @@ are {}'.format(nshp, ShapeTable.keys()))
         Te_array = np.zeros_like(RZGrid.R2D) + Te_0   
     elif (tshp == 'linear'):
         # linear decrease with minor radius
-        tout = Te_0 * ShapeTable['linear']['Te_out']
+        tout = Te_0 * Parameter2D['ShapeTable']['linear']['Te_out']
         a_array = np.sqrt(((RZGrid.R2D-R_0)**2+RZGrid.Z2D**2))
         # linear function connecting axis, vacuum
         Te_array = np.select([a_array <= a, a_array > a], 
                              [a_array*(tout-Te_0)/a + Te_0, tout])                           
     else:
         raise KeyError('"{}" is not a valid shape code. Available shapes \
-are {}'.format(tshp, ShapeTable.keys()))
+are {}'.format(tshp, Parameter2D['ShapeTable'].keys()))
     profile['Te']= Te_array
 
     # B profile
