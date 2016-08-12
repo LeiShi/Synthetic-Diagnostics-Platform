@@ -7,11 +7,13 @@ Ray Tracing Model
 This module contains model for solving simple ray tracing equations:
 
 .. math::
-    \frac{dx}{dt} = \frac{\partial \mathcal{D}/\partial k}
+    \frac{dx}{dt} = \frac{\partial omega}{\partial k} 
+                  =-\frac{\partial \mathcal{D}/\partial k}
                          {\partial \mathcal{D}/\partial \omega}
     
 .. math::
-    \frac{dk}{dt} = -\frac{\partial \mathcal{D}/\partial x}
+    \frac{dk}{dt} = -\frac{\partial omega}{\partial x} 
+                  = \frac{\partial \mathcal{D}/\partial x}
                          {\partial \mathcal{D}/\partial \omega}
     
 where x, k, t are configuration coordinates, wave vector coordinates, and time,
@@ -53,6 +55,7 @@ from scipy.integrate import odeint
 
 from ...settings.unitsystem import cgs
 from ...settings.exception import ResonanceError
+from ...plasma.profile import OutOfPlasmaError
 
 # some useful constants
 e = cgs['e']
@@ -398,11 +401,11 @@ class RayTracer(object):
     via equations:
     
     .. math::
-        \frac{dx}{dt} = \frac{\partial \mathcal{D}/\partial k}
+        \frac{dx}{dt} = -\frac{\partial \mathcal{D}/\partial k}
                          {\partial \mathcal{D}/\partial \omega}
     
     .. math::
-        \frac{dk}{dt} = -\frac{\partial \mathcal{D}/\partial x}
+        \frac{dk}{dt} = \frac{\partial \mathcal{D}/\partial x}
                          {\partial \mathcal{D}/\partial \omega}
                          
     These first order differential equations are integrated via 
@@ -410,10 +413,105 @@ class RayTracer(object):
     """
     
     def __init__(self, plasma, omega, polarization='O'):
+        self.dimension = plasma.grid.dimension
         self._dispersion_derivative = ColdDispersionDerivatives(plasma, omega, 
                                                                 polarization)
         
-    #TODO set up ray tracing function
+    def _velocity(self, x, k):
+        r""" Evaluate phase space velocity vector
+        
+        .. math::
+            \frac{dx}{dt} = -\frac{\partial \mathcal{D}/\partial k}
+                             {\partial \mathcal{D}/\partial \omega}
+    
+        .. math::
+            \frac{dk}{dt} = \frac{\partial \mathcal{D}/\partial x}
+                             {\partial \mathcal{D}/\partial \omega}
+                             
+        The velocity is returned in shape (dx/dt, dk/dt), note that these can
+        both be vectors when plasma is given in higher dimension configuration
+        space.
+        
+        :param x: spatial coordinates of the location to be evaluated
+        :type x: array_like of float, even if in 1-D space.
+        :param k: wave vector coordinates of the location to be evaluated
+        :type k: array_like of float, even if in 1-D space.
+        
+        :return: (dx/dt, dk/dt)
+        :rtype: tuple of floats, length equals 2 times the dimension of plasma
+        """
+        pDpw = self._dispersion_derivative.pDpw(x, k)
+        dxdt = -self._dispersion_derivative.pDpk(x, k) / pDpw
+        dkdt = self._dispersion_derivative.pDpx(x, k) / pDpw
+        v = np.array([dxdt, dkdt]).flatten()
+        return tuple(v)
+        
+    def _func(self, *P):
+        r""" integrator function used for 
+        :py:func:`odeint<scipy.integrate.odeint>`
+        
+        This is just a wrapper for 
+        :py:method:`_velocity<sdp.model.wave.ray.RayTracer._velocity>`. The 
+        arguments are ungrouped to meet odeint format.
+        """
+        dim = self.dimension
+        assert len(P[0])==2*dim, 'Arguments must be given as x0, x1,\
+..., xn, k0, k1, ..., kn, and t. Check the diminsion of the plasma!'
+        
+        x = P[0][:dim]
+        k = P[0][dim:2*dim]
+        return self._velocity(x, k)
+        
+    def trace(self, x0, k0, t):
+        r""" Tracing the ray along the trajectory
+        
+        :param x0: starting point in configuration space
+        :type x0: array-like of floats, 1D case also NEED to be an ARRAY
+        :param k0: starting point in wave-vector space
+        :type k0: array-like of floats, 1D case also NEED to be an ARRAY
+        :param 1darray t: [t0, t1, ..., tn], solution will be given at these 
+                          time points. The first element should correspond to
+                          the initial (x0, k0).
+        
+        :return: x(t), k(t) as an array
+        :rtype: 2darray, shape (n, 2*dimension), n is the number of time points
+        
+        Tracing uses :py:func:`odeint<scipy.integrate.odeint>` to solve the 
+        ODEs. 
+        
+        .. math::
+            \frac{dx}{dt} = \frac{\partial \mathcal{D}/\partial k}
+                             {\partial \mathcal{D}/\partial \omega}
+    
+        .. math::
+            \frac{dk}{dt} = -\frac{\partial \mathcal{D}/\partial x}
+                             {\partial \mathcal{D}/\partial \omega}
+                             
+        Example
+        ********
+        
+        """
+        #TODO finish the Example in doc-string
+
+        init_vec = np.array([x0, k0]).flatten()
+        solved = False
+        while (len(t)>0 and solved is False):
+            try:
+                sol = odeint(self._func, init_vec, t)
+                solved = True
+            except OutOfPlasmaError:
+                print "Ray goes out of plasma, trying half time."
+                t = t[:len(t)/2]
+        if solved is True:
+            return sol
+        else:
+            print "solution not found, check plasma range and initial \
+conditions."
+            return [[]]
+        
+        
+            
+                        
                 
             
             
