@@ -44,16 +44,12 @@ class PlasmaError(FPSDPError):
 
 class ModelError(FPSDPError):
     """Base class for all Model related errors
-    """
-    def __init__(self, s):
-        self.message = s
-        
+    """        
+
 
 class ModelInvalidError(ModelError):
     """Raised when specific circumstance doesn't meet model criteria.
     """
-    def __init__(self, s):
-        self.message = s
         
         
 
