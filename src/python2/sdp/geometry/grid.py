@@ -547,10 +547,6 @@ class path(object):
         self.n = n
         self.R = R
         self.Z = Z
-    def __setitem__(self,p2):
-        self.n = p2.n
-        self.R = np.copy(p2.R)
-        self.Z = np.copy(p2.Z)
 
 
 class Path2D(Grid):
