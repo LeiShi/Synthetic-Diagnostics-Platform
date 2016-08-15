@@ -1580,7 +1580,6 @@ solver instead of paraxial solver.')
             self.e_x = 0
             self.e_y = 0
             self.e_z = 1
-            self._ey_mod = np.sqrt(self.e_y * np.conj(self.e_y))
             
         else:
             exx = self.eps0[0, 0, :]
