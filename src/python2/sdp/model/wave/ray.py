@@ -73,9 +73,12 @@ class ColdDispersionDerivatives(object):
     :param float omega: circular frequency of the wave
     :param string polarization: polarization of the wave, either 'O' or 'X'.
     :param bool equilibrium_only: True if only equilibrium plasma is used.
+    :param int time: time step index for plasma fluctuation quantities. 
+                     Default is None, equilibrium only.
     """
     
-    def __init__(self, plasma, omega, polarization='O', equilibrium_only=True):
+    def __init__(self, plasma, omega, polarization='O', equilibrium_only=True,
+                 time=None):
         assert polarization in ['O', 'X']
         self._plasma = plasma
         # setup interpolators for later use
@@ -83,11 +86,18 @@ class ColdDispersionDerivatives(object):
         
         self._omega = omega
         self._polarization = polarization
+        self._eq_only = equilibrium_only
+        self._time = time
+        if not self._eq_only:
+            assert self._time is not None, 'Time index is required for \
+non-equilibrium plasma'
         
     def __str__(self):
         info = 'Omega : {0}\n'.format(self._omega)
         info += 'Polarization : {0}\n'.format(self._polarization)
-        info += str(self._plasma)
+        info += 'Eq_only : {0}\n'.format(self._eq_only)
+        info += '(time : {0})\n\n'.format(self._eq_only)
+        info += 'Plasma Info: \n{0}'.format(str(self._plasma))
         return info
         
     def _dnedx(self, x, dx=0.01):
@@ -101,21 +111,22 @@ class ColdDispersionDerivatives(object):
         :param dx: step size to evaluate derivative of x, default to be 0.01cm
         :type dx: float if same for all directions, list of floats for 
                   different step sizes in different directions.
+        
                   
         :return: derivatives respect to x
         :rtype: list of floats
         """        
         assert len(x) == self._plasma.grid.dimension        
         
-        x = np.array(x)
-        dx = np.array(dx)
+        x = np.array(x, dtype=float)
+        dx = np.array(dx, dtype=float)
         if (dx.ndim == 0):
             assert dx > 0
             dx = np.zeros_like(x) + dx
         else:
             assert dx.ndims == self._plasma.grid.dimension
             assert np.all(dx > 0)
-            
+        
         # before calculating derivatives, we need to identify the near boundary
         # points, where center derivative can not be used, one side derivative
         # must be used instead
@@ -127,17 +138,21 @@ class ColdDispersionDerivatives(object):
             try:
                 coords = np.copy(x)
                 coords[i] += dx[i]
-                ne_plus[i] = self._plasma.get_ne(coords)
+                ne_plus[i] = self._plasma.get_ne(coords, eq_only=self._eq_only, 
+                                                 time=self._time)
             except ValueError:
                 dx_plus[i] = 0
-                ne_plus[i] = self._plasma.get_ne(x)
+                ne_plus[i] = self._plasma.get_ne(x, eq_only=self._eq_only, 
+                                                 time=self._time)
             try:
                 coords = np.copy(x)
                 coords[i] -= dx[i]
-                ne_minus[i] = self._plasma.get_ne(coords)
+                ne_minus[i] = self._plasma.get_ne(coords,eq_only=self._eq_only,
+                                                  time=self._time)
             except ValueError:
                 dx_minus[i] = 0
-                ne_minus[i] = self._plasma.get_ne(x)
+                ne_minus[i] = self._plasma.get_ne(x,eq_only=self._eq_only, 
+                                                  time=self._time)
         
         # Every direction must have at least one side within plasma region
         assert np.all(dx_plus+dx_minus > 0)
@@ -161,8 +176,8 @@ class ColdDispersionDerivatives(object):
         """        
         assert len(x) == self._plasma.grid.dimension        
         
-        x = np.array(x)
-        dx = np.array(dx)
+        x = np.array(x, dtype='float')
+        dx = np.array(dx, dtype='float')
         if (dx.ndim == 0):
             assert dx > 0
             dx = np.zeros_like(x) + dx
@@ -181,17 +196,21 @@ class ColdDispersionDerivatives(object):
             try:
                 coords = np.copy(x)
                 coords[i] += dx[i]
-                B_plus[i] = self._plasma.get_B(coords)
+                B_plus[i] = self._plasma.get_B(coords, eq_only=self._eq_only, 
+                                                 time=self._time)
             except ValueError:
                 dx_plus[i] = 0
-                B_plus[i] = self._plasma.get_B(x)
+                B_plus[i] = self._plasma.get_B(x, eq_only=self._eq_only, 
+                                                 time=self._time)
             try:
                 coords = np.copy(x)
                 coords[i] -= dx[i]
-                B_minus[i] = self._plasma.get_B(coords)
+                B_minus[i] = self._plasma.get_B(coords, eq_only=self._eq_only, 
+                                                 time=self._time)
             except ValueError:
                 dx_minus[i] = 0
-                B_minus[i] = self._plasma.get_B(x)
+                B_minus[i] = self._plasma.get_B(x, eq_only=self._eq_only, 
+                                                 time=self._time)
         
         # Every direction must have at least one side within plasma region
         assert np.all(dx_plus+dx_minus > 0)
@@ -259,10 +278,12 @@ class ColdDispersionDerivatives(object):
                                <sdp.settings.exception.ResonanceError>`
         """        
         pe_const = 4*np.pi*e*e/m_e
-        omega_pe2 = pe_const*self._plasma.get_ne(x)
+        omega_pe2 = pe_const*self._plasma.get_ne(x, eq_only=self._eq_only, 
+                                                 time=self._time)
         omega_pe2_p = pe_const*self._dnedx(x)
         ce_const = e/(m_e*c)
-        omega_ce = ce_const*self._plasma.get_B(x)
+        omega_ce = ce_const*self._plasma.get_B(x, eq_only=self._eq_only, 
+                                                 time=self._time)
         omega_ce_p = ce_const*self._dBdx(x)        
         omega2_m_omegace2 = self._omega*self._omega - omega_ce*omega_ce
         if np.abs(omega2_m_omegace2)<tol:
@@ -310,10 +331,12 @@ class ColdDispersionDerivatives(object):
                                <sdp.settings.exception.ResonanceError>`
         """
         pe_const = 4*np.pi*e*e/m_e
-        omega_pe2 = pe_const*self._plasma.get_ne(x)
+        omega_pe2 = pe_const*self._plasma.get_ne(x, eq_only=self._eq_only, 
+                                                 time=self._time)
         omega_pe2_p = pe_const*self._dnedx(x)
         ce_const = e/(m_e*c)
-        omega_ce = ce_const*self._plasma.get_B(x)
+        omega_ce = ce_const*self._plasma.get_B(x, eq_only=self._eq_only, 
+                                                 time=self._time)
         omega_ce_p = ce_const*self._dBdx(x) 
         omega2_m_omegace2 = self._omega*self._omega - omega_ce*omega_ce
         if np.abs(omega2_m_omegace2)<tol:
@@ -336,6 +359,14 @@ class ColdDispersionDerivatives(object):
         .. math::
             \frac{\partial \mathcal{D}}{\partial k} = \frac{2c^2 k}{\omega^2}
             
+        :param x: configuration coordinate(s) of the evaluation point
+        :type x: list of floats, length equals the dimension of plasma
+        :param k: wave-vector coordinate(s) of the evaluation point
+        :type k: list of floats, length equals the dimension of plasma
+        
+        :return: pDpk
+        :rtype: float
+            
         """
         k = np.array(k)
         return 2*c*c*k/(self._omega*self._omega)
@@ -352,16 +383,60 @@ class ColdDispersionDerivatives(object):
         for X-mode, after some algebra, we get:
         
         .. math::
+            \frac{\partial \mathcal{D}}{\partial \omega} = 
+            -\frac{2c^2k^2}{\omega^3}-\left(1+\frac{D^2}{S^2}\right)
+            \frac{\partial S}{\partial \omega} + 
+            \frac{2D}{S}\frac{\partial D}{\partial \omega}
+            
+        where
+        
+        .. math::
+            \frac{\partial S}{\partial \omega} = 
+            \frac{2\omega_{pe}^2\omega}{(\omega^2-\Omega_{ce}^2)^2}
+            
+        and 
+        
+        .. math::
+            \frac{\partial D}{\partial \omega}=
+            \frac{\omega_{pe}^2\Omega_{ce}(3\omega^2-\Omega_{ce}^2)}
+                 {\omega^2(\omega^2-\Omega_{ce}^2)^2}
+                 
+        :param x: configuration coordinate(s) of the evaluation point
+        :type x: list of floats, length equals the dimension of plasma
+        :param k: wave-vector coordinate(s) of the evaluation point
+        :type k: list of floats, length equals the dimension of plasma
+        
+        :return: pDpw
+        :rtype: float
             
         """
         k = np.array(k)
         if self._polarization=='O':
-            omega_pe2 = 4*np.pi*e*e*self._plasma.get_ne(x)/m_e
+            omega_pe2 =4*np.pi*e*e*self._plasma.get_ne(x,eq_only=self._eq_only, 
+                                                       time=self._time)/m_e
             return -2*(c*c*np.sum(k*k)+omega_pe2)/self._omega**3
             
         elif self._polarization=='X':
-            #TODO complete X-mode derivative
-            pass
+            omega2 = self._omega**2
+            omega_pe2 =4*np.pi*e*e*self._plasma.get_ne(x,eq_only=self._eq_only, 
+                                                        time=self._time)/m_e
+            omega_ce = e*self._plasma.get_B(x, eq_only=self._eq_only, 
+                                            time=self._time)/(m_e*c)
+            omega2_m_omegace2 = omega2-omega_ce**2
+            S = 1-omega_pe2/(omega2_m_omegace2)
+            D = -omega_pe2*omega_ce/(self._omega*omega2_m_omegace2)
+            if np.abs(S)<tol:
+                raise ResonanceError('Cold hybrid resonance happens, S goes to\
+ 0 at {0}.'.format(x))
+            pSpw = 2*omega_pe2*self._omega/omega2_m_omegace2**2
+            pDpw = omega_pe2*omega_ce*(2*omega2 + omega2_m_omegace2)/\
+                   (omega2 * omega2_m_omegace2**2)
+                   
+            return -2*c**2*np.sum(k*k)/(omega2*self._omega) \
+                   -(1+D*D/S*S)*pSpw + 2*D/S * pDpw
+            
+            
+            
         
     def pDpx(self, x, k, tol=1e-14):
         r""" Evaluate partial D over partial x at given (x, k) coordinates
@@ -376,15 +451,28 @@ class ColdDispersionDerivatives(object):
         for X-mode, after some algebra, we get:
         
         .. math::
+            \frac{\partial \mathcal{D}}{\partial x} = 
+            -\left(1+\frac{D^2}{S^2}\right)\frac{\partial S}{\partial x} + 
+            \frac{2D}{S}\frac{\partial D}{\partial x}
+            
+        :param x: configuration coordinate(s) of the evaluation point
+        :type x: list of floats, length equals the dimension of plasma
+        :param k: wave-vector coordinate(s) of the evaluation point
+        :type k: list of floats, length equals the dimension of plasma
+        
+        :return: pDpx
+        :rtype: float
         """
         if self._polarization=='O':
             return -self._dPdx(x)
         elif self._polarization=='X':
-            omega_ce = e*self._plasma.get_B(x)/(m_e*c)
+            omega_ce = e*self._plasma.get_B(x, eq_only=self._eq_only, 
+                                            time=self._time)/(m_e*c)
             if np.abs(self._omega - omega_ce) < tol:
                 raise ResonanceError('Cold X resonance happens, S goes to \
 infinity at {0}.'.format(x))
-            omega_pe2 = 4*np.pi*e*e*self._plasma.get_ne(x)/m_e
+            omega_pe2 =4*np.pi*e*e*self._plasma.get_ne(x,eq_only=self._eq_only, 
+                                                 time=self._time)/m_e
             omega2_m_omegace2 = self._omega**2-omega_ce**2
             S = 1-omega_pe2/(omega2_m_omegace2)
             D = -omega_pe2*omega_ce/(self._omega*omega2_m_omegace2)
@@ -410,9 +498,77 @@ class RayTracer(object):
                          
     These first order differential equations are integrated via 
     :py:func:`scipy.integrate.odeint<scipy.integrate.odeint>`.
+    
+    Initialization
+    ***************
+    __init__(self, plasma, omega, polarization='O', eq_only=True, 
+             time=None)
+             
+    :param plasma: plasma quantities
+    :type plasma: :py:class:`PlasmaProfile<sdp.plasma.profile.PlasmaProfile>`
+    :param float omega: wave's circular frequency
+    :param string polarization: either 'O' or 'X'
+    :param bool eq_only: default is True, flag for using either only 
+                         equilibrium or with fluctuations in plasma.
+    :param int time: time step index for fluctuations chosen. Required if 
+                     eq_only is False. Do not have effect if eq_only is True.
+                     
+    Methods
+    *******
+    
+    :py:method:`trace(self, x0, k0, t)`:
+    Tracing the ray along the trajectory
+        
+    :param x0: starting point in configuration space
+    :type x0: array-like of floats, 1D case also NEED to be an ARRAY
+    :param k0: starting point in wave-vector space
+    :type k0: array-like of floats, 1D case also NEED to be an ARRAY
+    :param 1darray t: [t0, t1, ..., tn], solution will be given at these 
+                      time points. The first element should correspond to
+                      the initial (x0, k0).
+    
+    :return: x(t), k(t) as an array
+    :rtype: 2darray, shape (n, 2*dimension), n is the number of time points
+    
+    Example
+    ********
+    First we import the necessary modules
+        >>> import sdp.model.wave.ray as ray
+        >>> import sdp.plasma.analytic.testparameter as tp
+    Create a test 2D plasma
+        >>> p2d = tp.create_profile2D(fluctuation=True)
+    Now we initialize the RayTracer object with our plasma and wave 
+    information.
+        >>> omega = 4e11
+        >>> tracer = ray.RayTracer(plasma=p2d, omega=omega, polarization='O', 
+                                   eq_only=False, time=0)
+    Note that we have enabled the fluctuations at time step 0.
+    Then we can run the ray tracing from a given starting point (x, k), note 
+    that these coordinates are all given in the order (Y, X), vertical 
+    direction is in front of radial direction.
+    
+    For example, we launch a wave from [10, 300], which means vertically 10cm 
+    above mid-plane, and radially at 350cm from the machine axis. The direction
+    is purely radially inward, so k=[0, -k], where the k should be calculated 
+    from the wave frequency at the starting point. Normally, we choose starting
+    point in vacuum, so:
+        >>> k = omega/ray.c
+    should calculate the wave vector properly.
+    
+    Let's try trace the light for roughly 60cm, then the total time should be
+    more or less 60/c, and let's use 100 time steps
+        >>> times = np.linspace(0, 60/ray.c, 100)    
+        >>> path = tracer.trace([10, 300], [0, -k], times)
+        
+    Now, ``path`` should contain the ray information. ``path[:][0]`` contains the 
+    vertical coordinates, and ``path[:][1]`` the radial ones, ``path[:][2:]``
+    contains wave vector coordinates ky, and kx.
+        >>> plt.scatter(path[:][1], path[:][0])
+    should show the trajectory of the light as a scatter plot.
     """
     
-    def __init__(self, plasma, omega, polarization='O'):
+    def __init__(self, plasma, omega, polarization='O', eq_only=True, 
+                 time=None):
         self.dimension = plasma.grid.dimension
         self._dispersion_derivative = ColdDispersionDerivatives(plasma, omega, 
                                                                 polarization)
@@ -487,8 +643,7 @@ class RayTracer(object):
             \frac{dk}{dt} = -\frac{\partial \mathcal{D}/\partial x}
                              {\partial \mathcal{D}/\partial \omega}
                              
-        Example
-        ********
+        
         
         """
         #TODO finish the Example in doc-string
