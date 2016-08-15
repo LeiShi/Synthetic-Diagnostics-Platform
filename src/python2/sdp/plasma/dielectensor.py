@@ -387,8 +387,8 @@ class SusceptCold(Susceptibility):
     After initialized, it can be called by giveing a set of frequencies, and a 
     set of spatial coordinates. The number of arrays in coordinates should be 
     equal to the dimension of grid used in ``plasma``. The result is then 
-    stored in an array shaped (shape of frequency, shape of spatial coordinates
-    , 3, 3)
+    stored in an array shaped ( 3, 3, shape of frequency, shape of spatial 
+    coordinates)
     
     """
     
@@ -616,8 +616,8 @@ class SusceptWarm(Susceptibility):
     of parallel wave vectors, and a set of spatial coordinates. The number of 
     arrays in coordinates should be equal to the dimension of grid used in 
     ``plasma``. The result is then stored in an array shaped 
-    (shape of frequency, shape of wave vector, shape of spatial coordinates, 3,
-    3)
+    ( 3,3, shape of frequency, shape of wave vector, shape of spatial 
+    coordinates,)
     
     Calling Signiture
     =================
@@ -1847,7 +1847,7 @@ class ColdDielectric(Dielectric):
         
         .. math::
             
-            \epsilon = \bf(I) + \sum\limits_s \chi_s
+            \epsilon = \bf{I} + \sum\limits_s \chi_s
             
         :param coordinates: Cartesian coordinates where :math:`\epsilon` will 
                             be evaluated. The number of arrays should equal to 

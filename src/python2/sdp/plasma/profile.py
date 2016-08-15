@@ -17,7 +17,15 @@ from scipy.interpolate import RegularGridInterpolator
 
 from ..geometry.grid import Grid
 from ..settings.unitsystem import UnitSystem, cgs
-from ..settings.exception import PlasmaWarning
+from ..settings.exception import PlasmaWarning, PlasmaError
+
+class OutOfPlasmaError(PlasmaError, ValueError):
+    """Raised when out of range plasma data is requested
+    """
+    def __init__(self, s='Data outside available plasma region is requested!'):
+        self._message = s
+    def __str__(self):
+        return self._message
 
 class IonClass(object):
     """General class for a kind of ions
@@ -293,13 +301,26 @@ class ECEI_Profile(PlasmaProfile):
         points = np.transpose(coordinates, transpose_axes)
         try:
             return self.ne0_sp(points)
+        except ValueError as ve:
+            if 'out of bounds' in str(ve):
+                raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+            else:
+                raise ve
         except AttributeError:
             print 'ne0_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
 setup_interps function first.'
             mesh = self.grid.get_mesh()
             ne0_sp = RegularGridInterpolator(mesh, self.ne0)
-            return ne0_sp(points)
+            try:
+                return ne0_sp(points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+                else:
+                    raise ve
             
 
     def get_Te0(self, coordinates):
@@ -317,13 +338,26 @@ setup_interps function first.'
         points = np.transpose(coordinates, transpose_axes)
         try:
             return self.Te0_sp(points)
+        except ValueError as ve:
+            if 'out of bounds' in str(ve):
+                raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+            else:
+                raise ve
         except AttributeError:
             print 'Te0_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
 setup_interps function first.'
             mesh = self.grid.get_mesh()
             Te0_sp = RegularGridInterpolator(mesh, self.Te0)
-            return Te0_sp(points)
+            try:            
+                return Te0_sp(points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+                else:
+                    raise ve
 
 
     def get_B0(self, coordinates):
@@ -347,7 +381,14 @@ generated. If this message shows up a lot of times, please consider calling \
 setup_interps function first.'
             mesh = self.grid.get_mesh()
             B0_sp = RegularGridInterpolator(mesh, self.B0)
-            return B0_sp(points)  
+            try:
+                return B0_sp(points)  
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+                else:
+                    raise ve
             
 
     def get_dne(self, coordinates, time=None):
@@ -384,14 +425,26 @@ setup_interps function first.'
             points = np.transpose(coordinates, transpose_axes)
             try:
                 result = self.dne_sp[time](points)
-                
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+                else:
+                    raise ve    
             except AttributeError:
                 print 'dne_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
 setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 dne_sp = RegularGridInterpolator(mesh, self.dne[time])
-                result = dne_sp(points)
+                try:
+                    result = dne_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError('Data outside of available \
+plasma region is requested.')
+                    else:
+                        raise ve
             return result
         elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
@@ -406,15 +459,27 @@ setup_interps function first.'
             try:
                 for i,t in enumerate(time):
                     result[i] = self.dne_sp[t](points)
-                
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+                else:
+                    raise ve                
             except AttributeError:
                 print 'dne_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
 setup_interps function first.'
-                mesh = self.grid.get_mesh()            
-                for i,t in enumerate(time):
-                    dne_sp = RegularGridInterpolator(mesh, self.dne[t])
-                    result[i] = dne_sp(points)
+                mesh = self.grid.get_mesh()
+                try:
+                    for i,t in enumerate(time):
+                        dne_sp = RegularGridInterpolator(mesh, self.dne[t])
+                        result[i] = dne_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError('Data outside of available \
+plasma region is requested.')
+                    else:
+                        raise ve
             return result
         else:
             raise ValueError('time can only be int or 1D array of int.')
@@ -453,13 +518,26 @@ setup_interps function first.'
             points = np.transpose(coordinates, transpose_axes)
             try:
                 result = self.dB_sp[time](points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError('Data outside of available plasma \
+region is requested.')
+                else:
+                    raise ve
             except AttributeError:
                 print 'dB_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
 setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 dB_sp = RegularGridInterpolator(mesh, self.dB[time])
-                result = dB_sp(points)
+                try:
+                    result = dB_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError('Data outside of available \
+plasma region is requested.')
+                    else:
+                        raise ve
             return result
         
         elif time.ndim == 1:
@@ -478,14 +556,25 @@ setup_interps function first.'
             try:
                 for i,t in enumerate(time):
                     result[i] = self.dB_sp[t](points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError()
+                else:
+                    raise ve
             except AttributeError:
                 print 'dB_sp has not been created. Temperary interpolator \
 generated. If this message shows up a lot of times, please consider calling \
 setup_interps function first.'
-                mesh = self.grid.get_mesh()            
-                for i,t in enumerate(time):
-                    dB_sp = RegularGridInterpolator(mesh, self.dB[t])
-                    result[i] = dB_sp(points)
+                mesh = self.grid.get_mesh()
+                try:
+                    for i,t in enumerate(time):
+                        dB_sp = RegularGridInterpolator(mesh, self.dB[t])
+                        result[i] = dB_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError()
+                    else:
+                        raise ve
             return result
         else:
             raise ValueError('time can only be int or 1D array of int.')
@@ -523,13 +612,24 @@ setup_interps function first.'
             points = np.transpose(coordinates, transpose_axes)
             try:
                 result = self.dTe_perp_sp[time](points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError()
+                else:
+                    raise ve
             except AttributeError:
                 print 'dTe_perp_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
 consider calling setup_interps function first.'
-                mesh = self.grid.get_mesh()            
+                mesh = self.grid.get_mesh()
                 dte_sp = RegularGridInterpolator(mesh, self.dTe_perp[time])
-                result = dte_sp(points)
+                try:
+                    result = dte_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError()
+                    else:
+                        raise ve
             return result
                 
         elif time.ndim == 1:
@@ -545,14 +645,26 @@ consider calling setup_interps function first.'
             try:
                 for i,t in enumerate(time):
                     result[i] = self.dTe_perp_sp[t](points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError()
+                else:
+                    raise ve
             except AttributeError:
                 print 'dTe_perp_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
 consider calling setup_interps function first.'
-                mesh = self.grid.get_mesh()            
-                for i,t in enumerate(time):
-                    dte_sp = RegularGridInterpolator(mesh, self.dTe_perp[t])
-                    result[i] = dte_sp(points)
+                mesh = self.grid.get_mesh()  
+                try:
+                    for i,t in enumerate(time):
+                        dte_sp = RegularGridInterpolator(mesh, 
+                                                         self.dTe_perp[t])
+                        result[i] = dte_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError()
+                    else:
+                        raise ve
             return result
         else:
             raise ValueError('time can only be int or 1D array of int.')
@@ -592,13 +704,24 @@ consider calling setup_interps function first.'
             points = np.transpose(coordinates, transpose_axes)
             try:
                 result = self.dTe_para_sp[time](points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError()
+                else:
+                    raise ve
             except AttributeError:
                 print 'dTe_para_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
 consider calling setup_interps function first.'
                 mesh = self.grid.get_mesh()            
                 dte_sp = RegularGridInterpolator(mesh, self.dTe_para[time])
-                result = dte_sp(points)
+                try:
+                    result = dte_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError()
+                    else:
+                        raise ve
             return result        
         elif time.ndim == 1:
             result_shape = [i for i in coordinates.shape]
@@ -613,14 +736,26 @@ consider calling setup_interps function first.'
             try:
                 for i,t in enumerate(time):
                     result[i] = self.dTe_para_sp[t](points)
+            except ValueError as ve:
+                if 'out of bounds' in str(ve):
+                    raise OutOfPlasmaError()
+                else:
+                    raise ve
             except AttributeError:
                 print 'dTe_para_sp has not been created. Temperary \
 interpolator generated. If this message shows up a lot of times, please \
 consider calling setup_interps function first.'
-                mesh = self.grid.get_mesh()            
-                for i,t in enumerate(time):
-                    dte_sp = RegularGridInterpolator(mesh, self.dTe_para[t])
-                    result[i] = dte_sp(points)
+                mesh = self.grid.get_mesh() 
+                try:
+                    for i,t in enumerate(time):
+                        dte_sp = RegularGridInterpolator(mesh, 
+                                                         self.dTe_para[t])
+                        result[i] = dte_sp(points)
+                except ValueError as ve:
+                    if 'out of bounds' in str(ve):
+                        raise OutOfPlasmaError()
+                    else:
+                        raise ve
             return result
         else:
             raise ValueError('time can only be int or 1D array of int.')
