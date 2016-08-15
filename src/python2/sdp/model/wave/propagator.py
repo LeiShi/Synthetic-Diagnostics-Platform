@@ -822,6 +822,8 @@ solver instead of paraxial solver.')
         tstart = clock()        
         
         assert omega > 0
+        assert E_start.ndim==2, 'Initial E field must be specified on a Z-Y \
+plane'
         assert E_start.shape[1] == y_E.shape[0]
         assert E_start.shape[0] == z_E.shape[0]
         
@@ -1486,8 +1488,8 @@ solver instead of paraxial solver.')
         else:
             # with kz optimization, E_k_start and kz arrays will shunk to the 
             # minimum size contatining only the significant components of 
-            # wave-vectors. They will be restored back into spatial space after
-            # propagation.
+            # wave-vectors. They will be restored back into configuration space
+            # after propagation.
             self._mask_z = mask
             # keep a record of the original E_k_start, for restoration after
             # propagation
@@ -1578,6 +1580,7 @@ solver instead of paraxial solver.')
             self.e_x = 0
             self.e_y = 0
             self.e_z = 1
+            self._ey_mod = np.sqrt(self.e_y * np.conj(self.e_y))
             
         else:
             exx = self.eps0[0, 0, :]
@@ -1657,7 +1660,8 @@ solver instead of paraxial solver.')
     def _generate_F(self, mute=True):
         """Prepare F0(x0,y,kz).
         
-        Note: F=k^(1/2) E
+        Note: F=k^(1/2) E_z for O-mode
+              F=k^(1/2) E_y for X-mode
         
         In order to increase efficiency, we change the axis order into [X,Y,Z]
         for solving F. Afterwards, we'll change back to [Z, Y, X].
@@ -1678,9 +1682,11 @@ solver instead of paraxial solver.')
         """
         
         tstart = clock()
-        # F = sqrt(k)*E
-        self.F_k_start = np.sqrt(np.abs(self.k_0[0])) * self._ey_mod[0] *\
-                         self.E_k_start
+        if self.polarization == 'O':
+            self.F_k_start = np.sqrt(np.abs(self.k_0[0])) * self.E_k_start
+        else:
+            self.F_k_start = np.sqrt(np.abs(self.k_0[0])) * self._ey_mod[0] *\
+                             self.E_k_start
         self.Fk = np.empty((self.nz, self.ny, self.nx_calc), dtype='complex')
         self.Fk[:,:,0] = self.F_k_start
         
@@ -1829,7 +1835,8 @@ solver instead of paraxial solver.')
         
         if self.polarization == 'O':
             P = np.real(self.eps0[2,2])
-            self.phase_kz = cumtrapz(-P*self.kz*self.kz/(2*self.k_0), 
+            self.phase_kz = cumtrapz(-P*self.masked_kz*self.masked_kz/ \
+                                     (2*self.k_0), 
                                 x=self.calc_x_coords, initial=0)            
         else:
             S = np.real(self.eps0[0,0])
@@ -1898,8 +1905,11 @@ solver instead of paraxial solver.')
             self.F = self.Fk
         else:
             self.F = np.fft.ifft(self.Fk, axis=0)
-                        
-        self.E = self.F / (np.sqrt(np.abs(self.k_0)) * self._ey_mod)
+        
+        if self.polarization == 'O':                
+            self.E = self.F / (np.sqrt(np.abs(self.k_0)))
+        else:
+            self.E = self.F / (np.sqrt(np.abs(self.k_0)) * self._ey_mod)
         
         tend = clock()
         if not mute:
@@ -1991,9 +2001,11 @@ solver instead of paraxial solver.')
         
         tstart = clock()
         
-        assert omega > 0
-        assert E_start.shape[1] == y_E.shape[0]
-        assert E_start.shape[0] == z_E.shape[0]
+        assert omega > 0, 'positive omega is required.'
+        assert E_start.ndim==2, 'Initial E field must be specified on a Z-Y \
+plane'
+        assert E_start.shape[1] == y_E.shape[0], 'y coordinates do not match.'
+        assert E_start.shape[0] == z_E.shape[0], 'z coordinates do not match.'
         
         if time is None:
             self.eq_only = True
