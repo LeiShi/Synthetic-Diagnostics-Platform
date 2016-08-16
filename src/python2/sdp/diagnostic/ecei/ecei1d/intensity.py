@@ -4,14 +4,14 @@ I(s) = integral(s_0,s)[alpha(s')*exp(-(tau - tau'))*omega^2/(8 pi^3 * c^2) * T(s
 
 [1] 1983 Nucl. Fusion 23 1153
 """
+import numpy as np
 
-from .Detector import create_spatial_frequency_grid
-from .Detector import create_2D_pointlike_detector_array
+from .detector1d import create_spatial_frequency_grid
+from .detector1d import create_2D_pointlike_detector_array
 from .alpha1 import get_alpha_table
 from .alpha1 import DefaultFqzTableFile
-import numpy as np
-from ...GeneralSettings.UnitSystem import cgs
-from ...Maths.Funcs import my_quad
+from ....settings.unitsystem import cgs
+from ....math.funcs import my_quad
 
 def get_intensity(Dtcs,RawProfile,n=2,FqzFile = DefaultFqzTableFile):
     """Calculate the intensity recieved by Detectors given by Dtcs
@@ -31,8 +31,10 @@ def get_intensity(Dtcs,RawProfile,n=2,FqzFile = DefaultFqzTableFile):
     integrand_arrays = []
     for i in range(len(Dtcs)):
         Profile = specProfile[i]['Profile']
-        s_array = Profile.grid.s2D[0,:] #extract the path length coordinate array, see detailed format of s2D in '..geometry.Grid', class Path2D
-        Te_array = Profile.Te[0,:] #electron temperature along the path 
+        # extract the path length coordinate array, see detailed format of s2D 
+        # in '..geometry.Grid', class Path2D
+        s_array = Profile.grid.s2D[0,:] 
+        Te_array = Profile.Te[0,:] # electron temperature along the path 
         alpha_array = get_alpha_table(specProfile[i],n,FqzFile)[:,0,:] #extract the 2D alpha array with the first dimention frequency and second path length
         dtc = Dtcs[i] # corresponding detector object
         for j in range(len(dtc.f_flt)):
@@ -47,8 +49,8 @@ def get_intensity(Dtcs,RawProfile,n=2,FqzFile = DefaultFqzTableFile):
             normal_arrays.append(normal_array)
             integrand_arrays.append(integrand_array)
 
-            
-            intensity_f = my_quad(integrand_array,s_array) #integration over the path, result is for the given frequency
+            # integration over the path, result is for the given frequency
+            intensity_f = trapz(integrand_array,x=s_array) 
             intensity[i] += intensity_f * dtc.p_flt[j] # multiply with the pattern ratio, and add on to the total receivedintensity of channel i
             if (dtc.f_flt[j] - dtc.f_ctr <= dtc.f_ctr*0.01):
                 normalization_f = my_quad(normal_array,s_array)

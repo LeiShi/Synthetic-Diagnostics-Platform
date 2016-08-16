@@ -16,25 +16,25 @@ from scipy.special import gamma
 from scipy import select
 import numpy as np
 
-from ...GeneralSettings.UnitSystem import cgs
-from ...Maths.PlasmaDispersionFunction import Fq
+from ....settings.unitsystem import cgs
+from ....math.pdf import Fq
 #The default path and filename for the file that stores the Fqz tables
-DefaultFqzTableFile = './Fqz.sav'
+DefaultFqzTableFile = './Fqz.dat'
 
 def make_frequency_table(Profile, Harmonic = 2 ,ResOmega = None):
     """make the frequency table based on the Profile data, namely the B field 
     range on Grid.
 
     :param Profile: the plasma profile data. 
-    :type Profile: :py:class:`....plasma.PlasmaProfile.ECEI_Profile` object
+    :type Profile: :py:class:`sdp.plasma.profile.ECEI_Profile` object
     :param Harmonic: an integer indicates the targeting harmonic mode. 
                      default to be the second harmonics.
     :param int ResOmega: the number of grids on frequency table. 
                          Default to be ``Profile.grid.NR``.
     """
 
-    Bmax = np.max(Profile.B)
-    Bmin = np.min(Profile.B)
+    Bmax = np.max(Profile.B0)
+    Bmin = np.min(Profile.B0)
     
     Omega_max = cgs['e'] * Harmonic/(cgs['m_e'] * cgs['c']) * Bmax
     Omega_min = cgs['e'] * Harmonic/(cgs['m_e'] * cgs['c']) * Bmin
@@ -130,28 +130,25 @@ def get_alpha_table(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
     :type SpecProfile: Dictionary with keywrods ``omega`` and ``Profile``.
     1. ``omega``
         float array contains selected frequencies on which 
-        detector gain is specified. See 
-        :py:class:`.Detector.Detector` for more details
+        detector gain is specified. See :py:class:`Detector1D<sdp.diagnostics.
+        ecei.ecei1d.detector1d.Detector1D` for more details
     2. ``Profile``
         :py:class:`....plasma.PlasmaProfile.ECEI_Profile` object
-    :param n: an integer indicates the targeting harmonic mode. 
-              default to be the second harmonics.
+    :param int n: an integer indicates the targeting harmonic number. 
+                  default to be the second harmonics.
     """
     # define local names for physical constants
     e = cgs['e']
     m_e = cgs['m_e']
     c = cgs['c']
     
-    
-    
-    # define the local names, expand 2D into 3D, dimension order: [F,Z,R] 
-    # F:frequency
+    # define the local names, expand 1D into 2D, dimension order: [F,s] 
+    # F:frequency s: path length
     Profile = SpecProfile['Profile']
-    R,Z = Profile.grid.R2D[np.newaxis,:,:], Profile.grid.Z2D[np.newaxis,:,:]
-    ne,Te,B = Profile.ne[np.newaxis,:,:] , Profile.Te[np.newaxis,:,:], \
-              Profile.B[np.newaxis,:,:]
-    # calculate frequency table, expand to 3D for later use
-    omega = SpecProfile['omega'][:,np.newaxis,np.newaxis]
+    ne,Te,B = Profile['ne'][np.newaxis,:] , Profile['Te'][np.newaxis,:], \
+              Profile['B'][np.newaxis,:]
+    # calculate frequency table, expand to 2D for later use
+    omega = SpecProfile['omega'][:,np.newaxis]
     omega2 = omega**2
     # calculate and produce the interpolated Fqz function
     try:
@@ -163,11 +160,11 @@ def get_alpha_table(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
     except:
         raise
     # now calculate all the useful local quantities on the grid
-    # plasma frequency is on RZ grid, i.e. 2D plane, but expands to 3D 
-    # Note that the dimension order convention is (F,Z,R)
+    # plasma frequency is on path grid, i.e. 1D line, but expands to 2D 
+    # Note that the dimension order convention is (F,s)
     omega2_p = 4*np.pi*ne*e**2/m_e
-    # electron cyclotron frequency is also on 2D plane,but naturally expands to 
-    # 3D as B did. 
+    # electron cyclotron frequency is also on 1D line,but naturally expands to 
+    # 2D as B did. 
     # The cyclotron frequency is calculated with no relativistic effects
     omega_c = e*B/(m_e*c)
     omega2_c = omega_c**2
@@ -175,14 +172,14 @@ def get_alpha_table(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
     omega2_pc_ratio = omega2_p/omega2_c
 
     # z values, which measures the distance from resonance, taken thermal 
-    # effect into account. It's a function of omega, so 3D
+    # effect into account. It's a function of omega, so 2D
     z = c**2 * m_e/Te *(omega - n*omega_c)/omega
     # Fqz values evaluated here
     F_re = Fqz[0](z.flatten()).reshape(z.shape)
     F_im = Fqz[1](z.flatten()).reshape(z.shape)
     F_cplx = F_re + F_im*1j
     
-    # refraction index N_perp is a function of frequency, so 3D
+    # refraction index N_perp is a function of frequency, so 2D
     # real part of N_perp_c squared, as defined in ref[1] Eq. 3.1.12
     N2_perp_c = 1 - (omega2_p/omega2) * (omega2 - omega2_p)/(omega2 - omega2_c - omega2_p)
     
@@ -243,7 +240,7 @@ def get_alpha_table(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
         return alpha_n
             
         
-def get_alpha_table_new(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
+def get_alpha_table_new(SpecProfile , n=2):
     """Main function that calculates the alpha coefficients.
 
     :param SpecProfile: Contains the frequency band array, and the plasma 
@@ -254,7 +251,7 @@ def get_alpha_table_new(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
         detector gain is specified. See 
         :py:class:`.Detector.Detector` for more details
     2. ``Profile``
-        :py:class:`....plasma.PlasmaProfile.ECEI_Profile` object
+        dictionary containing 'ne','Te' and 'B' along light path
     :param n: an integer indicates the targeting harmonic mode. 
               default to be the second harmonics.
     """
@@ -263,24 +260,23 @@ def get_alpha_table_new(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
     m_e = cgs['m_e']
     c = cgs['c']
     
-    # define the local names, expand 2D into 3D, dimension order: [F,Z,R] 
-    # F:frequency
+    # define the local names, expand 1D into 2D, dimension order: [F,s] 
+    # F:frequency s: light path length
     Profile = SpecProfile['Profile']
-    R,Z = Profile.grid.R2D[np.newaxis,:,:], Profile.grid.Z2D[np.newaxis,:,:]
-    ne,Te,B = Profile.ne[np.newaxis,:,:] , Profile.Te[np.newaxis,:,:], \
-              Profile.B[np.newaxis,:,:]
+    ne,Te,B = Profile['ne'][np.newaxis,:] , Profile['Te'][np.newaxis,:], \
+              Profile['B'][np.newaxis,:]
     
-    # calculate frequency table, expand to 3D for later use
-    omega = SpecProfile['omega'][:,np.newaxis,np.newaxis]
+    # calculate frequency table, expand to 2D for later use
+    omega = SpecProfile['omega'][:,np.newaxis]
     omega2 = omega**2
 
     # now calculate all the useful local quantities on the grid
-    # plasma frequency is on RZ grid, i.e. 2D plane, but expands to 3D 
-    # Note that the dimension order convention is (F,Z,R)
+    # plasma frequency is on RZ grid, i.e. 1D line, but expands to 2D 
+    # Note that the dimension order convention is (F,s)
     omega2_p = 4*np.pi*ne*e**2/m_e
     
-    # electron cyclotron frequency is also on 2D plane, but naturally expands 
-    # to 3D as B did
+    # electron cyclotron frequency is also on 1D path, but naturally expands 
+    # to 2D as B did
     omega_c = e*B/(m_e*c)
     omega2_c = omega_c**2
     
@@ -288,7 +284,7 @@ def get_alpha_table_new(SpecProfile , n = 2, Fqzfile = DefaultFqzTableFile):
     omega2_pc_ratio = omega2_p/omega2_c
 
     # z values, which measures the distance from resonance, taken thermal 
-    # effect into account. It's a function of omega, so 3D
+    # effect into account. It's a function of omega, so 2D
     z = c**2 * m_e/Te *(omega - n*omega_c)/omega
     
     # Fq function is function of phi instead of z

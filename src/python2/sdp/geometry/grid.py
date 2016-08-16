@@ -547,7 +547,89 @@ class path(object):
         self.n = n
         self.R = R
         self.Z = Z
+        
+    def __str__(self):
+        info = 'Number of points: {0}\n'.format(self.n)
+        info += 'Start point: {0}\n'.format([self.Z[0], self.R[0]])
+        info += 'End point: {0}'.format([self.Z[-1], self.R[-1]])
+        return info
+class Path1D(Grid):
+    """ 1D Path Grid created based on an light path
+        
+        Initialization
+        **************
+        __init__(self, pth, ResS):
+        
+        :param pth: specified light path
+        :type pth: :py:class:`path` object
+        :param float ResS: the required resolution on light path length
 
+        Attributes
+        ***********
+        :param double ResS : resolution in light path length variable s
+        :param R1D: R coordinates along the path
+        :type R1D: 1darray of floats
+        :param Z1D: Z coordinates along the path, corresponds to R1D
+        :type Z1D: 1darray of floats
+        :param s1D: Path length coordinates, corresponds to R1D, starts with 0
+        :type s1D: 1darray of floats            
+        :param int N : number of grid points, accumulated in each section
+    """
+    def __init__(self, pth, ResS):
+        """initialize with a path object pth, and a given resolution ResS
+        """
+        self._name = "1D Light Path Grid"
+        self.pth = pth
+        n = pth.n
+        self.ResS = ResS
+        # s is the array stores the length of path variable
+        self._s = np.empty((n)) 
+        self._s[0]=0 # start with s=0
+        
+        # N is the array stores the number of grid points
+        self.N = np.empty((n),dtype='int')  
+        self.N[0]=1 # The starting point is considered as 1 grid
+        for i in range(1,n):
+            # increase with the length of each section
+            self._s[i]=( np.sqrt((pth.R[i]-pth.R[i-1])**2 + \
+                                (pth.Z[i]-pth.Z[i-1])**2) + self._s[i-1] )
+            # increase with the number that meet the resolution requirement
+            self.N[i]=( np.ceil((self._s[i]-self._s[i-1])/ResS)+ self.N[i-1] ) 
+        self.R1D = np.empty((self.N[n-1]))
+        self.Z1D = np.empty((self.N[n-1]))
+        self.s1D = np.empty((self.N[n-1]))
+        for i in range(1,n):
+            # fill in the middle points with equal space
+            self.R1D[(self.N[i-1]-1): self.N[i]] = \
+                 np.linspace(pth.R[i-1],pth.R[i],self.N[i]-self.N[i-1]+1) 
+            self.Z1D[(self.N[i-1]-1): self.N[i]] = \
+                 np.linspace(pth.Z[i-1],pth.Z[i],self.N[i]-self.N[i-1]+1)
+            self.s1D[(self.N[i-1]-1): self.N[i]] = \
+                 self.s[i-1]+ np.sqrt( (self.R1D[(self.N[i-1]-1): self.N[i]]\
+                                       - self.pth.R[i-1])**2 + \
+                                       (self.Z1D[(self.N[i-1]-1): self.N[i]]\
+                                       - self.pth.Z[i-1])**2 )
+        self.shape = self.R1D.shape
+        self.dimension = 1
+        
+    def get_mesh(self):
+        warnings.warn('Path2D doesn\'t have regular mesh. get_mesh will return\
+ a tuple containing (Z,R,s) coordinates of points on the path.', GridWarning)
+        return (self.Z1D[:], self.R1D[:], self.s1D[:]) 
+
+    def __str__(self):
+        """display information
+        """
+        n=self.pth.n
+        info = self._name + "\n"
+        info += "created by path:\n"
+        info += "\tnumber of points: "+ str(self.pth.n)+"\n"
+        info += "\tR coordinates:\n\t"+ str(self.pth.R)+"\n"
+        info += "\tZ coordinates:\n\t"+ str(self.pth.Z)+"\n"
+        info += "with resolution in S: "+str(self.ResS)+"\n"
+        info += "total length of path: "+str(self.s[n-1])+"\n"
+        info += "total number of grids:"+str(self.N[n-1])+"\n"
+        return info
 
 class Path2D(Grid):
     """ R-Z Grid created based on an light path
