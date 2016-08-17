@@ -17,7 +17,7 @@ class Detector1D(Detector):
     Initialization
     ***************
     
-    __init__(self, f_flt, p_flt, location, tilt, polarization='X', pth=None):
+    __init__(self, f_flt, p_flt, location, tilt, polarization='X', path=None):
     :param float f_ctr: the center frequency ,in Hz
     :param f_flt: the frequencies sampling the pass band
     :type f_flt: array_like of floats
@@ -196,7 +196,7 @@ def create_2D_pointlike_detector_array(plasma):
                     # light path is assumed horizontal
                     pth = path(2,[R[0],R[-1]],[Zi,Zi]) 
                     Detectors.append(Detector1D(f_flt,p_flt,[Zi,R[-1]],
-                                                0, pth))
+                                                0, polarization='X', path=pth))
     return tuple(Detectors)
     
 def create_detector_array(location_list, tilt_list, f_flt_list, p_flt_list, 
@@ -270,6 +270,7 @@ def create_spatial_frequency_grid(Detectors, Profile, S=100, ResS=0.05,
         new_prof['Profile']['ne'] = ne_path
         new_prof['Profile']['Te'] = Te_path
         new_prof['Profile']['B'] = B_path
+        new_prof['Profile']['grid'] = path1D
         new_prof['omega'] = dtc.omega_list 
         Profs.append(new_prof)
     return tuple(Profs)

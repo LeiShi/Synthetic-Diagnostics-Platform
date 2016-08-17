@@ -605,7 +605,7 @@ class Path1D(Grid):
             self.Z1D[(self.N[i-1]-1): self.N[i]] = \
                  np.linspace(pth.Z[i-1],pth.Z[i],self.N[i]-self.N[i-1]+1)
             self.s1D[(self.N[i-1]-1): self.N[i]] = \
-                 self.s[i-1]+ np.sqrt( (self.R1D[(self.N[i-1]-1): self.N[i]]\
+                 self._s[i-1]+ np.sqrt( (self.R1D[(self.N[i-1]-1): self.N[i]]\
                                        - self.pth.R[i-1])**2 + \
                                        (self.Z1D[(self.N[i-1]-1): self.N[i]]\
                                        - self.pth.Z[i-1])**2 )
@@ -627,7 +627,7 @@ class Path1D(Grid):
         info += "\tR coordinates:\n\t"+ str(self.pth.R)+"\n"
         info += "\tZ coordinates:\n\t"+ str(self.pth.Z)+"\n"
         info += "with resolution in S: "+str(self.ResS)+"\n"
-        info += "total length of path: "+str(self.s[n-1])+"\n"
+        info += "total length of path: "+str(self._s[n-1])+"\n"
         info += "total number of grids:"+str(self.N[n-1])+"\n"
         return info
 
