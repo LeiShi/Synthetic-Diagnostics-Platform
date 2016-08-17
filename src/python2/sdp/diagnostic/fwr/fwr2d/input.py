@@ -65,12 +65,11 @@ def generate_cdf(plasma, coordinates=None, eq_only=True, time=None,
     
     # obtain the plasma quantities
     ne_prof = plasma.get_ne([Z2D, R2D], eq_only=eq_only, time=time)
-    Te_prof = plasma.get_Te([Z2D, R2D], eq_only=eq_only, time=time)/cgs['keV']
+    Te_prof = plasma.get_Te([Z2D, R2D], eq_only=eq_only, time=time)
     B_prof = plasma.get_B([Z2D, R2D], eq_only=eq_only, time=time)
     
     try:
-        Ti_prof = plasma.get_Ti([Z2D, R2D], eq_only=eq_only, time=time)\
-                  /cgs['keV']
+        Ti_prof = plasma.get_Ti([Z2D, R2D], eq_only=eq_only, time=time)
     except AttributeError as ae:
         if 'get_Ti' in str(ae):
             Ti_prof = np.zeros_like(Z2D)
@@ -83,25 +82,25 @@ def generate_cdf(plasma, coordinates=None, eq_only=True, time=None,
     f.createDimension('r_dim', NR)
     
     rr = f.createVariable('rr','d',('r_dim',))
-    rr[:] = R1D[:]
+    rr[:] = R1D[:]/100
     zz = f.createVariable('zz','d',('z_dim',))
-    zz[:] = Z1D[:]
+    zz[:] = Z1D[:]/100
     rr.units = zz.units = 'Meter'
 
     bb = f.createVariable('bb','d',('z_dim','r_dim'))
-    bb[:,:] = B_prof[:,:]
+    bb[:,:] = B_prof[:,:]/1e4
     bb.units = 'Tesla'
     
     ne = f.createVariable('ne','d',('z_dim','r_dim'))
-    ne[:,:] = ne_prof[:,:]
+    ne[:,:] = ne_prof[:,:]*1e6
     ne.units = 'per cubic meter'
 
     te = f.createVariable('te','d',('z_dim','r_dim'))
-    te[:,:] = Te_prof[:,:]
+    te[:,:] = Te_prof[:,:]/cgs['keV']
     te.units = 'keV'
     
     ti = f.createVariable('ti','d',('z_dim','r_dim'))
-    ti[:,:] = Ti_prof[:,:]
+    ti[:,:] = Ti_prof[:,:]/cgs['keV']
     ti.units = 'keV'
 
     f.close()
