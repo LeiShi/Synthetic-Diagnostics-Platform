@@ -1,1 +1,3 @@
-__all__ = ['LocalQuantities','TestParameter']
+__all__ = ['testparameter']
+
+import testparamter
