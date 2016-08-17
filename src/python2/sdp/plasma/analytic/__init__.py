@@ -1,3 +1,3 @@
 __all__ = ['testparameter']
 
-import testparamter
+import testparameter
