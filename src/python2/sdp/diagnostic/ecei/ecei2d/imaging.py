@@ -125,12 +125,12 @@ class ECEImagingSystem(object):
             # import and initialize useful modules and variables
             dv = self._client[:]
             dv.execute('\
-import sdp.plasma.PlasmaProfile\n\
-PlasmaProfile = sdp.plasma.PlasmaProfile\n\
-import sdp.diagnostic.ecei.ecei2d.Detector2D\n\
-Detector2D = sdp.diagnostic.ecei.ecei2d.Detector2D\n\
-import sdp.diagnostic.ecei.ecei2d.Reciprocity\n\
-ECE2D = sdp.diagnostic.ecei.ecei2d.Reciprocity.ECE2D')
+import sdp.plasma.profile\n\
+PlasmaProfile = sdp.plasma.profile\n\
+import sdp.diagnostic.ecei.ecei2d.detector2d\n\
+Detector2D = sdp.diagnostic.ecei.ecei2d.detector2d\n\
+import sdp.diagnostic.ecei.ecei2d.ece\n\
+ECE2D = sdp.diagnostic.ecei.ecei2d.ece.ECE2D')
         else:
             self._parallel = False
             
