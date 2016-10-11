@@ -129,7 +129,7 @@ class GTC_Loader:
     ---------------
     
     __init__(self, gtc_path, grid, tsteps, 
-             fname_pattern_2D=r'snap(?P<time>\d+)_fpsdp.json', 
+             fname_pattern_2D=r'snap(?P<time>\d+)_sdp.json', 
              fname_pattern_3D = r'PHI_(?P<time>\d+)_\d+.ncd', 
              Mode = 'full')
         
@@ -207,7 +207,7 @@ class GTC_Loader:
     """
     
     def __init__(self, gtc_path, grid, tsteps=None, 
-                 fname_pattern_2D=r'snap(?P<time>\d+)_fpsdp.json', 
+                 fname_pattern_2D=r'snap(?P<time>\d+)_sdp.json', 
                  fname_pattern_3D = r'PHI_(?P<time>\d+)_\d+.ncd', 
                  Mode = 'full'):
         """Initialize a GTC loader with the following parameters:
@@ -296,11 +296,11 @@ Cartesian3D grids are supported.'))
             # time step, ion gyro-radius, and snap output frequency.
             self.load_gtc_specifics() 
         
-            # read grid_fpsdp.json, create triangulated mesh on GTC grids and 
+            # read grid_sdp.json, create triangulated mesh on GTC grids and 
             # extended grids for equilibrium.
             self.load_grid() 
         
-            # read equilibriumB_fpsdp.json and equilibrium1D_fpsdp.json, create
+            # read equilibriumB_sdp.json and equilibrium1D_sdp.json, create
             # interpolators for B_phi,B_R,B_Z on extended grids, and 
             # interpolators for equilibrium density and temperature over 'a'.
             self.load_equilibrium(SOL_width=0.1) 
@@ -313,7 +313,7 @@ Cartesian3D grids are supported.'))
             if(Mode == 'full'):
                 # For fluctuations, 2D and 3D loaders are different
                 if(self.dimension == 2):
-                    # 2D is simple, read snap{time}_fpsdp.json and interpolate 
+                    # 2D is simple, read snap{time}_sdp.json and interpolate 
                     # the data onto 2D grid
                     self.load_fluctuations_2D()
                     self.interpolate_fluc_2D()
@@ -349,7 +349,7 @@ Cartesian3D grids are supported.'))
                 typical ion gyro-radius in GTC simulation, unit:meter
             :var int snapstep: 
                 GTC snapshot output time, every *snapstep* timesteps, 
-                a *snap###_fpsdp.json* file is written.
+                a *snap###_sdp.json* file is written.
         """
         
         GTCin_fname = os.path.join(self.path, 'gtc.in')
@@ -388,7 +388,7 @@ Cartesian3D grids are supported.'))
         #NEED INFO on gtc.in and gtc.out
         
     def load_grid(self):
-        """ Read in Grid information from grid_fpsdp.json file.
+        """ Read in Grid information from grid_sdp.json file.
         Create Attributes:
             :var R_gtc: R coordinates for GTC simulation grid. unit: meter
             :vartype R_gtc: 1D double array of length N
@@ -444,7 +444,7 @@ Cartesian3D grids are supported.'))
         """
         l2cgs = GTC_to_cgs['length']
         b2cgs = GTC_to_cgs['magnetic_field']
-        grid_fname = os.path.join(self.path, 'grid_fpsdp.json')
+        grid_fname = os.path.join(self.path, 'grid_sdp.json')
         with open(grid_fname) as gridfile:
             raw_grids = json.load(gridfile)
         self.R0= raw_grids['R0'] * l2cgs
@@ -489,8 +489,8 @@ Cartesian3D grids are supported.'))
         
     def load_equilibrium(self, SOL_width = 0.1, extrapolation_points = 20, 
                          fill_coeff = 1e-5):
-        """ read in equilibrium field data from equilibriumB_fpsdp.json and 
-        equilibrium1D_fpsdp.json
+        """ read in equilibrium field data from equilibriumB_sdp.json and 
+        equilibrium1D_sdp.json
         
         :param double SOL_width: 
             *(optional)*, width of the scrape-off layer outside the closed flux
@@ -528,16 +528,16 @@ Cartesian3D grids are supported.'))
                 :class:`<scipy.interpolate.LinearNDInterpolator>` object
             
             :var a_1D: *a* coordinate for 1D interpolation, includes *a* array 
-                       read from *equilibrium1D_fpsdp.json* file, and extension
+                       read from *equilibrium1D_sdp.json* file, and extension
                        on larger *a* values. 
             :vartype a_1D: 1D double array of length *N_1D*
             :var ne0_1D: equilibrium electron density on *a_1D*, read in from 
-                         *equilibrium1D_fpsdp.json* file, and use 3rd order 
+                         *equilibrium1D_sdp.json* file, and use 3rd order 
                          polynomial to extrapolate outside values. 
                          Unit: :math:`m^{-3}`
             :vartype ne0_1D: 1D double array of length *N_1D*
             :var Te0_1D: equilbirium electron temperature on *a_1D*, read in 
-                         from *equilibrium1D_fpsdp.json* file, and use 3rd 
+                         from *equilibrium1D_sdp.json* file, and use 3rd 
                          order polynomial to extrapolate outside values. 
                          Unit: keV
             :vartype Te0_1D: 1D double array of length *N_1D*
@@ -554,7 +554,7 @@ Cartesian3D grids are supported.'))
         n2cgs = GTC_to_cgs['density']
         T2cgs = GTC_to_cgs['temperature']
         
-        eqB_fname = os.path.join( self.path, 'equilibriumB_fpsdp.json')
+        eqB_fname = os.path.join( self.path, 'equilibriumB_sdp.json')
         with open(eqB_fname,'r') as eqBfile:
             raw_eqB = json.load(eqBfile)
         
@@ -575,7 +575,7 @@ Cartesian3D grids are supported.'))
         #                                trifinder=self.trifinder_eq)
 
         # Now read in 1D equilibrium quantities        
-        eq1D_fname = os.path.join(self.path, 'equilibrium1d_fpsdp.json')
+        eq1D_fname = os.path.join(self.path, 'equilibrium1d_sdp.json')
         with open(eq1D_fname,'r') as eq1Dfile:
             raw_eq1D = json.load(eq1Dfile)
         
@@ -861,8 +861,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
         return (gradR,gradZ)
 
     
-    def load_fluctuations_2D(self, fname_format = 'snap{0:0>7}_fpsdp.json'):
-        """ Read fluctuation data from **snap{time}_fpsdp.json** files
+    def load_fluctuations_2D(self, fname_format = 'snap{0:0>7}_sdp.json'):
+        """ Read fluctuation data from **snap{time}_sdp.json** files
         Read data into an array with shape (NT,Ngrid_gtc), NT the number of 
         requested timesteps, corresponds to *self.tstep*, Ngrid_gtc is the GTC 
         grid number on each cross-section.
