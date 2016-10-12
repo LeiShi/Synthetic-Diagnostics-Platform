@@ -879,6 +879,8 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
             if *isEM*:
             :var A_par: parallel vector potential fluctuation
             :vartype A_par:double array with shape (NT,Ngrid_gtc)
+            :var dpsi: perturbed poloidal flux
+            :vartype dpsi:double array with shape (NT,Ngrid_gtc)
             
         """
         NT = len(self.tsteps)
@@ -893,7 +895,6 @@ been left isolated. Check the input R_eq and Z_eq mesh, and see how its convex\
             self.nane = np.empty_like(self.phi)
         if self.isEM:
             self.A_para = np.empty_like(self.phi)
-            self.dTe_ad = np.empty_like(self.phi)
             self.dpsi = np.empty_like(self.phi)
         
         
@@ -936,13 +937,13 @@ special attention.', GTC_Loader_Warning)
         Te_norm = self.Te0_1D[0]
             
         # Note that dne_ad is always normalized to local equilibrium density
-        self.dne_ad *= self.ne0_gtc
+        self.dne_ad *= ne_norm
         self.dni *= ni_norm
-        self.nane *= ne_norm            
-
-        Pe_norm = ne_norm * Te_norm
-        self.dPe_para *= Pe_norm
-        self.dPe_perp *= Pe_norm
+        if (self.HaveElectron):
+            self.nane *= ne_norm            
+            Pe_norm = ne_norm * Te_norm
+            self.dPe_para *= Pe_norm
+            self.dPe_perp *= Pe_norm
                       
     def interpolate_fluc_2D(self):
         """Interpolate 2D fluctuations onto given Cartesian grid. Grids outside
@@ -1050,6 +1051,8 @@ special attention.', GTC_Loader_Warning)
         .. math::
             T_{e, ad} = T_0(\psi + \delta \psi)-T_0(\psi)
         """
+        if not self.isEM:
+            return 0
         if (mesh == 'GTC'):
             psi = self.a_gtc + self.dpsi
             Te = self.Te0_interp(psi)
@@ -1118,6 +1121,8 @@ special attention.', GTC_Loader_Warning)
         .. math::
             T_{e0\perp} = T_{e0\parallel} = T_{e0}
         """
+        if not self.HaveElectron:
+            return 0
         if mesh == 'GTC':
             dT = np.zeros_like(self.dPe_perp)
             if component == 'perp':
