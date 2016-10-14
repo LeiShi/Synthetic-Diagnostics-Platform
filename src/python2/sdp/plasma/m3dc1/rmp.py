@@ -104,12 +104,11 @@ class RmpLoader(object):
         # has cos and sin part on real and imaginary parts respectively
         self.alpha_m = np.copy(m3d_raw.variables['alpha_real'].data) + \
                      1j*np.copy(m3d_raw.variables['alpha_imag'].data)
-                     
-        # In GTC, alpha(psi, theta) is required. What we have here is the 
-        # fourier transformed alpha in theta, and the order of index is 
-        # (mtheta, psi)
         
-        self.alpha = np.fft.fft(self.alpha_m, axis=0)
+        # Then, the real space alpha can be obtained by FFT. Check Nate's note
+        # on the normalization convention, as well as scipy's FFT 
+        # documentation.
+        self.alpha = np.fft.fft(self.alpha_m)
                      
         
         
