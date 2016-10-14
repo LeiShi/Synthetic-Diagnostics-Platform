@@ -1,7 +1,11 @@
 """This module contains some useful interpolation methods
 """
+from __future__ import division
+from abc import ABCMeta, abstractmethod, abstractproperty
+import warnings
 
 import numpy as np
+
 from scipy.interpolate import BarycentricInterpolator
 
 class InterpolationError(Exception):
@@ -207,6 +211,308 @@ class BoundaryWarnBarycentricInterpolator(BarycentricInterpolator):
         if not self._bound_error:
             assert yi.ndim == 1
         super(BoundaryWarnBarycentricInterpolator, self).set_yi(yi, axis)
+
+        
+# A set of user-defined interpolators        
+class Interpolator(object):
+    """Base class for all interpolators
+    
+    Abstract methods:
+        __call__(points): evaluate the interpolated function at locations 
+                          given by an array of points
+        ev(points, [derivative orders]): 
+            evaluate the desired derivative order at given locations
+    """
+    __metaclass__ = ABCMeta
+    
+    @abstractmethod
+    def __call__(self, points):
+        pass
+    
+    @abstractmethod
+    def ev(self, points, derivatives=None):
+        pass
+        
+class Quadratic1DSplineInterpolator(Interpolator):
+    r"""One dimensional quadratic spline interpolator
+    
+    interpolating function y(x) using a set of quadratic polynomials matching 
+    the values on a given sereis of x's. x values are required to be evenly 
+    spaced, and the first order derivatives are enforced to be continuous.
+    
+    6 kinds of boundary conditions are implemented:
+        
+        inner_free: the second derivative is 0 on the x[0] boundary
+        
+        outer_free: second derivative 0 on x[-1] boundary
+        
+        inner_flat: first derivative 0 on x[0] boundary
+        
+        outer_flat: second derivative 0 on x[-1] boundary
+        
+        periodic: value and first derivative continuous when cross from x[-1] 
+                  to x[0]. (Only possible if y[0]=y[-1])
+        
+        estimate: estimate the first derivative at x[0] using y[0], y[1], and 
+                  y[2] by y'[0] = (4 y[1]-y[2]-3y[0])/2dx, dx=x[1]-x[0]
+    Default is using 'estimate' method.
+    
+    Initialization
+    ***************
+    
+    __init__(self, x, y, boundary_type='estimate', boundary_check=True, 
+             fill_value=np.nan)
+    
+    :param x: the x values, evenly spaced
+    :type x: 1D array of float
+    :param y: the function evaluated at each x.
+    :type y: 1D array of float
+    :param string boundary_type: string specifying the boundary condition
+    :param bool boundary_check: flag for out of boundary checking, if True, 
+                                out of boundary evaluations will raise an 
+                                :py:exception:`OutofBoundaryError`
+    :param float fill_value: value for the out of boundary points when 
+                             boundary_check is False. Default to be np.nan.
+    
+    Methods
+    ********
+    
+    __call__(self, x_ev): evaluate interpolation at x_ev
+    
+    ev(self, x_ev, derivatives=0): evaluate either the value or the first 
+                                  derivative at x_ev. default to be the value.
+                                  
+    Implementation
+    ***************
+    
+    Suppose data is given on :math:`\{x_i\}, i=0, \dots, n` evenly spaced 
+    locations. :math:`Delta x \equiv x_{i+1}-x_{i}`, and :math:`y_i = y(x_i)`.
+    
+    The spline polynomials are defined on each section :math:`[x_i, x_{i+1}]`
+    as:
+            
+    .. math::
+        
+        P_i(t) = (1-t)y_i + t y_{i+1} +t(1-t)a_i,
+            
+    where :math:`t \equiv (x-x_i)/\Delta x`, :math:`i = 0, 1, \dots, n-1`.
+    
+    It's clear that these polynomials naturally satisfy the matching value 
+    conditions.
+        
+    The constraints for :math:`a_i` are such that the first derivatives at 
+    inner points are continuous. i.e.
+    
+    .. math::
+        
+        (y_{i+1}-y_{i}) - a_i = (y_{i+2}-y_{i+1}) + a_{i+1}
+        
+    for :math:`i = 0, 1, \dots, n-2`. 
+    
+    The last constraint is the chosen boundary condition.
+    
+    inner_free
+    ===========
+    
+    .. math::
+        
+        P_0''(x_0) = 0
+    
+    outer_free
+    ===========
+    
+    .. math::
+    
+        P_{n-1}''(x_n)=0
+        
+    inner_flat
+    ===========
+    
+    .. math::
+        
+        P_0'(x_0) = 0
+    
+    outer_flat
+    ===========
+    
+    .. math::
+        
+        P_{n-1}'(x_n) = 0
+        
+    estimate
+    =========
+    
+    .. math::
+        
+        P_0'(x_0) = (4y_1 - y_2 - 3y_0)/2\Delta x
+        
+    periodic
+    =========
+    
+    (requires :math:`y_0 = y_n`)    
+    
+    .. math:: 
+        
+        P_0'(x_0) = P_{n-1}'(x_n)
+    """
+    def __init__(self, x, y, boundary_type='estimate', boundary_check=True, 
+                 fill_value=np.nan):
+        self._x = np.array(x)
+        self._y = np.array(y)
+        self._n = len(self._x)
+        dx = self._x[1:]-self._x[:-1]
+        ddx = dx[1:]-dx[:-1]
+        # Evenly space x is required. Raise AssertionError if it's not
+        assert np.all(np.abs(ddx)<1e-14)
+        # if the x is decreasing, reverse the whole array
+        self._dx = dx[0]
+        if (self._dx<0):
+            self._x = self._x[::-1]
+            self._y = self._y[::-1]
+            self._dx = -self._dx
+        
+        self._xmin = self._x[0]
+        self._xmax = self._x[-1]
+
+        self._boundary_type = boundary_type
+        self._boundary_check = boundary_check
+        self._fill_value = fill_value        
+
+        self._generate_spline()
+    
+    def _generate_spline(self):
+        r""" Generate the spline coefficients on all the sections
+        
+        The spline polynomial is defined as:
+            
+        .. math::
+            
+            P_i(t) = (1-t)y_i + t y_{i+1} +t(1-t)a_i,
+            
+        where :math:`t \equiv (x-x_i)/\Delta x`, :math:`i = 0, 1, \dots, n-1`. 
+        
+        The constraints are that the first derivatives at inner points are 
+        continuous. i.e.
+        
+        .. math::
+            
+            (y_{i+1}-y_{i}) - a_i = (y_{i+2}-y_{i+1}) + a_{i+1}
+            
+        for :math:`i = 0, 1, \dots, n-2`. 
+        
+        The last constraint is the chosen boundary condition.
+        
+        In general, the equations for a can be written in matrix form
+        
+        .. math::
+            
+            \tensor{M} \cdot \vec{a} = \vec{b}
+            
+        and formally, 
+        
+        .. math::
+            
+            \vec{a} = \tensor{M}^{-1} \cdot \vec{b}
+        """
+        
+        # Solve the coefficients ai using the inversion of matrix
+        order = self._n-1
+        
+        # generate the b vector
+        dy = self._y[1:]-self._y[:-1]
+        
+        b = np.zeros((order))
+        b[:-1] = dy[:-1]-dy[1:]
+        # generate M tensor based on boundary condition
+        
+        M = np.zeros((order, order))
+        
+        for i in xrange(order-1):
+            M[i, i] = 1
+            M[i, i+1] = 1
+
+        if (self._boundary_type == 'inner_free'):
+            M[-1, 0] = 1
+            b[-1] = 0
+        elif (self._boundary_type == 'outer_free'):
+            M[-1, -1] = 1
+            b[-1] = 0
+        elif (self._boundary_type == 'inner_flat'):
+            M[-1, 0] = 1
+            b[-1] = -dy[0]
+        elif(self._boundary_type == 'outer_free'):
+            M[-1, -1] = 1
+            b[-1] = dy[-1]
+        elif(self._boundary_type == 'estimate'):
+            M[-1, 0] = 1
+            b[-1] = -dy[0] + 0.5*(4*self._y[1]- self._y[2]-3*self._y[0])
+        elif(self._boundary_type == 'periodic'):
+            if self._n%2 == 1:
+                warnings.warn('periodic boundary needs even data points. \
+Using estimated boundary condition instead.')
+                self._boundary_type == 'estimate'
+                M[-1, 0] = 1
+                b[-1] = -dy[0] + 0.5*(4*self._y[1]- self._y[2]-3*self._y[0])
+            elif not (np.abs(self._y[-1] - self._y[0])<1e-14):
+                warnings.warn('periodic data not satisfied, using estimated \
+boundary condition instead.')
+                self._boundary_type == 'estimate'
+                M[-1, 0] = 1
+                b[-1] = -dy[0] + 0.5*(4*self._y[1]- self._y[2]-3*self._y[0])
+            else:
+                M[-1, -1] = 1
+                M[-1, 0] = 1
+                b[-1] = dy[0]-dy[-1]
+        else:
+            raise Exception('{0} is not a valid boundary condition.'.\
+                            format(self._boundary_type))
+        
+        self._a = np.linalg.solve(M, b)
+        
+    def ev(self, x_ev, derivatives=0):
+        """evaluate the functions at x_ev
+        
+        :param x_ev: x locations to evaluate on
+        :type x_ev: array of float
+        :param int derivatives: either 0 or 1. if 0, evaluate the function,
+                                if 1, evaluate the first derivative.
+                                
+        """
+        x_calc = np.copy(x_ev)
+        y_ev = np.zeros_like(x_calc)
+        if (self._boundary_check):
+            if not (np.all(x_ev >= self._xmin)) or \
+               not np.all(x_ev <= self._xmax):
+                   raise OutofBoundError('Evaluation out of range ({0}, {1})'\
+                                         .format(self._xmin, self._xmax))
+        else: # not enforced boundary check
+            out_idx = np.logical_or((x_ev < self._xmin), (x_ev>self._xmax))
+            x_calc[out_idx] = self._xmin
+
+        x_norm = (x_calc - self._xmin)/self._dx
+        x_ind = np.floor(x_norm).astype(np.int)
+        # deal with the x=xmax case, the index should be n-2
+        x_ind[x_ind == self._n-1] = self._n-2
+        t = x_norm - x_ind
+    
+        if derivatives == 0:
+            # evaluate the function
+            y_ev = (1-t)*self._y[x_ind] + t*self._y[x_ind+1] + \
+                   t*(1-t)*self._a[x_ind]
+        elif derivatives == 1:
+            # evaluate the first order derivative
+            y_ev = (self._y[x_ind+1]-self._y[x_ind] + \
+                   (1-2*t)*self._a[x_ind])/self._dx
+        else:
+            raise InterpolationError('Derivative {0} is not continuous'.\
+                                     format(derivatives))
+        if not self._boundary_check:
+            y_ev[out_idx] = self._fill_value
+
+        return y_ev
+            
+    def __call__(self, x_ev):
+        return self.ev(x_ev)
         
 
             
