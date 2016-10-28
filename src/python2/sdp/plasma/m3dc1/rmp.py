@@ -65,10 +65,12 @@ class RmpLoader(object):
         # 1D quantities are function of psi only
         # we have
         
-        # poloidal flux, in weber/radian
-        self.psi_p = np.copy(m3d_raw.variables['flux_pol'].data)
+        # poloidal flux, axis value zero, always increase, in weber
+        self.poloidal_flux = np.copy(m3d_raw.variables['flux_pol'].data)
+        # poloidal flux, axis value non-zero, in weber/radian
+        self.psi_p = np.copy(m3d_raw.variables['psi'].data)
         # normalized psi, normalized to psi_wall
-        self.psi_n = np.copy(m3d_raw.variables['psi'].data)
+        self.psi_n = np.copy(m3d_raw.variables['psi_norm'].data)
         # toroidal current enclosed in a flux surface
         self.I = np.copy(m3d_raw.variables['current'].data)
         # R B_phi is also a flux function
@@ -91,6 +93,8 @@ class RmpLoader(object):
         # poloidal magnetic field
         self.B_p = np.copy(m3d_raw.variables['Bp'].data)
         
+        m3d_raw.close()
+        
     def load_rmp(self, filename):
         """load the resonant magnetic perturbations
         :param string filename: full or relative path to the netcdf file 
@@ -109,6 +113,8 @@ class RmpLoader(object):
         # on the normalization convention, as well as scipy's FFT 
         # documentation.
         self.alpha = np.fft.fft(self.alpha_m)
+        
+        m3d_raw.close()
                      
         
         
