@@ -286,7 +286,7 @@ class Quadratic1DSplineInterpolator(Interpolator):
     ***************
     
     Suppose data is given on :math:`\{x_i\}, i=0, \dots, n` evenly spaced 
-    locations. :math:`Delta x \equiv x_{i+1}-x_{i}`, and :math:`y_i = y(x_i)`.
+    locations. :math:`\Delta x \equiv x_{i+1}-x_{i}`, and :math:`y_i = y(x_i)`.
     
     The spline polynomials are defined on each section :math:`[x_i, x_{i+1}]`
     as:
@@ -440,7 +440,7 @@ class Quadratic1DSplineInterpolator(Interpolator):
         elif (self._boundary_type == 'inner_flat'):
             M[-1, 0] = 1
             b[-1] = -dy[0]
-        elif(self._boundary_type == 'outer_free'):
+        elif(self._boundary_type == 'outer_flat'):
             M[-1, -1] = 1
             b[-1] = dy[-1]
         elif(self._boundary_type == 'estimate'):
@@ -462,7 +462,7 @@ boundary condition instead.')
             else:
                 M[-1, -1] = 1
                 M[-1, 0] = 1
-                b[-1] = dy[0]-dy[-1]
+                b[-1] = dy[-1]-dy[0]
         else:
             raise Exception('{0} is not a valid boundary condition.'.\
                             format(self._boundary_type))
