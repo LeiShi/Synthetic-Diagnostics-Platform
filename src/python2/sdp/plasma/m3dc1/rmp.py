@@ -9,6 +9,7 @@ Loader and checker for M3D-C1 RMP output files
 
 import numpy as np
 from scipy.io.netcdf import netcdf_file
+from scipy.interpolate import interp1d, RectBivariateSpline
 
 
 class RmpLoader(object):
@@ -48,6 +49,7 @@ class RmpLoader(object):
             self.load_equilibrium(self.filename)
             if mode == 'full':
                 self.load_rmp(self.filename)
+                #self.generate_interpolators()
     
     def load_equilibrium(self, filename):
         """load the equilibrium data from M3DC1 output netcdf file
@@ -66,11 +68,24 @@ class RmpLoader(object):
         # we have
         
         # poloidal flux, in weber/radian
-        self.psi_p = np.copy(m3d_raw.variables['flux_pol'].data)
+        self.psi_p = np.copy(m3d_raw.variables['psi'].data)
+        self.psi_p -= self.psi_p[0]
+        if (self.psi_p[-1] < 0):
+            self.isign = -1
+        else:
+            self.isign = 1
+        # psi_abs is the flipped psi_p so it's increasing. 
+        # WARNING: SPECIAL CARE IS NEEDED WHEN CALCULATING MAGNETIC FIELD LINE
+        self.psi_abs = self.psi_p*self.isign
+        
         # normalized psi, normalized to psi_wall
-        self.psi_n = np.copy(m3d_raw.variables['psi'].data)
+        self.psi_n = np.copy(m3d_raw.variables['psi_norm'].data)
+        # uniform theta is generated, including the end point at theta=2pi
+        self.theta = np.linspace(0, 2*np.pi, self.mpol+1)
+        
         # toroidal current enclosed in a flux surface
         self.I = np.copy(m3d_raw.variables['current'].data)
+        self.I *= 2e-7
         # R B_phi is also a flux function
         self.F = np.copy(m3d_raw.variables['F'].data)
         # equilibrium electron density
@@ -82,14 +97,21 @@ class RmpLoader(object):
         # electron pressure
         self.pe = np.copy(m3d_raw.variables['pe'].data)
         
-        # 2D quantities will depend on theta
+        # 2D quantities will depend on theta, we'll add one end point at 
+        # theta=2pi, and assign periodic value there
         
         # R in (R, PHI, Z) coordinates
-        self.R = np.copy(m3d_raw.variables['rpath'].data)
+        self.R = np.empty((self.npsi, self.mpol+1))
+        self.R[:, :-1] = m3d_raw.variables['rpath'][:,:]
+        self.R[:, -1] = self.R[:, 0]
         # Z in (R, PHI, Z)
-        self.Z = np.copy(m3d_raw.variables['zpath'].data)
+        self.Z = np.empty((self.npsi, self.mpol+1))
+        self.Z[:, :-1] = m3d_raw.variables['zpath'][:,:]
+        self.Z[:, -1] = self.Z[:, 0]
         # poloidal magnetic field
-        self.B_p = np.copy(m3d_raw.variables['Bp'].data)
+        self.B_p = np.empty((self.npsi, self.mpol+1))
+        self.B_p[:, :-1] = m3d_raw.variables['Bp'][:,:]
+        self.B_p[:, -1] = self.B_p[:, 0]
         
     def load_rmp(self, filename):
         """load the resonant magnetic perturbations
@@ -100,15 +122,101 @@ class RmpLoader(object):
         
         m3d_raw = netcdf_file(filename, 'r')
         
+        # mode numbers in m
+        self.m = np.copy(m3d_raw.variables['m'].data)
+        
         # In our convention, alpha is a complex number, and the resonant form
         # has cos and sin part on real and imaginary parts respectively
         self.alpha_m = np.copy(m3d_raw.variables['alpha_real'].data) + \
                      1j*np.copy(m3d_raw.variables['alpha_imag'].data)
+                     
+        # check if the mode number is inversed, if so, change it back to 
+        # increasing order
+        if self.m[0]>self.m[-1]:
+            self.m = np.fft.ifftshift(self.m[::-1])
+            self.alpha_m = np.fft.ifftshift(self.alpha_m[:, ::-1], axes=-1)
         
+        # for alpha and dalpha_dtheta values in real space, we add the 
+        # theta=2pi end point, and assign periodic values
+        self.alpha = np.empty((self.npsi, self.mpol+1), dtype=np.complex)
+        self.dalpha_dtheta = np.empty((self.npsi, self.mpol+1), 
+                                      dtype=np.complex)
+            
         # Then, the real space alpha can be obtained by FFT. Check Nate's note
         # on the normalization convention, as well as scipy's FFT 
         # documentation.
-        self.alpha = np.fft.fft(self.alpha_m)
+        
+        self.alpha[:, :-1] = np.fft.fft(self.alpha_m, axis=-1)
+        self.alpha[:, -1] = self.alpha[:, 0]
+        
+        # The derivatives respect to theta can also be calculated by FFT
+        self.dalpha_dtheta[:, :-1] = np.fft.fft(-1j*self.m*self.alpha_m, 
+                                                axis=-1) 
+        self.dalpha_dtheta[:, -1] = self.dalpha_dtheta[:, 0]   
+ 
+    def generate_interpolators(self):
+        """ Create the interpolators for the loaded quantities
+        """
+        # 1-D quantities are directly interpolated on psi
+        self.q_interp = interp1d(self.psi_abs, self.q)
+        self.I_interp = interp1d(self.psi_abs, self.I)
+        self.F_interp = interp1d(self.psi_abs, self.F)
+        
+        
+        # 2-D quantities are interpolated on psi-theta plane
+        # the periodicity along theta in the values is guaranteed
+        self.R_interp = RectBivariateSpline(self.psi_abs, self.theta, self.R)
+        self.Z_interp = RectBivariateSpline(self.psi_abs, self.theta, self.Z)
+        self.Bp_interp = RectBivariateSpline(self.psi_abs,self.theta,self.B_p)
+        
+        self.alpha_re_interp = RectBivariateSpline(self.psi_abs, self.theta,
+                                                np.real(self.alpha))
+        self.alpha_im_interp = RectBivariateSpline(self.psi_abs, self.theta,
+                                                np.imag(self.alpha))
+        self.dadt_re_interp = RectBivariateSpline(self.psi_abs,self.theta,
+                                     np.real(self.dalpha_dtheta))
+        self.dadt_im_interp = RectBivariateSpline(self.psi_abs,self.theta,
+                                     np.imag(self.dalpha_dtheta))
+        
+    
+        
+    def generate_poincare(self, npsi_start=0, npsi_end=-1, npsi=20, ntheta=1, 
+                          m=None):
+        """calculate the poincare plot array in (psi, theta) plane
+        
+        Poincare plot is generated by advancing a point in (psi, theta) along
+        the magnetic field line, and after going 2pi in zeta, the point comes 
+        back to the initial (psi, theta) plane, and gives a new point. 
+        
+        Going around for a lot of cycles, we obtain a series of points on the 
+        (psi, theta) plane, this is a Poincare plot for the single initial 
+        point. 
+        
+        We can launch an array of initial points, and obtain a full Poincare 
+        plot for the whole plane.
+        
+        :param int npsi_start: the index of the starting psi
+        :param int npsi_end: the index of the end psi
+        :param int npsi : the total number of sample points in psi 
+        :param int ntheta : total number of sample points in theta
+        :param m: chosen theta mode numbers to make the plot
+        :type m: array of ints, if not given, all m numbers available will be 
+                 used
+        """
+        
+
+def _FL_prime(psi_theta, zeta, rmp_object):
+    """ field line differentiation along zeta
+    
+    Calculates dpsi/dzeta, dtheta/dzeta along the field line
+    """
+    psi, theta = psi_theta
+    
+    dydz = []
+        
+        
+        
+        
                      
         
         
