@@ -11,6 +11,7 @@ import numpy as np
 from scipy.io.netcdf import netcdf_file
 from scipy.interpolate import interp1d, RectBivariateSpline
 
+from sdp.math.smooth import smooth
 
 class RmpLoader(object):
     """Loader for M3D-C1 RMP output files
@@ -156,7 +157,9 @@ class RmpLoader(object):
         # The derivatives respect to theta can also be calculated by FFT
         self.dalpha_dtheta[:, :-1] = np.fft.fft(-1j*self.m*self.alpha_m, 
                                                 axis=-1) 
-        self.dalpha_dtheta[:, -1] = self.dalpha_dtheta[:, 0]   
+        self.dalpha_dtheta[:, -1] = self.dalpha_dtheta[:, 0]
+        # Smooth the derivative for 2 passes of 121
+        smooth(self.dalpha_dtheta, periodic=1, passes=2)
  
     def generate_interpolators(self):
         """ Create the interpolators for the loaded quantities
