@@ -15,5 +15,8 @@ class Diagnoser(object):
         self.g = np.array(raw_diag['g']).reshape(( self.npsi, 3) )
         self.I = np.array(raw_diag['I']).reshape(( self.npsi, 3) )
         self.q = np.array(raw_diag['q']).reshape(( self.npsi, 3) )
-
+        self.jacobian_boozer = np.array(raw_diag['jacobian_boozer']).\
+                                       reshape(( self.ntheta, self.npsi) )
+        self.jacobian_metric = np.array(raw_diag['jacobian_metric']).\
+                                       reshape(( self.ntheta, self.npsi) )
     
