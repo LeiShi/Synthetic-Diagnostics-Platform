@@ -7,12 +7,12 @@ Ray Tracing Model
 This module contains model for solving simple ray tracing equations:
 
 .. math::
-    \frac{dx}{dt} = \frac{\partial omega}{\partial k} 
+    \frac{dx}{dt} = \frac{\partial \omega}{\partial k} 
                   =-\frac{\partial \mathcal{D}/\partial k}
                          {\partial \mathcal{D}/\partial \omega}
     
 .. math::
-    \frac{dk}{dt} = -\frac{\partial omega}{\partial x} 
+    \frac{dk}{dt} = -\frac{\partial \omega}{\partial x} 
                   = \frac{\partial \mathcal{D}/\partial x}
                          {\partial \mathcal{D}/\partial \omega}
     
