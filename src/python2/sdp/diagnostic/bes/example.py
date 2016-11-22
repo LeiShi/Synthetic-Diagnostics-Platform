@@ -1,13 +1,14 @@
 # used for saving the data
 import numpy as np
+
 # import the diagnostic
 import sdp.diagnostic.bes.bes as bes
 
 
 # choose if between the serial and the multiprocessing code (only the shared memory case is done)
-mutliprocessing = False
+multiprocessing = False
 # print the choice betweem parallel or not
-print 'Parallel code: ', parallel
+print 'Parallel code: ', multiprocessing
 
 # initialize the diagnostic by taking the config file bes.in
 # the initialization consist to compute the beam density,
@@ -19,7 +20,7 @@ f = open(name,'r')
 input_ = f.read()
 f.close()
 
-bes_ = bes.BES(name,parallel)
+bes_ = bes.BES(name, multiprocessing)
 # compute the intensity (number of photons) received by each fiber
 # and their psi_n value
 I = bes_.get_bes()

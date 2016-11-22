@@ -1,6 +1,5 @@
 import numpy as np
 
-
 import sdp.diagnostic.bes.bes as bes
 
 profiler = True
@@ -17,7 +16,6 @@ f = open(name,'r')
 input_ = f.read()
 f.close()
 bes_ = bes.BES(name,parallel)
-
 
 
 if profiler:

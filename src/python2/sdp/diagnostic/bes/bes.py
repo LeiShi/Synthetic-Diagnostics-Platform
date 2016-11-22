@@ -1,6 +1,5 @@
-# Math
-import numpy as np
-import scipy as sp
+from os.path import exists # used for checking if the input file exists
+# it is not clear with configparser error
 # Input file
 import json # for loading input
 import ConfigParser as psr # for loading input
@@ -8,20 +7,24 @@ import ConfigParser as psr # for loading input
 import multiprocessing as mp
 import copy_reg
 import types
-# beam
-import model.beam.beam as be
-# data loader
-import sdp.plasma.xgc.loader_local as xgc
+
 # hdf5
 import h5py as h5
+# Math
+import numpy as np
+import scipy as sp
+
+# beam
+import sdp.model.beam.beam as be
+# data loader
+import sdp.plasma.xgc.loader_local as xgc
 # quadrature formula and utility functions
 import sdp.math.integration as integ
 from sdp.settings.unitsystem import SI
 from sdp.math.funcs import solid_angle_disk,\
     solid_angle_seg
 
-from os.path import exists # used for checking if the input file exists
-# it is not clear with configparser error
+
 
 def _pickle_method(m):
     """ stuff for parallelisation"""
@@ -226,11 +229,11 @@ class BES:
         self.lim_op[:,1] = self.dist*self.rad_lens/(self.rad_lens-self.rad_foc)
 
 
-        self.t_max = json.loads(config.get('collision','t_max'))            #!
+        self.t_max = json.loads(config.get('Collisions','t_max'))            #!
         self.lifetime = self.t_max != 0                                      #!
         
         # Data part
-        self.tau_max = json.loads(config.get('collision','tau'))            #!
+        self.tau_max = json.loads(config.get('Collisions','tau'))            #!
         self.dphi = json.loads(config.get('Data','dphi'))                    #!
         end = json.loads(config.get('Data','timeend'))
         timestep = json.loads(config.get('Data','timestep'))
