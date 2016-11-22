@@ -25,12 +25,17 @@ class Diagnoser(object):
                                        reshape(( self.ntheta, self.npsi, 9) )
         self._dpsi = 1./(self.npsi-1)
         self._dtheta = np.pi*2/(self.ntheta-1)
-        self._psiw = 5.1879e-2
+        #TODO change this part to use read-in psi_separatrix
+        try:
+            self._psi_separatrix = raw_diag['psiw']
+        except KeyError:
+            print 'old diag file, use preset psi_separatrix'
+            self._psi_separatrix = 5.1879e-2
                                        
     def _sp1d(self, psi, ysp):
         n = np.floor(psi/self._dpsi).astype(np.int)
         psi_r = psi - n*self._dpsi
-        psi_re = psi_r*self._psiw
+        psi_re = psi_r*self._psi_separatrix
         
         return ysp[n,0] + ysp[n,1]*psi_re + ysp[n, 2]*psi_re*psi_re
 
@@ -50,7 +55,7 @@ boundary. Check psi values, they should be normalized psi_wall.')
         n = np.floor(psi/self._dpsi).astype(np.int)
         psi_r = psi - n*self._dpsi
         
-        psi_re = psi_r*self._psiw
+        psi_re = psi_r*self._psi_separatrix
         
         m = np.floor(theta/self._dtheta).astype(np.int)
         theta_re= theta - m*self._dtheta
@@ -69,4 +74,8 @@ boundary. Check psi values, they should be normalized psi_wall.')
         return self._sp2d(psi, theta, self.z)
     def b_sp(self, psi, theta):
         return self._sp2d(psi, theta, self.b)
+    def jm_sp(self, psi, theta):
+        return self._sp2d(psi, theta, self.jacobian_metric)
+    def jb_sp(self, psi, theta):
+        return self._sp2d(psi, theta, self.jacobian_boozer)
     
