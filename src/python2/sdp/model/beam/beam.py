@@ -1,11 +1,12 @@
-# math
-import numpy as np
-from scipy import interpolate
 # file reading
 import json
 import ConfigParser as psr
 
-import model.collision.collisions as col
+# math
+import numpy as np
+from scipy import interpolate
+
+import sdp.model.collision.collisions as col
 import sdp.math.integration as integ
 from sdp.settings.unitsystem import SI
 
@@ -82,17 +83,17 @@ class Beam1D:
         # The example input is well commented
         
         # load data for collisions
-        lt = json.loads(config.get('collision','tau'))
-        self.adas_atte = json.loads(config.get('collision','adas_atte'))    #!
-        self.adas_emis = json.loads(config.get('collision','adas_emis'))    #!
-        n_low = json.loads(config.get('collision','n_low'))
-        n_high = json.loads(config.get('collision','n_high'))
+        lt = json.loads(config.get('Collisions','tau'))
+        self.adas_atte = json.loads(config.get('Collisions','adas_atte'))    #!
+        self.adas_emis = json.loads(config.get('Collisions','adas_emis'))    #!
+        n_low = json.loads(config.get('Collisions','n_low'))
+        n_high = json.loads(config.get('Collisions','n_high'))
         self.collisions = col.Collisions(self.adas_atte,self.adas_emis,
                                          (n_low,n_high),lt)                  #!
-        self.coll_atte = json.loads(config.get('collision','coll_atte'))    #!
-        self.coll_emis = json.loads(config.get('collision','coll_emis'))    #!
-        self.Nlt = int(json.loads(config.get('collision','Nlt')))           #!
-        self.t_max = json.loads(config.get('collision','t_max'))            #!
+        self.coll_atte = json.loads(config.get('Collisions','coll_atte'))    #!
+        self.coll_emis = json.loads(config.get('Collisions','coll_emis'))    #!
+        self.Nlt = int(json.loads(config.get('Collisions','Nlt')))           #!
+        self.t_max = json.loads(config.get('Collisions','t_max'))            #!
         
 
         # load data about the beam energy
@@ -131,7 +132,7 @@ class Beam1D:
         self.speed = np.sqrt(2*self.beam_comp*SI['keV']/(1000*SI['amu']*self.mass_b))
 
         # equilibrium data for the attenuation
-        self.eq = json.loads(config.get('collision','eq_atte'))                   #!
+        self.eq = json.loads(config.get('Collisions','eq_atte'))                   #!
         # current time step
         self.t_ = -1                                                         #!
 

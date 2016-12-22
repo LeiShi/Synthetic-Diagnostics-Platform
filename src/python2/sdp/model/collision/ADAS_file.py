@@ -5,7 +5,7 @@ import numpy as np
 import scipy.interpolate as ip
 
 
-class ADAS_file:
+class ADAS_file(object):
     """ Parent class for defining the different kind of database readers.
 
     This class is for inheritence purpose only. It will be inherited
@@ -96,7 +96,7 @@ class ADAS21(ADAS_file):
         :type name: str
 
         """
-        ADAS_file.__init__(self,name)
+        super(ADAS21, self).__init__(name)
         # open the file and store all the text in data
         f = open(self.name,'r')
         data = f.read().split('\n')
@@ -192,7 +192,7 @@ class ADAS22(ADAS_file):
             Arguments:
             name  -- name of the file
         """
-        ADAS_file.__init__(self,name)
+        super(ADAS22, self).__init__(name)
         # open the file and store all the text in data
         f = open(self.name,'r')
         data = f.read().split('\n')
