@@ -128,11 +128,13 @@ cgs = UnitSystem('cgs','Length: centi-meter\nMass: gram\nTime: second',
 # speed of light
                  c = 2.9979e10,
 # energy associated with 1keV in erg
-                 keV = 1.6022e-9
+                 keV = 1.6022e-9,
 # permittivity of free space (not used)
 #                eps_0 = 1,
 # permeability of free space (not used)
 #                mu_0 = 1,
+# planck constant over two pi
+                 hbar = 1.0546e-27,
 # more constants can be added later...
                  )
 
