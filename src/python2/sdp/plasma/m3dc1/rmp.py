@@ -358,6 +358,9 @@ class RmpLoader(object):
         psi_all, theta_all = np.meshgrid(psi_plot, theta_plot, indexing='ij')
         
         # apply ODE integrator to each initial location
+        # first dimension in result corresponds to different initial locations
+        # second dimension in result corresponds to zeta cycles
+        # third dimension corresponds to (psi,theta) coordinates
         result = np.array(map(lambda x: odeint(_FL_prime_c, x, zeta, 
                                                args=(self,)), 
                               zip(psi_all.flatten(), theta_all.flatten())))
@@ -419,6 +422,7 @@ def poincare_plot(poincare):
                        
     theta_pc = np.mod(theta_pc, 2*np.pi)
     f,ax = plt.subplots(1)
+    # plot the points, color them according to the initial psi value.
     ax.scatter(theta_pc, psi_pc, s=5, linewidth=0, c=psi_pc[:,0:1]+\
                                                      np.zeros_like(psi_pc))
     plt.xlabel(r'$\theta$ (rad)')
