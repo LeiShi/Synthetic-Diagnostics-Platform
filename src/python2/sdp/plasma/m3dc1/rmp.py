@@ -218,11 +218,12 @@ class RmpLoader(object):
         n.
         """
         res = self.m*self.F[:, np.newaxis]+self.n*self.I[:, np.newaxis]
-        self._alpha_mc = -1j*self.A[:, np.newaxis]*self.dB_m/ ((2*np.pi)**4*res)
+        self._alpha_mc = 1j*self.A[:, np.newaxis]*self.dB_m/ ((2*np.pi)**4*res)
         
     def rescale(self, scale=1):
         """Rescale the perturbations"""
         ratio = scale/self.scale
+        self.scale = scale
         self.alpha *= ratio
         self.alpha_m *= ratio
         self.dalpha_dtheta *= ratio
@@ -347,7 +348,7 @@ class RmpLoader(object):
             result[:,:,0] /= self.psi_p[-1]
 
         self.poincare = result
-        
+         
     def _generate_poincare_c(self, npsi_start=0, npsi_end=1, npsi=20,ntheta=1,
                              npoints=100, nzeta=1, m=None, normalize=True):
         psi0 = self.psi_p[-1]*npsi_start
@@ -419,7 +420,7 @@ def _FL_prime_c(psi_theta, zeta, rmp_object):
 def poincare_plot(poincare):
     psi_pc, theta_pc = np.copy(poincare[:,:,0]), \
                        np.copy(poincare[:,:,1])
-                       
+
     theta_pc = np.mod(theta_pc, 2*np.pi)
     f,ax = plt.subplots(1)
     # plot the points, color them according to the initial psi value.
@@ -430,12 +431,3 @@ def poincare_plot(poincare):
     plt.title("RMP Poincare Plot")
     plt.ylim(psi_pc.min(),psi_pc.max())
     plt.xlim(0, 2*np.pi)
-        
-                     
-        
-        
-
-            
-            
-        
-
