@@ -18,12 +18,12 @@ class XGC_Density_Loader:
     """ class contains XGC analysis modules, now has only density fluctuation analysis. To be completed in the future.
     """
 
-    def __init__(this,file_name):
+    def __init__(self,file_name):
 
-        this.load_density(file_name)
+        self.load_density(file_name)
 
 
-    def load_density(this,file_name):
+    def load_density(self,file_name):
         """load density data from saving file given by XGC_Loader.save_dne()
 
         Arguments:
@@ -50,44 +50,44 @@ class XGC_Density_Loader:
         dne_file = np.load(file_name)
 
         if 'Z1D' in dne_file.keys():
-            this.dimension = 3
+            self.dimension = 3
         else:
-            this.dimension = 2
+            self.dimension = 2
 
-        this.X1D = dne_file['X1D']
-        this.Y1D = dne_file['Y1D']
-        this.NX = this.X1D.shape[0]
-        this.NY = this.Y1D.shape[0]
-        if(this.dimension == 3):
-            this.Z1D = dne_file['Z1D']
-            this.NZ = this.Z1D.shape[0]
+        self.X1D = dne_file['X1D']
+        self.Y1D = dne_file['Y1D']
+        self.NX = self.X1D.shape[0]
+        self.NY = self.Y1D.shape[0]
+        if(self.dimension == 3):
+            self.Z1D = dne_file['Z1D']
+            self.NZ = self.Z1D.shape[0]
 
-        this.dne_ad = dne_file['dne_ad']
-        this.dne = this.dne_ad
+        self.dne_ad = dne_file['dne_ad']
+        self.dne = self.dne_ad
         if 'nane' in dne_file.keys():
-            this.HaveElection = True
-            this.nane = dne_file['nane']
-            this.dne += this.nane
-        this.ne0 = dne_file['ne0']
+            self.HaveElection = True
+            self.nane = dne_file['nane']
+            self.dne += self.nane
+        self.ne0 = dne_file['ne0']
 
-        this.NC = this.dne_ad.shape[0]
-        this.NT = this.dne_ad.shape[1]
+        self.NC = self.dne_ad.shape[0]
+        self.NT = self.dne_ad.shape[1]
 
-    def interpolator_setup(this,cross_num,time_step):
+    def interpolator_setup(self,cross_num,time_step):
         """ prepare the interpolators for the given time and cross section data
         returns:
             dne_sp
         """
-        if(cross_num < this.NC and time_step < this.NT):
-            if this.dimension == 2:
-                dne_sp = RectBivariateSpline(this.Y1D,this.X1D,this.dne[cross_num,time_step,:,:])
+        if(cross_num < self.NC and time_step < self.NT):
+            if self.dimension == 2:
+                dne_sp = RectBivariateSpline(self.Y1D,self.X1D,self.dne[cross_num,time_step,:,:])
             else:
-                z_mid = (this.NZ-1)/2
-                dne_sp = RectBivariateSpline(this.Y1D,this.X1D,this.dne[cross_num,time_step,z_mid,:,:])
-            ne0_sp = RectBivariateSpline(this.Y1D,this.X1D,this.ne0[:,:])
+                z_mid = (self.NZ-1)/2
+                dne_sp = RectBivariateSpline(self.Y1D,self.X1D,self.dne[cross_num,time_step,z_mid,:,:])
+            ne0_sp = RectBivariateSpline(self.Y1D,self.X1D,self.ne0[:,:])
         return dne_sp,ne0_sp
 
-    def density_correlation(this,x0,direction = 'r',width = 0.01, z_center = 0,r_center = 1.46):
+    def density_correlation(self,x0,direction = 'r',width = 0.01, z_center = 0,r_center = 1.46):
         """ fit the density fluctuation correlation funciton with gaussian form:
             <dn(x),dn(x0)> = dn^2 exp(-(x-x0)^2/lambda_n^2) cos(k_fl(x-x0))
             where dn, lambda_n, k_fl are parameters to be fitted. and x0 is chosen as the center location respect to which the correlation is considered.
@@ -99,11 +99,11 @@ class XGC_Density_Loader:
             dx = np.linspace(0,width,n_x)
             x = x0+dx
             dne_cross = np.zeros((n_x))
-            dne_x0 = np.zeros((this.NC,this.NT))
-            dne_x = np.zeros((this.NC,this.NT,n_x))
-            for i in range(this.NC):
-                for j in range(this.NT):
-                    dne_sp,ne0_sp = this.interpolator_setup(i,j)
+            dne_x0 = np.zeros((self.NC,self.NT))
+            dne_x = np.zeros((self.NC,self.NT,n_x))
+            for i in range(self.NC):
+                for j in range(self.NT):
+                    dne_sp,ne0_sp = self.interpolator_setup(i,j)
                     ne0_x0 = ne0_sp(z_center,x0)[0,0]
                     dne_x0[i,j] = dne_sp(z_center,x0)[0,0]/ne0_x0
                     dne_x[i,j,:] = dne_sp(z_center,x)[0,:]/ne0_x0
@@ -114,11 +114,11 @@ class XGC_Density_Loader:
             dx = np.linspace(0,width,n_x)
             x = x0+dx
             dne_cross = np.zeros((n_x))
-            dne_x0 = np.zeros((this.NC,this.NT))
-            dne_x = np.zeros((this.NC,this.NT,n_x))
-            for i in range(this.NC):
-                for j in range(this.NT):
-                    dne_sp,ne0_sp = this.interpolator_setup(i,j)
+            dne_x0 = np.zeros((self.NC,self.NT))
+            dne_x = np.zeros((self.NC,self.NT,n_x))
+            for i in range(self.NC):
+                for j in range(self.NT):
+                    dne_sp,ne0_sp = self.interpolator_setup(i,j)
                     ne0_x0 = ne0_sp(x0,r_center)[0,0]
                     dne_x0[i,j] = dne_sp(x0,r_center)[0,0]/ne0_x0
                     dne_x[i,j,:] = dne_sp(x,r_center)[:,0]/ne0_x0
@@ -128,29 +128,29 @@ class XGC_Density_Loader:
 
         return curve_fit(gaussian_correlation_func,dx,dne_cross),dx,dne_cross
 
-    def averaged_fluctuation_level(this):
+    def averaged_fluctuation_level(self):
         """The amplitude of fluctuations at every spatial point is averaged over the ensemble of time and cross-sections, then divided by the equilibrium density
         """
-        this.dne_bar = np.average(np.average(this.dne,axis = 1),axis = 0)
-        this.dne_fluc = this.dne-this.dne_bar[np.newaxis,np.newaxis,:]
-        dne_fluc_amp = np.abs(this.dne_fluc)
+        self.dne_bar = np.average(np.average(self.dne,axis = 1),axis = 0)
+        self.dne_fluc = self.dne-self.dne_bar[np.newaxis,np.newaxis,:]
+        dne_fluc_amp = np.abs(self.dne_fluc)
         #assuming sinoidal shape perturbation and uniformly distributed sampling, the maximum amplitude of the perturbation will be pi/2 times the averaged amplitude
-        this.dne_amp_bar = np.pi/2 *np.average(np.average(dne_fluc_amp,axis = 1),axis = 0) #average over time and cross section dimensions
+        self.dne_amp_bar = np.pi/2 *np.average(np.average(dne_fluc_amp,axis = 1),axis = 0) #average over time and cross section dimensions
 
-        this.dn_over_n_raw = np.zeros(this.dne_amp_bar.shape)
+        self.dn_over_n_raw = np.zeros(self.dne_amp_bar.shape)
 
         #pick up the non-zero density locations
-        valid_idx = np.nonzero(this.ne0 > 0)
+        valid_idx = np.nonzero(self.ne0 > 0)
 
-        this.dn_over_n_raw[valid_idx] = this.dne_amp_bar[valid_idx]/this.ne0[valid_idx]
+        self.dn_over_n_raw[valid_idx] = self.dne_amp_bar[valid_idx]/self.ne0[valid_idx]
 
         #screen out the large noise coming from very low ne0 places
-        meaningful_idx = np.nonzero(this.dn_over_n_raw < 1)
+        meaningful_idx = np.nonzero(self.dn_over_n_raw < 1)
 
-        this.dn_over_n = np.zeros(this.dne_amp_bar.shape)
-        this.dn_over_n[meaningful_idx] += this.dn_over_n_raw[meaningful_idx]
+        self.dn_over_n = np.zeros(self.dne_amp_bar.shape)
+        self.dn_over_n[meaningful_idx] += self.dn_over_n_raw[meaningful_idx]
 
-        return this.dn_over_n
+        return self.dn_over_n
 
     def get_frequencies(self):
         """calculate the relevant frequencies along the plasma midplane,return them as a dictionary
@@ -406,7 +406,7 @@ def get_gts_ref_pos(gts_loader,freqs,mode = 'O'):
     """estimates the O-mode reflection position in R direction for given frequencies.
 
     Input:
-        gts_loader:XGC_loader object containing the profile and fluctuation information.
+        gts_loader:GTS object containing the profile and fluctuation information.
         freqs:sequence of floats, all the probing frequencies in GHz.
         mode: 'O' or 'X', indication of the wave polarization.
     return:
