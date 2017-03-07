@@ -8,7 +8,7 @@ import sdp.diagnostic.ecei.Intensity as intensity
 from sdp.geometry.grid import path
 from sdp.settings.unitsystem import cgs
 
-import IDLout 
+import IDLout
 
 # define consts
 c = cgs['c']
@@ -28,9 +28,9 @@ NR = plasma['Grid'].NR
 R = plasma['Grid'].R2D[0,:]
 Z = plasma['Grid'].Z2D[:,0]
 
-# predefined light path 
+# predefined light path
 # the path(N,R[N],Z[N]) function takes 2 arrays specifying the (R,Z) coordinates of each point on the path
-# in this case, N=2, which means the path is a straight line with specified start point and end point.  
+# in this case, N=2, which means the path is a straight line with specified start point and end point.
 pth = path(2,[R[0],R[-1]],[Z[Z_mid],Z[Z_mid]])
 
 # set the targeted locations
@@ -42,15 +42,15 @@ f_ctrs = np.zeros(len(measure_locs))
 for i in range(len(measure_locs)):
     f_ctrs[i] = 2*f_c_mid[measure_locs[i]] # targeted at 2nd harmonics
     T_real[i] = T_mid[measure_locs[i]]
-# filter frequencies are set to be delta-like 
+# filter frequencies are set to be delta-like
 f_flts = f_ctrs[:,np.newaxis]
 dtcs = []
 for i in range(len(measure_locs)):
     # each detector is created based on a center frequency, a set of filter information, and a specified light path
     dtcs.append(dtc.detector(f_ctrs[i],1,f_flts[i],[1],pth))
 
-# A specific grid is created based on the chosen detectors, on which alpha will be calculated and the intensity integration 
-# will be carried out. 
+# A specific grid is created based on the chosen detectors, on which alpha will be calculated and the intensity integration
+# will be carried out.
 profiles = dtc.create_spatial_frequency_grid(dtcs,plasma)
 
 alphas = []
@@ -59,12 +59,12 @@ for i in range(len(profiles)):
     alphas.append( a1.get_alpha_table(profiles[i]) )
 
 # Intensity measured by each detector can also be obtained by calling the method "get_intensity"
-Int_array = intensity.get_intensity(dtcs,plasma) 
+Int_array = intensity.get_intensity(dtcs,plasma)
 # The measured temperature is stored in the second place of the returned tuple of "get_intensity"
 T_measured = np.array(Int_array[1])
 
-T_diff = T_measured - T_real 
-# For a full 2D comparison, use the get_2D_intensity method    
+T_diff = T_measured - T_real
+# For a full 2D comparison, use the get_2D_intensity method
 T_m_2D = intensity.get_2D_intensity(plasma)
 # For benchmark with existing IDL code, write data out for IDL reading script
 IDLout.IDLoutput(profiles,alphas)

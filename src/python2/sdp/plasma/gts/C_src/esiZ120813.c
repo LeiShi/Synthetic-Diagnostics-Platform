@@ -42,8 +42,8 @@ cc -c -Dsingle -o escZ.o escZ.c	- for single precision arrays
       external esiread,esilink2c,esigetprofiles,esiget2dfunctions
      &     ,esigetrzb,gcmotion
 
-c1.     Making link with C-ESI. Provides addresses of arrays to be used by 
-ccc     esiget2dfunctions() to direct its output. Should be called only 
+c1.     Making link with C-ESI. Provides addresses of arrays to be used by
+ccc     esiget2dfunctions() to direct its output. Should be called only
 ccc     once (if there is no intentional redirection of the output).
       call esilink2c(F,Fa
      &     ,gFa,gFaa
@@ -127,15 +127,15 @@ c4.   Example of getting r,z,B in a number of points
       endif
 c end of 4.
 
-c5.   Example of getting time derivatives of the guiding center 
-c     coordinates gr_parallel,a,theta,phi of n particles with magnetic 
+c5.   Example of getting time derivatives of the guiding center
+c     coordinates gr_parallel,a,theta,phi of n particles with magnetic
 c     momentum mu
 
       k=gcmotion(dgr,da,dgq,dgf,gr,a,gq,gm,n)
 c end of 5
 
 c6    Example of setting output for density value at the particle position
-c     next routine sends adresses of arrays ne,dne for density and it 
+c     next routine sends adresses of arrays ne,dne for density and it
 c     derivative to ESI
 c     Should be called just once
 
@@ -146,11 +146,11 @@ c     Specifying tempterature at the point (nT is known only by ESI)
       Te=3.
       Ti=3.
       call settemperatures(Te,Ti)
-c     After this density will be calculated during calls of 
+c     After this density will be calculated during calls of
 c     esiget2dfunctions()
 
       call esifree()
-c end of 2.   Freeing ESI    
+c end of 2.   Freeing ESI
       end
 #endif
 
@@ -171,7 +171,7 @@ typedef double REAL;
 #define MPI_RSIZE MPI_DOUBLE
 #else
 typedef float REAL;
-#define MPI_RSIZE MPI_FLOAT 
+#define MPI_RSIZE MPI_FLOAT
 #endif
 
 static double cr2,cr3,cr4,cr6,cr12,cgp,c2gp,cgp_4,cr2gp,cgm0,crgm0;
@@ -193,7 +193,7 @@ static int Nr=32,Nr1=33,Nz=32,Nz1=33;
 static double *aLab,*qLab,rLab1,rLab2,zLab1,zLab2,dzLab,rdzLab;
 static double rL1[0x21],rL2[0x21],zLab[0x21];
 
-static int i0=0,i1=1,j00,j10,j01,j11; 
+static int i0=0,i1=1,j00,j10,j01,j11;
 static REAL A,ha,rha,hq,rhq,cgq0,crgq0;/* period and inverse period in gq */
 static REAL xF,XF,xD,XD,dX,dxD,dXD,yF,YF,yD,YD,dY,dyD,dYD;
 static REAL y,Y,yy,YY;
@@ -257,7 +257,7 @@ int SetFunctionErf()
   int i;
   double x,t,dt,s,r6h,r2h,F,dF;
   double S,dY0,dY1,d2Y0,d2Y1,f;
-  
+
   hF	=tF1/nF;
   rhF	=1./hF;
   r2h	=0.5*hF;
@@ -350,7 +350,7 @@ int ESIMemAlloc()
   daP	=aP	+Na1;
   sne	=daP	+Na1;
   dsne	=sne	+Na1;
-  
+
   sra	=sr	+i;
   srq	=sra	+i;
   sraq=srq	+i;
@@ -425,7 +425,7 @@ int ESICopy(double *esr,double *esz,double *eaB,double *egH,int na1,int np1)
 }
 
 /* Binary Double */
-int ESIReadBD(char* FNm) 
+int ESIReadBD(char* FNm)
 {
   int i,j,k;
   FILE *lf;
@@ -436,7 +436,7 @@ int ESIReadBD(char* FNm)
     printf("%s !!! cannot be open%c\n",FNm,7);
     return(1);
   }
- 
+
   fread(&j,sizeof(int),1,lf);
   fread(&i,sizeof(int),1,lf);
   if(MemFl == 0 || Np1 != j || Na1 != i){
@@ -448,7 +448,7 @@ int ESIReadBD(char* FNm)
     if(ESIMemAlloc()){
       return(1);
     }
-  } 
+  }
   Np	=Np1-1;
   Na	=Na1-1;
   fread(gq,sizeof(REAL),Np1,lf);
@@ -491,7 +491,7 @@ int ESIReadBD(char* FNm)
   return(0);
 }
 
-int ESIReadAD(char* FNm) 
+int ESIReadAD(char* FNm)
 {
   int i,j,k;
   double s;
@@ -538,7 +538,7 @@ int ESIReadAD(char* FNm)
     if(ESIMemAlloc()){
       return(1);
     }
-  } 
+  }
   Np	=Np1-1;
   Na	=Na1-1;
   while(feof(lf) == 0 && (*lc=fgetc(lf)) !='\n'){
@@ -687,7 +687,7 @@ int ESIReadAD(char* FNm)
 
 #ifdef single
 /* Binary Float */
-int ESIReadBF(char* FNm) 
+int ESIReadBF(char* FNm)
 {
   int i,j,k;
   FILE *lf;
@@ -710,7 +710,7 @@ int ESIReadBF(char* FNm)
     if(ESIMemAlloc()){
       return(1);
     }
-  } 
+  }
   Np	=Np1-1;
   Na	=Na1-1;
   d	=(double*)PyMem_Malloc(Np1*sizeof(double));
@@ -863,7 +863,7 @@ int ESIReadBF(char* FNm)
   return(0);
 }
 
-int ESIReadAF(char* FNm) 
+int ESIReadAF(char* FNm)
 {
   int i,j,k;
   FILE *lf;
@@ -906,7 +906,7 @@ int ESIReadAF(char* FNm)
     if(ESIMemAlloc()){
       return(1);
     }
-  } 
+  }
   Np	=Np1-1;
   Na	=Na1-1;
   while(feof(lf) == 0 && (*lc=fgetc(lf)) !='\n'){
@@ -1085,7 +1085,7 @@ int ESIMakeMesh()
   zLab1	=Zbnd[Np/4];
   dzLab=(zLab2-zLab1)/Nz;
   rdzLab=1./dzLab;
-  
+
   zLab[0]	=zLab1;
   rL1[0]	=Rbnd[Np/4];
   rL2[0]	=rL1[0];
@@ -1176,14 +1176,14 @@ int ESIMakeMesh()
 	j1	=j0+1;
 	y	=(q-gq[j0])*rhq;
 	Y	=1.-y;
-   
+
 	YY	=Y*Y;
 	yy	=y*y;
 	YF	=YY*(3.-2.*Y);
 	YD	=YY*y*hq;
 	yF	=yy*(3.-2.*y);
 	yD	=-yy*Y*hq;
-    
+
 	dY	=3.*y*Y;
 	dYD	=Y-dY;
 	dyD	=y-dY;
@@ -1201,12 +1201,12 @@ int ESIMakeMesh()
 	  XD	=XX*x*ha;
 	  xF	=xx*(3.-2.*x);
 	  xD	=-xx*X*ha;
-      
+
 	  dX	=3.*x*X;
 	  dXD	=X-dX;
 	  dxD	=x-dX;
 	  dX	*=2.*rha;
-      
+
 	  j00	=Np1*i0+j0;
 	  j01	=j00+1;
 	  j10	=j00+Np1;
@@ -1363,14 +1363,14 @@ int esiread(REAL *b_axis, REAL *rmajor, char* FName)
 #ifndef single
 /* Only the master process (mype=0) reads the file */
 //  if(mype == 0){
-    if((i=ESIReadAD(FNm)) == 2){ 
+    if((i=ESIReadAD(FNm)) == 2){
       i	=ESIReadBD(FNm);
     }
 //  }
 #else
 /* Only the master process (mype=0) reads the file */
 //  if(mype == 0){
-    if((i=ESIReadAF(FNm)) == 2){ 
+    if((i=ESIReadAF(FNm)) == 2){
       i	=ESIReadBF(FNm);
     }
 //  }
@@ -1437,7 +1437,7 @@ static REAL aTe=15.,aTi=15.,raT;
 
 /* the arrays used by the esi c functions are initialized to be the same as those */
 /* used by the calling function */
-void esilink2c(REAL *XaF,REAL *XaFa	 
+void esilink2c(REAL *XaF,REAL *XaFa	
 		,REAL *XgFa,REAL *XgFaa
 		,REAL *XgYa,REAL *XgYaa
 		,REAL *XT,REAL *XTa
@@ -1494,7 +1494,7 @@ void settemperatures(double *Te,double *Ti)
 /***************** Main Reconstruction Routines **********************/
 /* sF,sFa,sgFa,sgFaa,sgYa,sgYaa,sT,sTa,sP,sPa are the addresses to return point values */
 /* a is a real, passed argument */
-int esigetprofiles(REAL *sF,REAL *sFa,	 
+int esigetprofiles(REAL *sF,REAL *sFa,	
 		       /* \baF,\R{d\baF}{da}*/
 		       REAL *sgFa,REAL *sgFaa,
 		       /* \R{d\bgF}{ada},(\R{d\bgF}{ada})'_a */
@@ -1564,25 +1564,25 @@ int esiget2dfunctions0(REAL a,REAL q,int k)
 {
   REAL x,X,XX;
   REAL f0,f1,fq0,fq1,r0;
- 
+
   j01	=j00+1;
   j10	=j00+Np1;
   j11	=j10+1;
-  
+
   x	=a*rha;
   X	=1.-x;
-  
+
   XX	=X*X;
   XF	=XX*(3.-2.*X);
   XD	=XX;
   xF	=x*(3.-2.*x)*rha;
   xD	=-x*X;
-  
+
   dX	=3.*x*X;
   dXD	=X-dX;
   dxD	=x-dX;
   dX	*=2.*rha;
-  
+
   r0	=sr[0];
   f0	=xF*sr[j10]+XD*sra[j00]+xD*sra[j10];
   f1	=xF*sr[j11]+XD*sra[j01]+xD*sra[j11];
@@ -1595,7 +1595,7 @@ int esiget2dfunctions0(REAL a,REAL q,int k)
   fq0	=dX*(srq[j10]-srq[j00])+dXD*sraq[j00]+dxD*sraq[j10];
   fq1	=dX*(srq[j11]-srq[j01])+dXD*sraq[j01]+dxD*sraq[j11];
   ra[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-  
+
   f0	=xF*sz [j10]+XD*sza [j00]+xD*sza [j10];
   f1	=xF*sz [j11]+XD*sza [j01]+xD*sza [j11];
   fq0	=xF*szq[j10]+XD*szaq[j00]+xD*szaq[j10];
@@ -1607,7 +1607,7 @@ int esiget2dfunctions0(REAL a,REAL q,int k)
   fq0	=dX*(szq[j10]-szq[j00])+dXD*szaq[j00]+dxD*szaq[j10];
   fq1	=dX*(szq[j11]-szq[j01])+dXD*szaq[j01]+dxD*szaq[j11];
   za[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-  
+
   f0	=xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
   f1	=xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];
   fq0	=xF*aBq[j10]+XD*aBaq[j00]+xD*aBaq[j10];
@@ -1619,11 +1619,11 @@ int esiget2dfunctions0(REAL a,REAL q,int k)
   fq0	=dX*(aBq[j10]-aBq[j00])+dXD*aBaq[j00]+dxD*aBaq[j10];
   fq1	=dX*(aBq[j11]-aBq[j01])+dXD*aBaq[j01]+dxD*aBaq[j11];
   Ba[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-  
+
   XD	*=a;
   xF	*=a;
   xD	*=a;
-  
+
   F[k]	=XF*aF[i0]+xF*aF[i1]+XD*daF[i0]+xD*daF[i1];
   Fa[k]	=dX*(aF[i1]-aF[i0])+dXD*daF[i0]+dxD*daF[i1];
   gFa[k]	=XF*dgF[i0]+xF*dgF[i1]+XD*d2gF[i0]+xD*d2gF[i1];
@@ -1659,7 +1659,7 @@ int esiget2dfunctions(REAL *a0,REAL *gq0,int *n)
   for(k =0; k < *n; k++){
     a	=a0[k];
     q	=gq0[k];
-    
+
     j1	=q*crgq0;
     if(q < 0.){
       j1--;
@@ -1677,14 +1677,14 @@ int esiget2dfunctions(REAL *a0,REAL *gq0,int *n)
     j1	=j0+1;
     y	=(q-gq[j0])*rhq;
     Y	=1.-y;
-   
+
     YY	=Y*Y;
     yy	=y*y;
     YF	=YY*(3.-2.*Y);
     YD	=YY*y*hq;
     yF	=yy*(3.-2.*y);
     yD	=-yy*Y*hq;
-    
+
     dY	=3.*y*Y;
     dYD	=Y-dY;
     dyD	=y-dY;
@@ -1698,7 +1698,7 @@ int esiget2dfunctions(REAL *a0,REAL *gq0,int *n)
 	i0	=Na-1;
       }
       i1	=i0+1;
-      
+
       x	=(a-sa[i0])*rha;
       X	=1.-x;
 
@@ -1708,17 +1708,17 @@ int esiget2dfunctions(REAL *a0,REAL *gq0,int *n)
       XD	=XX*x*ha;
       xF	=xx*(3.-2.*x);
       xD	=-xx*X*ha;
-      
+
       dX	=3.*x*X;
       dXD	=X-dX;
       dxD	=x-dX;
       dX	*=2.*rha;
-      
+
       j00	=Np1*i0+j0;
       j01	=j00+1;
       j10	=j00+Np1;
       j11	=j10+1;
-      
+
       /* r,r'_a,r'_q */
       f0	=XF*sr [j00]+xF*sr [j10]+XD*sra [j00]+xD*sra [j10];
       f1	=XF*sr [j01]+xF*sr [j11]+XD*sra [j01]+xD*sra [j11];
@@ -1731,7 +1731,7 @@ int esiget2dfunctions(REAL *a0,REAL *gq0,int *n)
       fq0	=dX*(srq[j10]-srq[j00])+dXD*sraq[j00]+dxD*sraq[j10];
       fq1	=dX*(srq[j11]-srq[j01])+dXD*sraq[j01]+dxD*sraq[j11];
       ra[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* z,z'_a,z'_q */
       f0	=XF*sz [j00]+xF*sz [j10]+XD*sza [j00]+xD*sza [j10];
       f1	=XF*sz [j01]+xF*sz [j11]+XD*sza [j01]+xD*sza [j11];
@@ -1744,7 +1744,7 @@ int esiget2dfunctions(REAL *a0,REAL *gq0,int *n)
       fq0	=dX*(szq[j10]-szq[j00])+dXD*szaq[j00]+dxD*szaq[j10];
       fq1	=dX*(szq[j11]-szq[j01])+dXD*szaq[j01]+dxD*szaq[j11];
       za[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* B,B'_a,B'_q */
       f0	=XF*aB [j00]+xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
       f1	=XF*aB [j01]+xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];
@@ -1842,7 +1842,7 @@ int esigetrzb(REAL *R, REAL *Z, REAL *Bm,REAL *a0,REAL *q0,int *n)
   for(k =0; k < *n; k++){
     a	=a0[k];
     q	=q0[k];
-    
+
     if(a < 0.){
       a	=-a;
     }
@@ -1851,22 +1851,22 @@ int esigetrzb(REAL *R, REAL *Z, REAL *Bm,REAL *a0,REAL *q0,int *n)
       i0	=Na-1;
     }
     i1	=i0+1;
-    
+
     x	=(a-sa[i0])*rha;
     X	=1.-x;
-    
+
     XX	=X*X;
     xx	=x*x;
     XF	=XX*(3.-2.*X);
     XD	=XX*x*ha;
     xF	=xx*(3.-2.*x);
     xD	=-xx*X*ha;
-    
+
     dX	=3.*x*X;
     dXD	=X-dX;
     dxD	=x-dX;
     dX	*=2.*rha;
-    
+
     j1	=q*crgq0;
     if(q < 0.){
       j1--;
@@ -1882,39 +1882,39 @@ int esigetrzb(REAL *R, REAL *Z, REAL *Bm,REAL *a0,REAL *q0,int *n)
       q	+=cgq0;
     }
     j1	=j0+1;
-    
+
     Y	=(gq[j1]-q)*rhq;
     y	=1.-Y;
-    
+
     YY	=Y*Y;
     yy	=y*y;
     YF	=YY*(3.-2.*Y);
     YD	=YY*y*hq;
     yF	=yy*(3.-2.*y);
     yD	=-yy*Y*hq;
-    
+
     dY	=3.*y*Y;
     dYD	=Y-dY;
     dyD	=y-dY;
     dY	*=2.*rhq;
-    
+
     j00	=Np1*i0+j0;
     j01	=j00+1;
     j10	=j00+Np1;
     j11	=j10+1;
-    
+
     f0	=XF*sr [j00]+xF*sr [j10]+XD*sra [j00]+xD*sra [j10];
     f1	=XF*sr [j01]+xF*sr [j11]+XD*sra [j01]+xD*sra [j11];
     fq0	=XF*srq[j00]+xF*srq[j10]+XD*sraq[j00]+xD*sraq[j10];
     fq1	=XF*srq[j01]+xF*srq[j11]+XD*sraq[j01]+xD*sraq[j11];
     R[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-    
+
     f0	=XF*sz [j00]+xF*sz [j10]+XD*sza [j00]+xD*sza [j10];
     f1	=XF*sz [j01]+xF*sz [j11]+XD*sza [j01]+xD*sza [j11];
     fq0	=XF*szq[j00]+xF*szq[j10]+XD*szaq[j00]+xD*szaq[j10];
     fq1	=XF*szq[j01]+xF*szq[j11]+XD*szaq[j01]+xD*szaq[j11];
     Z[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-    
+
     f0	=XF*aB [j00]+xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
     f1	=XF*aB [j01]+xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];
     fq0	=XF*aBq[j00]+xF*aBq[j10]+XD*aBaq[j00]+xD*aBaq[j10];
@@ -1937,7 +1937,7 @@ int IsOut(double rU,double zU)
     R1	=Rbnd[Np/4];
     if(rU < R1) q=cgp-q;
   }else{
-    R1	=Rbnd[3*Np/4]; 
+    R1	=Rbnd[3*Np/4];
     q =rU > R1 ? c2gp+q : cgp-q;
   }
   j	=q*rhq;
@@ -1971,7 +1971,7 @@ int ESIrz2agq(double *aU, double *qU,double *rU,double *zU,int *ierr,int n)
 	  nerr++;
 	}
 	continue;
-      } 
+      }
       i0=(Z-zLab1)*rdzLab;
       if(i0 == Nz){
 	if(fabs(R-rL1[i0]) > err){
@@ -1979,13 +1979,13 @@ int ESIrz2agq(double *aU, double *qU,double *rU,double *zU,int *ierr,int n)
 	  nerr++;
 	}
 	continue;
-      } 
+      }
       a	=(R-rL1[i0])/(rL2[i0]-rL1[i0]);
       j0	=i0 ? a*Nr : 0;
 
       if(j0 < 0) j0=0;
       if(j0 > Nr) j0=Nr;
- 
+
       ji	=i0*Nr1+j0;
       a	=aLab[ji];
       q	=qLab[ji];
@@ -1995,14 +1995,14 @@ int ESIrz2agq(double *aU, double *qU,double *rU,double *zU,int *ierr,int n)
 	j1	=j0+1;
 	y	=(q-gq[j0])*rhq;
 	Y	=1.-y;
-   
+
 	YY	=Y*Y;
 	yy	=y*y;
 	YF	=YY*(3.-2.*Y);
 	YD	=YY*y*hq;
 	yF	=yy*(3.-2.*y);
 	yD	=-yy*Y*hq;
-    
+
 	dY	=3.*y*Y;
 	dYD	=Y-dY;
 	dyD	=y-dY;
@@ -2020,12 +2020,12 @@ int ESIrz2agq(double *aU, double *qU,double *rU,double *zU,int *ierr,int n)
 	  XD	=XX*x*ha;
 	  xF	=xx*(3.-2.*x);
 	  xD	=-xx*X*ha;
-      
+
 	  dX	=3.*x*X;
 	  dXD	=X-dX;
 	  dxD	=x-dX;
 	  dX	*=2.*rha;
-      
+
 	  j00	=Np1*i0+j0;
 	  j01	=j00+1;
 	  j10	=j00+Np1;
@@ -2070,8 +2070,8 @@ int ESIrz2agq(double *aU, double *qU,double *rU,double *zU,int *ierr,int n)
 	dq	=(za*dr-ra*dz)*D;
 	a	+=da;
 	q	+=dq;
-	while(q < 0.) q+=c2gp; 
-	while(q > c2gp) q-=c2gp; 
+	while(q < 0.) q+=c2gp;
+	while(q > c2gp) q-=c2gp;
 	if(a < 0.){
 	  a=-a;
 	  q=q < cgp ? cgp+q : q-cgp;
@@ -2204,17 +2204,17 @@ int gcmotion(REAL *dXgr,
       XD	=XX*x*ha;
       xF	=xx*(3.-2.*x);
       xD	=-xx*X*ha;
-      
+
       dX	=3.*x*X;
       dXD	=X-dX;
       dxD	=x-dX;
       dX	*=2.*rha;
-      
+
       j00	=Np1*i0+j0;
       j01	=j00+1;
       j10	=j00+Np1;
       j11	=j10+1;
-      
+
       /* r,r'_a,r'_q */
       f0	=XF*sr [j00]+xF*sr [j10]+XD*sra [j00]+xD*sra [j10];
       f1	=XF*sr [j01]+xF*sr [j11]+XD*sra [j01]+xD*sra [j11];
@@ -2227,7 +2227,7 @@ int gcmotion(REAL *dXgr,
       fq0	=dX*(srq[j10]-srq[j00])+dXD*sraq[j00]+dxD*sraq[j10];
       fq1	=dX*(srq[j11]-srq[j01])+dXD*sraq[j01]+dxD*sraq[j11];
       ra	=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* z,z'_a,z'_q */
       f0	=XF*sz [j00]+xF*sz [j10]+XD*sza [j00]+xD*sza [j10];
       f1	=XF*sz [j01]+xF*sz [j11]+XD*sza [j01]+xD*sza [j11];
@@ -2239,7 +2239,7 @@ int gcmotion(REAL *dXgr,
       fq0	=dX*(szq[j10]-szq[j00])+dXD*szaq[j00]+dxD*szaq[j10];
       fq1	=dX*(szq[j11]-szq[j01])+dXD*szaq[j01]+dxD*szaq[j11];
       za	=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* B,B'_a,B'_q */
       f0	=XF*aB [j00]+xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
       f1	=XF*aB [j01]+xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];
@@ -2275,7 +2275,7 @@ int gcmotion(REAL *dXgr,
       gYa	=dgY[0];
       T		=aT[0];
       P		=aP[0];
-      
+
       T		*=Xgr;
       D		=za*rq-zq*ra;
       a21	=1./(D*((F+T)/r+Xgr*r*P));
@@ -2304,7 +2304,7 @@ int gcmotion(REAL *dXgr,
     T	*=Xgr;
     D	=za*rq-zq*ra;
     Dhh =rq*rq+zq*zq;
-    gha[k]=sqrt(D*D/Dhh);    /*  1/|grad_a|  */ 
+    gha[k]=sqrt(D*D/Dhh);    /*  1/|grad_a|  */
     a12	=D*((F+T)/r+Xgr*r*P);
     D	=-gYa/(r*D);
 /*    a11	=(rq*rq+zq*zq)*D;   */
@@ -2333,7 +2333,7 @@ int gcmotion(REAL *dXgr,
     Bq	*=-r;
 /*  add EXB drift  */
     Ba	 = *nonlinear*wpi1+Ba;         /* =dH/da      */
-    Ba   =Ba+Er_particle[k];           /* =dH/da, adding E_r0XB drift */   
+    Ba   =Ba+Er_particle[k];           /* =dH/da, adding E_r0XB drift */
     Bq	 =-*nonlinear*wpi2+Bq;         /* =-dH/dtheta */
     Bf	 =-*nonlinear*wpi3;            /* =-dH/dphi   */
     dXgr[k]	=a22*Bq-a12*Bf;
@@ -2358,7 +2358,7 @@ int gcmotion(REAL *dXgr,
   MPI_Comm_rank(MPI_COMM_WORLD, &myid);
   if(myid == 2) printf("in gcmotion: wall = %f\n",(tt1 - tt0));
 */
-  
+
   return(0);
 }
 
@@ -2508,7 +2508,7 @@ void GetIICollisions(double *gn,double *E,double *Ti,double *ne)
   int i;
   double gl,t,Tj;
   double pva,pvb,v,x,gy;
-  
+
   Tj	=2.*(*E)/3.;
   pva	=2.*cEkeV*(*E)/smga;
   pvb	=2.*cEkeV*(*Ti)/smgb;
@@ -2748,7 +2748,7 @@ int esiget2dthese(REAL *Fj,  REAL *Faj, REAL *gFaj, REAL *gYaj, REAL *rj,
   for(k =0; k < *n; k++){
     a	=a0[k];
     q	=gq0[k];
-    
+
     j1	=q*crgq0;
     if(q < 0.){
       j1--;
@@ -2766,14 +2766,14 @@ int esiget2dthese(REAL *Fj,  REAL *Faj, REAL *gFaj, REAL *gYaj, REAL *rj,
     j1	=j0+1;
     y	=(q-gq[j0])*rhq;
     Y	=1.-y;
-   
+
     YY	=Y*Y;
     yy	=y*y;
     YF	=YY*(3.-2.*Y);
     YD	=YY*y*hq;
     yF	=yy*(3.-2.*y);
     yD	=-yy*Y*hq;
-    
+
     dY	=3.*y*Y;
     dYD	=Y-dY;
     dyD	=y-dY;
@@ -2787,7 +2787,7 @@ int esiget2dthese(REAL *Fj,  REAL *Faj, REAL *gFaj, REAL *gYaj, REAL *rj,
 	i0	=Na-1;
       }
       i1	=i0+1;
-      
+
       x	=(a-sa[i0])*rha;
       X	=1.-x;
 
@@ -2797,17 +2797,17 @@ int esiget2dthese(REAL *Fj,  REAL *Faj, REAL *gFaj, REAL *gYaj, REAL *rj,
       XD	=XX*x*ha;
       xF	=xx*(3.-2.*x);
       xD	=-xx*X*ha;
-      
+
       dX	=3.*x*X;
       dXD	=X-dX;
       dxD	=x-dX;
       dX	*=2.*rha;
-      
+
       j00	=Np1*i0+j0;
       j01	=j00+1;
       j10	=j00+Np1;
       j11	=j10+1;
-      
+
       /* r,r'_a,r'_q */
       f0	=XF*sr [j00]+xF*sr [j10]+XD*sra [j00]+xD*sra [j10];
       f1	=XF*sr [j01]+xF*sr [j11]+XD*sra [j01]+xD*sra [j11];
@@ -2820,7 +2820,7 @@ int esiget2dthese(REAL *Fj,  REAL *Faj, REAL *gFaj, REAL *gYaj, REAL *rj,
       fq0	=dX*(srq[j10]-srq[j00])+dXD*sraq[j00]+dxD*sraq[j10];
       fq1	=dX*(srq[j11]-srq[j01])+dXD*sraq[j01]+dxD*sraq[j11];
       raj[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* z,z'_a,z'_q */
       f0	=XF*sz [j00]+xF*sz [j10]+XD*sza [j00]+xD*sza [j10];
       f1	=XF*sz [j01]+xF*sz [j11]+XD*sza [j01]+xD*sza [j11];
@@ -2833,7 +2833,7 @@ int esiget2dthese(REAL *Fj,  REAL *Faj, REAL *gFaj, REAL *gYaj, REAL *rj,
       fq0	=dX*(szq[j10]-szq[j00])+dXD*szaq[j00]+dxD*szaq[j10];
       fq1	=dX*(szq[j11]-szq[j01])+dXD*szaq[j01]+dxD*szaq[j11];
       zaj[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* B */
       f0	=XF*aB [j00]+xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
       f1	=XF*aB [j01]+xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];
@@ -2887,7 +2887,7 @@ int esigetb(REAL *particle_array,int *n)
   for(k =0; k < *n; k++){
     a	= *(particle_array+k*7);    /* particle_array[k][0] */
     q	= *(particle_array+k*7+1);  /* particle_array[k][1] */
-    
+
     j1	=q*crgq0;
     if(q < 0.){
       j1--;
@@ -2905,14 +2905,14 @@ int esigetb(REAL *particle_array,int *n)
     j1	=j0+1;
     y	=(q-gq[j0])*rhq;
     Y	=1.-y;
-   
+
     YY	=Y*Y;
     yy	=y*y;
     YF	=YY*(3.-2.*Y);
     YD	=YY*y*hq;
     yF	=yy*(3.-2.*y);
     yD	=-yy*Y*hq;
-    
+
     dY	=3.*y*Y;
     dYD	=Y-dY;
     dyD	=y-dY;
@@ -2926,7 +2926,7 @@ int esigetb(REAL *particle_array,int *n)
 	i0	=Na-1;
       }
       i1	=i0+1;
-      
+
       x	=(a-sa[i0])*rha;
       X	=1.-x;
 
@@ -2936,17 +2936,17 @@ int esigetb(REAL *particle_array,int *n)
       XD	=XX*x*ha;
       xF	=xx*(3.-2.*x);
       xD	=-xx*X*ha;
-      
+
       dX	=3.*x*X;
       dXD	=X-dX;
       dxD	=x-dX;
       dX	*=2.*rha;
-      
+
       j00	=Np1*i0+j0;
       j01	=j00+1;
       j10	=j00+Np1;
       j11	=j10+1;
-      
+
       /* B */
       f0	=XF*aB [j00]+xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
       f1	=XF*aB [j01]+xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];
@@ -2976,7 +2976,7 @@ int esigetbf(REAL *a0,REAL *gq0,int *n)
   for(k =0; k < *n; k++){
     a	=a0[k];
     q	=gq0[k];
-    
+
     j1	=q*crgq0;
     if(q < 0.){
       j1--;
@@ -2994,14 +2994,14 @@ int esigetbf(REAL *a0,REAL *gq0,int *n)
     j1	=j0+1;
     y	=(q-gq[j0])*rhq;
     Y	=1.-y;
-   
+
     YY	=Y*Y;
     yy	=y*y;
     YF	=YY*(3.-2.*Y);
     YD	=YY*y*hq;
     yF	=yy*(3.-2.*y);
     yD	=-yy*Y*hq;
-    
+
     dY	=3.*y*Y;
     dYD	=Y-dY;
     dyD	=y-dY;
@@ -3015,7 +3015,7 @@ int esigetbf(REAL *a0,REAL *gq0,int *n)
 	i0	=Na-1;
       }
       i1	=i0+1;
-      
+
       x	=(a-sa[i0])*rha;
       X	=1.-x;
 
@@ -3025,17 +3025,17 @@ int esigetbf(REAL *a0,REAL *gq0,int *n)
       XD	=XX*x*ha;
       xF	=xx*(3.-2.*x);
       xD	=-xx*X*ha;
-      
+
       dX	=3.*x*X;
       dXD	=X-dX;
       dxD	=x-dX;
       dX	*=2.*rha;
-      
+
       j00	=Np1*i0+j0;
       j01	=j00+1;
       j10	=j00+Np1;
       j11	=j10+1;
-      
+
       /* B, F */
       f0	=XF*aB [j00]+xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
       f1	=XF*aB [j01]+xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];
@@ -3068,7 +3068,7 @@ int esigetbfgrada(REAL *a0,REAL *gq0,int *n)
   for(k =0; k < *n; k++){
     a	=a0[k];
     q	=gq0[k];
-    
+
     j1	=q*crgq0;
     if(q < 0.){
 
@@ -3087,14 +3087,14 @@ int esigetbfgrada(REAL *a0,REAL *gq0,int *n)
     j1	=j0+1;
     y	=(q-gq[j0])*rhq;
     Y	=1.-y;
-   
+
     YY	=Y*Y;
     yy	=y*y;
     YF	=YY*(3.-2.*Y);
     YD	=YY*y*hq;
     yF	=yy*(3.-2.*y);
     yD	=-yy*Y*hq;
-    
+
     dY	=3.*y*Y;
     dYD	=Y-dY;
     dyD	=y-dY;
@@ -3108,7 +3108,7 @@ int esigetbfgrada(REAL *a0,REAL *gq0,int *n)
 	i0	=Na-1;
       }
       i1	=i0+1;
-      
+
       x	=(a-sa[i0])*rha;
       X	=1.-x;
 
@@ -3118,17 +3118,17 @@ int esigetbfgrada(REAL *a0,REAL *gq0,int *n)
       XD	=XX*x*ha;
       xF	=xx*(3.-2.*x);
       xD	=-xx*X*ha;
-      
+
       dX	=3.*x*X;
       dXD	=X-dX;
       dxD	=x-dX;
       dX	*=2.*rha;
-      
+
       j00	=Np1*i0+j0;
       j01	=j00+1;
       j10	=j00+Np1;
       j11	=j10+1;
-      
+
       /* r,r'_a,r'_q */
       f0	=XF*sr [j00]+xF*sr [j10]+XD*sra [j00]+xD*sra [j10];
       f1	=XF*sr [j01]+xF*sr [j11]+XD*sra [j01]+xD*sra [j11];
@@ -3141,7 +3141,7 @@ int esigetbfgrada(REAL *a0,REAL *gq0,int *n)
       fq0	=dX*(srq[j10]-srq[j00])+dXD*sraq[j00]+dxD*sraq[j10];
       fq1	=dX*(srq[j11]-srq[j01])+dXD*sraq[j01]+dxD*sraq[j11];
       ra[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* z,z'_a,z'_q */
       f0	=XF*sz [j00]+xF*sz [j10]+XD*sza [j00]+xD*sza [j10];
       f1	=XF*sz [j01]+xF*sz [j11]+XD*sza [j01]+xD*sza [j11];
@@ -3154,7 +3154,7 @@ int esigetbfgrada(REAL *a0,REAL *gq0,int *n)
       fq0	=dX*(szq[j10]-szq[j00])+dXD*szaq[j00]+dxD*szaq[j10];
       fq1	=dX*(szq[j11]-szq[j01])+dXD*szaq[j01]+dxD*szaq[j11];
       za[k]=YF*f0+yF*f1+YD*fq0+yD*fq1;
-      
+
       /* B,B'_a,B'_q */
       f0	=XF*aB [j00]+xF*aB [j10]+XD*aBa [j00]+xD*aBa [j10];
       f1	=XF*aB [j01]+xF*aB [j11]+XD*aBa [j01]+xD*aBa [j11];

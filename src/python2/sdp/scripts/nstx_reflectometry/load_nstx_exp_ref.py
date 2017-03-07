@@ -17,7 +17,7 @@ def make_file_name(data_path,shot_num,freq):
         shot_num: string,
         freq: double, in GHz
     return:
-        string, 
+        string,
     """
 
     return '{0}{1}_{2:4.3}GHz.h5'.format(data_path,shot_num,float(freq))

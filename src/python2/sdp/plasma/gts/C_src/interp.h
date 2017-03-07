@@ -111,7 +111,7 @@ int find_nearestn(int nclosest,int nx,int nxi,size_t idx_closest[nx][nclosest],R
 #if DEBUG
     fprintf(stderr,"%d, %g, %g, %g, %g, %g\n",point,d01,d02,d12,hyp,2.0*hyp-d01-d02-d12);
 #endif
-	 
+	
   }
     //   for(i=0;i<xirows*xicols;i++){
     //     fprintf(stderr,"xi       yi\n");
@@ -216,7 +216,7 @@ int interp(REAL y[],REAL xi[],REAL si[],int ny,int nxi){
 int interpxy(REAL x[],REAL y[],REAL xi[],REAL yi[],int nx,int nxi){
   int i,j;
   REAL si[nxi-1];
-  // use linear interpolation 
+  // use linear interpolation
   //printf("\nstheta:");
   for(i=0;i<nxi-1;i++){
     si[i] = (yi[i+1]-yi[i])/(xi[i+1]-xi[i]);
@@ -243,9 +243,9 @@ int interpgsl(REAL x[],REAL y[],REAL xi[],REAL yi[],int nx,int nxi){
   //  yi[nxi-1]=yi[0];
   // xi[nxi-1]=-xi[0];
   gsl_interp_accel *acc = gsl_interp_accel_alloc ();
-  const gsl_interp_type *t = gsl_interp_cspline; 
+  const gsl_interp_type *t = gsl_interp_cspline;
   gsl_spline *spline = gsl_spline_alloc (t, nxi);
-     
+
   int i;
   gsl_spline_init (spline, xi, yi, nxi);
   //printf("\ninterpgsl:\n");
@@ -254,7 +254,7 @@ int interpgsl(REAL x[],REAL y[],REAL xi[],REAL yi[],int nx,int nxi){
       y[i] = gsl_spline_eval (spline, x[i], acc);
       //printf ("%g, %g\n", x[i], y[i]);
     }
-       
+
   gsl_spline_free (spline);
   gsl_interp_accel_free (acc);
 
@@ -332,7 +332,7 @@ int interpReg2d(int nx,int xirows,int xicols,REAL x[],REAL y[],REAL z[],REAL w[]
     // for fixed xi = i, interpolate in y between yi[j] and yi[j+1]
     a = slopeziyi[xi_idx_below[i]][yi_idx_below[i]]*dist_y_yi + zi[xi_idx_below[i]][yi_idx_below[i]];
     // for fixed xi = i+1, interpolate in y between yi[j] and yi[j+1]
-    b = slopeziyi[xi_idx_below[i]+1][yi_idx_below[i]]*dist_y_yi + zi[xi_idx_below[i]+1][yi_idx_below[i]];  
+    b = slopeziyi[xi_idx_below[i]+1][yi_idx_below[i]]*dist_y_yi + zi[xi_idx_below[i]+1][yi_idx_below[i]];
     // now interpolate in x between xi[i] and xi[i+1]
     z[i] = (b-a)*x_frac + a;
 
@@ -340,7 +340,7 @@ int interpReg2d(int nx,int xirows,int xicols,REAL x[],REAL y[],REAL z[],REAL w[]
     // for fixed xi = i, interpolate in y between yi[j] and yi[j+1]
     a = slopewiyi[xi_idx_below[i]][yi_idx_below[i]]*dist_y_yi + wi[xi_idx_below[i]][yi_idx_below[i]];
     // for fixed xi = i+1, interpolate in y between yi[j] and yi[j+1]
-    b = slopewiyi[xi_idx_below[i]+1][yi_idx_below[i]]*dist_y_yi + wi[xi_idx_below[i]+1][yi_idx_below[i]];  
+    b = slopewiyi[xi_idx_below[i]+1][yi_idx_below[i]]*dist_y_yi + wi[xi_idx_below[i]+1][yi_idx_below[i]];
     // now interpolate in x between xi[i] and xi[i+1]
     w[i] = (b-a)*x_frac + a;
 

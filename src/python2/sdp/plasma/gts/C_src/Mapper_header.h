@@ -5,15 +5,15 @@ int loadNTProfiles(const char* fname,int** n_prof,REAL** a_p, REAL** n_p,REAL** 
   int file_id; // id for file
   int a_dim_id;  // ids for dimensions
   int a_id,ne_id,Ti_id,Te_id; // ids for variables
-  size_t *n;   
+  size_t *n;
   int error_code;		// non-zero means netcdf error
-     
+
   *n_prof=(int*)PyMem_Malloc(sizeof(int));
   n=(size_t *)PyMem_Malloc(sizeof(size_t));
-  
+
   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
-     
+
   if ((error_code = nc_inq_dimid(file_id, "profiles_radial_grid", &a_dim_id))) // get the dimension id
     ERR(error_code);
   if ((error_code = nc_inq_dimlen(file_id,a_dim_id,n)))
@@ -34,7 +34,7 @@ int loadNTProfiles(const char* fname,int** n_prof,REAL** a_p, REAL** n_p,REAL** 
   *Ti_p = (REAL*)PyMem_Malloc(sizeof(REAL)* (*n));
   *Te_p = (REAL*)PyMem_Malloc(sizeof(REAL)* (*n));
   PyMem_Free(n);
-  
+
   if ((error_code = nc_get_var_double(file_id,a_id,*a_p)))
     ERR(error_code);
   if ((error_code = nc_get_var_double(file_id,ne_id,*n_p)))

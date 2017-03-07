@@ -39,7 +39,7 @@ copy_reg.pickle(types.MethodType, _pickle_method)
 
 class BES:
     """ Class computing the image of all the fibers.
-    
+
     Load the parameter from a config file (example in :download:`bes.in <../../../../sdp/diagnostic/bes/bes.in>`
     with a lot of comments for explaining all the parameters) and create everything from it.
     The function :func:`get_bes <sdp.diagnostic.bes.bes.BES.get_bes>` is used for computing the photon radiance received by
@@ -72,7 +72,7 @@ class BES:
     :var np.array[Nfib,3] self.perp2: Third basis vector
     :var str self.type_int: choice between the full computation of the photo radiance or only over the central line ('1D' or '2D')
     :var float self.t_max: Cutoff time for the lifetime effect (in unit of the lifetime).\
-    If set to 0, the lifetime will not be taken in account    
+    If set to 0, the lifetime will not be taken in account
     :var bool self.lifetime: Choice between using the lifetime effect or not
     :var float self.tau_max: Upper limit for the lifetime of the excited particles.\
     It does not need to be exact, it is only for computing the limits of the mesh.
@@ -94,7 +94,7 @@ class BES:
     The red arrows show the call order and the black ones show what is inside the function.
 
     .. graphviz::
-     
+
        digraph bes_init{
        compound=true;
        // BES.__INIT__
@@ -102,7 +102,7 @@ class BES:
        subgraph cluster_besinit { label="bes.__init__"; "Beam1D.__init__"->compute_limits->
          "XGC_Loader_local.__init__"->"Beam1D.set_data"->"bes.load_filter"->"Collisions.get_wavelength"[color="red"]
        }
-    
+
        A [label="load_XGC_local.get_interp_planes_local"];
        B [label="load_XGC_local.get_interp_planes_local"];
 
@@ -117,7 +117,7 @@ class BES:
        subgraph cluster_collisions { label="Collisions.__init__"; "Collisions.read_adas";}
        "Collisions.read_adas"->"ADAS_file.__init__" [lhead="cluster_read_adas"];
        subgraph cluster_read_adas { label="Collisions.read_adas"; "ADAS_file.__init__";}
-       
+
 
 
        // XGC_LOADER_local.__INIT__
@@ -126,21 +126,21 @@ class BES:
        subgraph cluster_XGC { label="XGC_Loader_local.__init__"; "XGC_Loader_local.load_mesh_psi_3D"->
        "XGC_Loader_local.load_B_3D"->A->"XGC_Loader_local.load_eq_3D"
        ->"XGC_Loader_local.load_next_time_step"[color="red"];}
-       
+
        // XGC_LOADER_local.LOAD_NEXT_TIME_STEP
        "XGC_Loader_local.load_next_time_step"->"XGC_Loader_local.load_fluctuations_3D_all"[lhead=cluster_next];
        subgraph cluster_next { label="XGC_Loader_local.load_next_time_step"; "XGC_Loader_local.load_fluctuations_3D_all"->
        "XGC_Loader_local.compute_interpolant"[color="red"];}
 
        // BEAM.SET_DATA
-       "Beam1D.set_data"->"Beam1D.create_mesh" [lhead=cluster_set_data];    
+       "Beam1D.set_data"->"Beam1D.create_mesh" [lhead=cluster_set_data];
 
        subgraph cluster_set_data { label="Beam1D.set_data"; "Beam1D.create_mesh"->"Beam1D.compute_beam_on_mesh"[color="red"];
        }
        "Beam1D.create_mesh"->"Beam1D.find_wall"[lhead=cluster_create_mesh];
 
        subgraph cluster_create_mesh { label="Beam1D.create_mesh"; "Beam1D.find_wall";}
-       
+
 
        // BEAM.COMPUTE_BEAM_ON_MESH
        "Beam1D.compute_beam_on_mesh"->"Integration.integration_points"[lhead=cluster_compute_beam];
@@ -157,7 +157,7 @@ class BES:
        "XGC_Loader_local.find_interp_positions"->"XGC_Loader_local.calc_total_ne_3D"[color="red"];
        }
 
-       }    
+       }
 
     """
 
@@ -175,7 +175,7 @@ class BES:
         start = json.loads(config.get('Data','timestart'))
         # the example input file is well commented, look there for more
         # information
-        
+
         # Optics part
         self.pos_lens = json.loads(config.get('Optics','pos_lens'))          #!
         self.pos_lens = np.array(self.pos_lens)
@@ -211,11 +211,11 @@ class BES:
             self.pos_foc = np.array([R*np.cos(self.phiav),R*np.sin(self.phiav),
                                      np.zeros(radial_mesh[2])]).T
         self.op_direc = self.pos_foc-self.pos_lens                           #!
-        
+
         self.dist = np.sqrt(np.sum(self.op_direc**2,axis=1))
         if isinstance(self.rad_foc,float):
             self.rad_foc = self.rad_foc*np.ones(self.pos_foc.shape[0])
-        
+
         # normalize the vector
         self.op_direc[:,0] /= self.dist
         self.op_direc[:,1] /= self.dist
@@ -223,7 +223,7 @@ class BES:
 
 
         self.type_int = config.get('Optics','type_int')                      #!
-        
+
         self.lim_op = np.zeros((self.pos_foc.shape[0],2))                    #!
         self.lim_op[:,0] = self.dist*self.rad_lens/(self.rad_lens+self.rad_foc)
         self.lim_op[:,1] = self.dist*self.rad_lens/(self.rad_lens-self.rad_foc)
@@ -231,7 +231,7 @@ class BES:
 
         self.t_max = json.loads(config.get('Collisions','t_max'))            #!
         self.lifetime = self.t_max != 0                                      #!
-        
+
         # Data part
         self.tau_max = json.loads(config.get('Collisions','tau'))            #!
         self.dphi = json.loads(config.get('Data','dphi'))                    #!
@@ -261,7 +261,7 @@ class BES:
         # check division by 0
         if (self.op_direc[:,1] == 0).any():
             raise NameError('Should implement the case where op_direc[:,1] == 0')
-        
+
         self.perp1[:,1] = -self.op_direc[:,2]/self.op_direc[:,1]
         self.perp1[:,2] = np.zeros(self.pos_foc.shape[0])
         # norm of the vector for nomalization
@@ -282,7 +282,7 @@ class BES:
 
 
     def load_filter(self,filter_name):
-        """ Load the data from the filter and compute the interpolant.       
+        """ Load the data from the filter and compute the interpolant.
 
         :param str filter_name: Name of the file containing the filter datas
 
@@ -296,8 +296,8 @@ class BES:
         trans = data[:,1]
         tck = sp.interpolate.interp1d(wl,trans,kind='linear',fill_value=0.0)
         return tck
-        
-        
+
+
     def compute_limits(self, eps=0, dxmin = 0.05, dymin = 0.05, dzmin = 0.05):
         r""" Compute the limits of the mesh that should be loaded
 
@@ -334,7 +334,7 @@ class BES:
         :param float dymin: Smallest size accepted for the box in Y
         :param float dzmin: Smallest size accepted for the box in Z
 
-        :todo: Improve this function in order to have a smaller window        
+        :todo: Improve this function in order to have a smaller window
         """
 
         # average beam width
@@ -345,8 +345,8 @@ class BES:
         w = (width[0]*np.sum(self.op_direc[0,0:2]) + width[1]*self.op_direc[0,2])*self.inter
         w /= np.abs(np.dot(self.beam.direc,self.op_direc[0,:]))
         # size of the integration along the optical axis
-        d = self.inter*w        
-        
+        d = self.inter*w
+
         # position of the last value computed on the axis
         # the origin of this system is the center of the ring
         center_max = np.zeros((self.pos_foc.shape[0],3))
@@ -459,7 +459,7 @@ class BES:
     def get_bes(self):
         """ Compute the image from the synthetic diagnostics.
         This function should be the only one used outside the class.
-        
+
         :returns: Photon radiance collected by each fiber (number of photons by seconds, by steradians and by square meters)
         :rtype: np.array[Ntime, Nfib]
 
@@ -532,8 +532,8 @@ class BES:
 
            // XGC_LOADER_local.INTERPOLATE_DATA
            "XGC_Loader_local.interpolate_data"-> "load_XGC_local.get_interp_planes_local"[lhead=cluster_interpolate];
-           
-           subgraph cluster_interpolate { label="XGC_Loader_local.interpolate_data"; 
+
+           subgraph cluster_interpolate { label="XGC_Loader_local.interpolate_data";
            "load_XGC_local.get_interp_planes_local"->"XGC_Loader_local.find_interp_positions"->
            "XGC_Loader_local.calc_total_ne_3D"[color="red"];
            }
@@ -542,9 +542,9 @@ class BES:
            // BES.GET_SOLID_ANGLE
            "BES.get_solid_angle"->"BES.find_case"[lhead=cluster_solid_angle];
            subgraph cluster_solid_angle { label="BES.get_solid_angle";
-           "BES.find_case"->"Funcs.solid_angle_disk"->"BES.solid_angle_mix_case"[color="red"]; 
+           "BES.find_case"->"Funcs.solid_angle_disk"->"BES.solid_angle_mix_case"[color="red"];
            }
-        
+
            "Funcs.solid_angle_disk"->"Funcs.heuman"[lhead=cluster_heuman];
            subgraph cluster_heuman { label="Funcs.solid_angle_disk"; "Funcs.heuman";}
 
@@ -588,8 +588,8 @@ class BES:
         return I
 
     def get_psin(self,pt):
-        """ Compute the :math:`\Psi_n`. 
-        
+        """ Compute the :math:`\Psi_n`.
+
         :math:`\Psi_n` is equal to 0 on the magnetic axis and to 1 on the separatrix.
 
         :param np.array[N,3] pt: Positions in the cartesian system
@@ -598,7 +598,7 @@ class BES:
         """
         R = np.sqrt(np.sum(self.pos_foc[:,0:2]**2,axis=1))
         return self.beam.data.psi_interp(R,self.pos_foc[:,2])/self.beam.data.psi_x
-        
+
     def intensity_para(self,i):
         """ Same as :func:`intensity <sdp.diagnostic.bes.bes.bes.intensity>`, but have only one argument.
         The only use is for the parallelization that ask only one argument.
@@ -623,7 +623,7 @@ class BES:
         # use the three basis vectors for computing the vectors in the
         # cartesian coordinate
         pos = np.atleast_1d(pos)
-                            
+
         ret = np.zeros(pos.shape)
         ret[:,0] = self.pos_lens[0] + self.op_direc[fiber_nber,0]*pos[:,2]
         ret[:,0] += self.perp1[fiber_nber,0]*pos[:,0] + self.perp2[fiber_nber,0]*pos[:,1]
@@ -662,7 +662,7 @@ class BES:
            \draw[color=blue] (5.51,1.21) node {$R_2$};
            \draw[color=blue] (9,1.41) node {$R_1$};
            \end{scriptsize}
-        
+
         :param np.array[N] z: Position where to compute the width in the optical system
         :param int fib: Index of the fiber
 
@@ -739,7 +739,7 @@ class BES:
         r""" Compute the case for the solid angle.
 
         In the following figure, the three different cases are shown.
-        In red, the area of the ring case is shown, in blue, the mixed case and, in green, the lens case 
+        In red, the area of the ring case is shown, in blue, the mixed case and, in green, the lens case
         (see :func:`get_solid_angle <sdp.diagnostic.bes.bes.bes.get_solid_angle>` for more a drawing of the different cases).
 
         .. tikz:: [line cap=round,line join=round,x=0.75cm,y=0.75cm]
@@ -768,7 +768,7 @@ class BES:
            \draw (-1.2,0.9) node[anchor=north west] {Fiber};
            \draw (3.3,1.64) node[anchor=north west] {Lens};
            \draw (10.5,-0.05) node[anchor=north west] {Focus point};
-           \draw (20.98,-5.71) -- (20.98,10.58);           
+           \draw (20.98,-5.71) -- (20.98,10.58);
 
         :param np.array[N] r: Distance between the central axis and the point
         :param np.array[N] z: Distance between the point and the lens
@@ -790,16 +790,16 @@ class BES:
         ret[(z > self.lim_op[fib,1]) & (r<=r_cone)] = 1
 
         return ret
-        
+
     def light_from_plane(self,z, t_, fiber_nber,zind,comp_eps=False):
         r""" Compute the light from one plane using a method of order 10 (see report or
         Abramowitz and Stegun) or by making the assumption of a constant emission on the plane.
         Can be changed easily to the 4th or 6th order methods shown in the graphic
-        
+
         .. math::
            I_\text{plane} = \frac{\iint_D f(x) \mathrm{d}\sigma}{\iint_D \Omega(x)\mathrm{d}\sigma}
            \approx \frac{\sum_i \omega_i f(x_i)}{\sum_i \omega_i \Omega(x_i)}
-        
+
         where :math:`f(x) = F(\varepsilon(x))\Omega(x)`, :math:`\Omega(x)` is the solid angle, :math:`F(x)` is the filter,
         D is the disk representing the plane, and, :math:`\omega_i` and :math:`x_i` are the weights and the points
         of the quadrature formula.
@@ -842,8 +842,8 @@ class BES:
            \fill (-0.6123,-1.0606) circle(2pt);
 
            \node at (0,-2) {Method of Order 6};
-        
-        
+
+
 
         :param np.array[N] z: Distance from the fiber along the sightline
         :param int t_: Time step to compute (is not important for the data loader, but is used as a check)
@@ -866,7 +866,7 @@ class BES:
                 pos[:,1] = quad.pts[:,1]
                 pos[:,2] = z[i]*np.ones(quad.pts.shape[0])
                 eps = self.get_emis_from(pos,t_,fiber_nber)
-                
+
                 # now compute the solid angle
                 if comp_eps or (self.solid[fiber_nber,zind,i,:] == 0).any():
                     # if an error of size is thrown, look at the line that create the array
@@ -874,7 +874,7 @@ class BES:
                     self.solid[fiber_nber,zind,i,:] = self.get_solid_angle(pos,fiber_nber)
                 # compute the filter
                 filt = self.get_filter(pos)
-                
+
                 # sum the intensity of all the components
                 eps = np.sum(eps*filt,axis=0)
 
@@ -898,11 +898,11 @@ class BES:
 
         Use the Doppler effect for the computation of the wavelength:
 
-        :param np.array[N,3] pos: Position in the optical system 
+        :param np.array[N,3] pos: Position in the optical system
 
         :returns: Transmittance
         :rtype: np.array[Nbeam,N]
-        
+
         """
         # compute the effect of the filter
         dist_ = self.pos_lens[np.newaxis,:] - pos
@@ -916,28 +916,28 @@ class BES:
         wl *= self.wl0
         # interpolate
         return self.filter_(wl)
-        
-        
+
+
 
     def intensity(self,t_,fiber_nber,comp_eps=False):
         r""" Compute the light received by a fiber at one time step.
-        
+
         Use a Gauss-Legendre quadrature formula of order 4.
-        
+
         .. math::
-           I = \int_{-d}^d f(z) \mathrm{d}z \approx 
+           I = \int_{-d}^d f(z) \mathrm{d}z \approx
            \sum_i \frac{b_i-a_i}{2} \sum_j \omega_j f\left(\frac{b_i-a_i}{2}x_j + \frac{a_i+b_i}{2}\right)
 
         where the index i is for the splitting in subintervals, j is for the Gauss-Legendre formula,
         :math:`f(z)` is the function computed by :func:`light_from_plane <sdp.diagnostic.bes.bes.BES.light_from_plane>`,
         :math:`d = \text{inter} \cdot w`, inter is the cutoff in unit of the average beam width (w),
-        :math:`a_i` and :math:`b_i` are the lower and upper limits for each intervals (not linear spacing 
+        :math:`a_i` and :math:`b_i` are the lower and upper limits for each intervals (not linear spacing
         [look at :func:`get_interval_gaussian <sdp.math.Integration.get_interval_gaussian>`]),
         :math:`\omega_j` and :math:`x_j` are the weights and points of the quadrature formula.
         See figure :func:`compute_limits <sdp.diagnostic.bes.bes.BES.compute_limits>` for a view of the situation.
 
         The computation of the intervals assume that the focus point is exactly at the center of the beam and that :math:`f(x)` is a gaussian.
-        
+
 
         :param int t_: Time step to compute
         :param int fiber_nber: Index of the fiber
@@ -969,11 +969,11 @@ class BES:
             I += np.sum(quad.w*light)*ba2[i]
         # multiply by the weigth of each interval
         return I
-        
+
     def get_emis_from(self,pos,t_,fiber_nber):
         """ Compute the total emission of each position.
 
-        :param np.array[N,3] pos: Position in the optical system 
+        :param np.array[N,3] pos: Position in the optical system
         :param int t_: Time step to compute
         :param int fiber_nber: Index of the fiber
 
@@ -989,9 +989,9 @@ class BES:
             eps = self.beam.get_emis(x,t_)/(4.0*np.pi)
         return eps
 
-    
+
     def get_solid_angle(self,pos,fib):
-        r""" Compute the solid angle 
+        r""" Compute the solid angle
 
         Three different cases can happen:
 
@@ -1007,7 +1007,7 @@ class BES:
            \draw[red] (-5,0) circle(1.5);
            \draw (-5,0.3) circle(2);
            \node at (-5,2.5) {Lens Case};
-           % ring case 
+           % ring case
            \draw (0,0) circle(1.5);
            \draw[red] (0,0.3) circle(2);
            \node at (0,2.5) {Ring Case};
@@ -1023,7 +1023,7 @@ class BES:
         For finding in which case a point is, the function :func:`find_case <sdp.diagnostic.bes.bes.BES.find_case>`])is used.
 
         For finding the intersections, the following system is solved [assuming that the coordinate system is the optical one]:
-        
+
         .. math::
            \left\{ \begin{array}{ccc}
            x_1^2 + x_2^2 & = & r_r^2 \\
@@ -1032,8 +1032,8 @@ class BES:
            \end{array}\right.
 
         where :math:`x_i` (:math:`y_i`) are the coordinates of the intersection on the ring (lens),
-        :math:`{\bf P}` is the point where we want to compute the solid angle, :math:`r_r` (:math:`r_l`) 
-        is the radius of the ring (lens), :math:`z` is the last coordinate of :math:`{\bf P}` 
+        :math:`{\bf P}` is the point where we want to compute the solid angle, :math:`r_r` (:math:`r_l`)
+        is the radius of the ring (lens), :math:`z` is the last coordinate of :math:`{\bf P}`
         (thus the distance to the lens) and :math:`L` is the one for :math:`{\bf x}`.
 
         :param np.array[N,3] pos: Position in the optical system
@@ -1126,7 +1126,7 @@ class BES:
 
 
         :param np.array[N,3] pos: Position in the optical system
-        :param list[x1,x2] x: Position of the intersection on the ring (x1 and x2 are np.array[N]) 
+        :param list[x1,x2] x: Position of the intersection on the ring (x1 and x2 are np.array[N])
         :param list[y1,y2] y: Position of the intersection on the lens (y1 and y2 are np.array[N])
         :param int fib: Index of the fiber
         :return: Solid angle
@@ -1147,7 +1147,7 @@ class BES:
         omega = np.zeros(omega1.shape)
         omega[~ind1] += omega1[~ind1]
         omega[~ind2] += omega2[~ind2]
-        
+
         if (-omega1[ind1]/omega[ind1] > 1e-3).any():
             print omega
             print omega1
@@ -1159,7 +1159,7 @@ class BES:
             print omega2
             omega[-omega2[ind2]/omega[ind2] > 1e-3] = np.nan
             #raise NameError('solid angle negative 2')
-        
+
         return omega
 
 
@@ -1174,9 +1174,9 @@ class BES:
 
 
 class BES_ideal:
-    """ Take the output of the simulation and just 
+    """ Take the output of the simulation and just
     compute the density fluctuation at the focus points.
-    
+
     A lot of copy and paste from the BES class, therefore look there for
     the comments
 
@@ -1200,7 +1200,7 @@ class BES_ideal:
 
         self.data_path = config.get('Data','data_path')                      #!
         start = json.loads(config.get('Data','timestart'))
-    
+
         R = json.loads(config.get('Optics','R'))
         R = np.array(R)
         phi = json.loads(config.get('Optics','phi'))
@@ -1213,12 +1213,12 @@ class BES_ideal:
         nphi = nber_plane['nphi'][:]
         shift = np.mean(phi) - 2*np.pi*plane/nphi[0]
 
-        
+
         self.pos_foc = np.zeros((len(Z),3))                                  #!
         self.pos_foc[:,0] = R*np.cos(phi)
         self.pos_foc[:,1] = R*np.sin(phi)
         self.pos_foc[:,2] = Z
-        
+
         # Data part
         self.dphi = json.loads(config.get('Data','dphi'))                    #!
         end = json.loads(config.get('Data','timeend'))
@@ -1231,7 +1231,7 @@ class BES_ideal:
 
 
         self.data = xgc_
-        
+
 
     def compute_limits(self, eps=1, dxmin = 0.1, dymin = 0.1, dzmin = 0.5):
         """ find min/max coordinates of the focus points """
@@ -1293,7 +1293,7 @@ class BES_ideal:
             self.pos_foc = np.zeros((a.shape[0],3))
             self.pos_foc[:,0] = a
             self.pos_foc[:,2] = b
-            
+
         print self.time
         nber_fiber = self.pos_foc.shape[0]
         I = np.zeros((len(self.time),nber_fiber))
@@ -1308,8 +1308,8 @@ class BES_ideal:
         return I
 
     def get_psin(self,pt):
-        """ Compute the psin value. 
-        
+        """ Compute the psin value.
+
         Psin is equal to 0 on the magnetic axis and to 1 on the separatrix.
         :param np.array[N,3] pt: Positions in the cartesian system
         :return: Psin
@@ -1323,4 +1323,4 @@ class BES_ideal:
         """
         I = self.data.interpolate_data(self.pos_foc[fiber_nber,:],t_,['ne'],False)[0]
         return I
- 
+

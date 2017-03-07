@@ -8,7 +8,7 @@ basic smoothing techniques
 """
 
 def smooth(data, method='121', axis=-1, periodic=0, passes=1):
-    r""" Simple averaging smooth over raw data, currently only support 
+    r""" Simple averaging smooth over raw data, currently only support
     smoothing along the last dimension
     """
     avail_methods=['121']
@@ -28,5 +28,5 @@ one is currently not availabel.')
                 data[..., -1] = data[..., 0] = 0.25*(d1 + dn2 + data[..., 0])
     else:
         print "smoothing is not done, data has not changed."
-        
+
 

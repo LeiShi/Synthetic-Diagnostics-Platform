@@ -12,22 +12,22 @@ class Detector(object):
     """abstract base class for Detectors
     """
     __metaclass__ = ABCMeta
-    
+
     @abstractproperty
     def central_omega(self):
         pass
-    
+
     @abstractproperty
     def omega_list(self):
         pass
-    
+
     @abstractproperty
     def power_list(self):
         pass
-    
+
     def info(self):
         print(self.__str__())
-        
+
     @abstractmethod
     def __str__(self):
         pass

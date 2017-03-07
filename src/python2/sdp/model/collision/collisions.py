@@ -6,9 +6,9 @@ from sdp.settings.unitsystem import SI
 
 class Collisions:
     r""" Class containing all the physics about the collisions
-        
+
     Read the files from ADAS database, compute the lifetime, and the cross-sections (cubic spline interpolation is used).
-    
+
     For computing the coefficients, two interpolations are done.
     A first one in 2D (beam energy and density) and a second one in temperature.
     The final result is given by:
@@ -17,8 +17,8 @@ class Collisions:
        C = \frac{\text{Interp}(E_b,\rho)\cdot \text{Interp}(T)}{C_\text{ref}}
 
     where :math:`C_\text{ref}` is the coefficient at the reference temperature, density and beam energy.
-    
-    
+
+
     :param list[str] files_atte: List of names for ADAS21 files (beam stopping coefficient)
     :param list[str] files_emis: List of names for ADAS22 files (emission coefficient)
     :param list[int] states: Quantum number of the lower (states[0]) and the higher(states[1]) states of the hydrogen atom
@@ -34,13 +34,13 @@ class Collisions:
     :var list[tck_interp] self.emis_tck_temp: List of interpolant computed with cubic spline for the emission coefficient as a function of the temperature
     :var float self.n_low: Quantum number of the lower state for the hydrogen atom
     :var float self.n_high: Quantum number of the higher state for the hydrogen atom
-    :var float self.E0: Energy of the ground state (in eV)    
+    :var float self.E0: Energy of the ground state (in eV)
     :var float self.lifetime: Lifetime of the excited state
     """
 
     def __init__(self,files_atte,files_emis,states,lifetime):
         """ Copy the input inside the instance
-            
+
         :param list[str] files_atte: List of names for ADAS21 files (beam stopping coefficient)
         :param list[str] files_emis: List of names for ADAS22 files (emission coefficient)
         :param list[int] states: Quantum number of the lower (states[0]) and the higher(states[1]) states of the hydrogen atom
@@ -67,17 +67,17 @@ class Collisions:
             lbeams = np.log(self.get_list_beams('atte',i))
             coef_dens = self.get_coef_density('atte',i)
             lbeams, ldens = np.meshgrid(lbeams, ldensities)
-            
+
             # interpolation over beam and density
             self.atte_tck_dens.append(interpolate.bisplrep(
                 lbeams,ldens,coef_dens,kx=1,ky=1))
-            
+
             # get data for the interpolation in temperature
             T = np.log(self.get_list_temperature('atte',i))
             coef_T = self.get_coef_T('atte',i)
             Tref = np.log(self.get_Tref('atte',i))
             index = abs((Tref-T)/Tref) < 1e-4
-            
+
             #interpolation over the temperature
             self.atte_tck_temp.append(interpolate.splrep(
                 T,coef_T/coef_T[index],k=1))
@@ -88,7 +88,7 @@ class Collisions:
             lbeams = np.log(self.get_list_beams('emis',i))
             coef_dens = self.get_coef_density('emis',i)
             lbeams, ldens = np.meshgrid(lbeams, ldensities)
-            
+
             # interpolation over beam and density
             self.emis_tck_dens.append(interpolate.bisplrep(
                 lbeams,ldens,coef_dens,kx=1,ky=1))
@@ -98,12 +98,12 @@ class Collisions:
             coef_T = self.get_coef_T('emis',i)
             Tref = np.log(self.get_Tref('emis',i))
             index = abs((Tref-T)/Tref) < 1e-4
-            
+
             #interpolation over the temperature
             self.emis_tck_temp.append(interpolate.splrep(
                 T,coef_T/coef_T[index],k=1))
 
-        
+
     def read_adas(self):
         """ Read the ADAS files and stores them as attributes (used during the initialization)
         """
@@ -116,13 +116,13 @@ class Collisions:
         """ Get the beam stopping coefficient for a given density, beam energy, and temperature.
 
         The ADAS database store the data as two array, for putting them together, we do a first
-        interpolation for the 2D array (as a function of density and beam energy) and after 
+        interpolation for the 2D array (as a function of density and beam energy) and after
         we do a scaling with the temperature.
 
         :param float beam: Beam energy (eV)
         :param float or np.array[N] ne: Electron density density
         :param float mass_b: mass of a neutral particle in the beam (amu)
-        :param float or np.array[N] Ti: Ion temperature (should be of the same lenght than ne) 
+        :param float or np.array[N] Ti: Ion temperature (should be of the same lenght than ne)
         :param int file_number: File number wanted (choosen by beam.py)
 
         :returns: Beam stopping coefficient
@@ -145,13 +145,13 @@ class Collisions:
         """ Get the emission coefficient for a given density, beam energy, and temperature.
 
         The ADAS database store the data as two array, for putting them together, we do a first
-        interpolation for the 2D array (as a function of density and beam energy) and after 
+        interpolation for the 2D array (as a function of density and beam energy) and after
         we do a scaling with the temperature.
 
         :param float beam: Beam energy (eV)
         :param float or np.array[N] ne: Electron density density
         :param float mass_b: mass of a neutral particle in the beam (amu)
-        :param float or np.array[N] Ti: Ion temperature (should be of the same lenght than ne) 
+        :param float or np.array[N] Ti: Ion temperature (should be of the same lenght than ne)
         :param int file_number: File number wanted (choosen by beam.py)
 
         :returns: Emission coefficient
@@ -187,7 +187,7 @@ class Collisions:
             return self.beam_atte[file_number].T_ref
         else:
             raise NameError('No list with this name: {0}'.format(typ))
-    
+
     def get_coef_density(self,typ,file_number):
         """ Return the coefficient as a function of the density and the beam energy\
         of the attenuation[beam stopping coefficient]/emission file
@@ -222,7 +222,7 @@ class Collisions:
         else:
             raise NameError('No list with this name: {0}'.format(typ))
 
-    
+
     def get_list_temperature(self,typ,file_number):
         """ Return the temperatures used in the ADAS file for\
         the attenuation[beam stopping coefficient]/emission file
@@ -239,7 +239,7 @@ class Collisions:
             return self.beam_atte[file_number].temperature
         else:
             raise NameError('No list with this name: {0}'.format(typ))
-    
+
     def get_list_density(self,typ,file_number):
         """ Return the densities used in the ADAS file for\
         the attenuation[beam stopping coefficient]/emission file
@@ -282,7 +282,7 @@ class Collisions:
         to have a plasma dependant lifetime.
 
         :todo: Upgrading in order to take into account the plasma density
-        
+
         :param float beam: Beam energy (eV)
         :param np.array[N] ne: Electron density (m :sup:`-3`)
         :param float mass_b: Mass of a neutral particle in the beam (amu)
@@ -297,9 +297,9 @@ class Collisions:
         return self.lifetime*np.ones(ne.shape)
 
     def get_wavelength(self):
-        """ Compute the wavelength of the emitted photons in the particles 
+        """ Compute the wavelength of the emitted photons in the particles
         reference frame (assume an hydrogen atom).
-        
+
         :returns: Wavelength emitted in reference frame (nm)
         :rtype: float
         """
@@ -339,7 +339,7 @@ if __name__ == '__main__':
         plt.semilogx(ne,at<0,label='attenuation')
         plt.semilogx(dens,dens>0,'x')
         plt.legend()
-        
+
         plt.figure()
         plt.semilogx(ne,em)
         plt.show()

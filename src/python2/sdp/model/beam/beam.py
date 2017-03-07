@@ -20,7 +20,7 @@ class Beam1D:
     vertical and horizontal width).
     When computing a beam density outside the mesh, an extrapolation is made (cubic).
     Two ways of computing the emission exists, a first one by assuming that
-    the lifetime of the excited state is negligible (thus only the datas from the point 
+    the lifetime of the excited state is negligible (thus only the datas from the point
     considered are used) and a second one that compute the expected value
     from an exponential decay.
     The simulation data are saved in this class.
@@ -30,7 +30,7 @@ class Beam1D:
     :var str self.cfg_file: Name of the config file
     :var str self.adas_atte: Name of the ADAS21 files (beam stopping coefficient)
     :var str self.adas_emis: Name of the ADAS22 files (emission coefficient)
-    
+
     :var self.collisions: :class:`Collisions <sdp.plasma.collision.collisions.Collisions>` instance variable.\
     Compute all the coefficients (beam stopping and emission) for the diagnostics.
 
@@ -38,7 +38,7 @@ class Beam1D:
     (beam stopping coefficient) and a beam component (in this order)
     :var list[list[int,int]] self.coll_emis: List of couple between a ADAS21 file \
     (emission coefficient) and a beam component (in this order)
-    
+
     :var int self.Nlt: Number of point for the mesh in the lifetime effect
     :var float elf.t_max: Cut-off for the integral of the liftetime effect\
     (in unit of the lifetime)
@@ -73,7 +73,7 @@ class Beam1D:
     :var bool self.eq: Equilibrium data for the attenuation
     :var np.array[3,2] self.limits: Limits for the beam
     """
-    
+
     def __init__(self,config_file):
         """ Load everything from the config file"""
         self.cfg_file = config_file                                          #!
@@ -81,7 +81,7 @@ class Beam1D:
         config.read(self.cfg_file)
 
         # The example input is well commented
-        
+
         # load data for collisions
         lt = json.loads(config.get('Collisions','tau'))
         self.adas_atte = json.loads(config.get('Collisions','adas_atte'))    #!
@@ -94,7 +94,7 @@ class Beam1D:
         self.coll_emis = json.loads(config.get('Collisions','coll_emis'))    #!
         self.Nlt = int(json.loads(config.get('Collisions','Nlt')))           #!
         self.t_max = json.loads(config.get('Collisions','t_max'))            #!
-        
+
 
         # load data about the beam energy
         self.mass_b = json.loads(config.get('Beam energy','mass_b'))         #!
@@ -120,7 +120,7 @@ class Beam1D:
             config.get('Beam geometry','beam_width_v'))                      #!
         self.Nz = int(config.get('Beam geometry','Nz'))                      #!
 
-        
+
         # get the standard deviation at the origin
         self.stddev_h = self.beam_width_h/(2.0*np.sqrt(2.0*np.log(2.0)))     #!
         self.stddev_v = self.beam_width_v/(2.0*np.sqrt(2.0*np.log(2.0)))     #!
@@ -159,10 +159,10 @@ class Beam1D:
         """ Compute the beam width at a specific distance.
 
         Can be modify for adding the effect of the beam divergence.
-        
+
         :param dist: Distance from the origin of the beam
         :type dist: np.array[N]
-    
+
         :returns: Horizontal and vertical beam width (0 for horizontal, 1 for vertical)
         :rtype: np.array[2,dist.shape]
         """
@@ -170,26 +170,26 @@ class Beam1D:
                          self.stddev_v*np.ones(dist.shape)])
 
     def create_mesh(self):
-        """ Create the 1D mesh between the source of the beam and the end 
+        """ Create the 1D mesh between the source of the beam and the end
         of the mesh.
 
         Is called during the initialization
         """
         # intersection between end of mesh and beam
         self.inters = self.find_wall()                                       #!
-        
+
         length = np.sqrt(np.sum((self.pos-self.inters)**2))
         # distance to the origin along the central line
         self.dl = np.linspace(0,length,self.Nz)
         self.mesh = np.zeros((self.Nz,3))                                    #!
         # the second index corresponds to the dimension (X,Y,Z)
         self.mesh = self.dl[:,np.newaxis]*self.direc + self.pos              #!
-        
-                    
+
+
     def find_wall(self, eps=1e-6):
         """ Find the wall (of the mesh) that will stop the beam and return
         the coordinate of the intersection with the beam.
-        
+
         :param float eps: Ratio of increase size on each side of the box
         :returns: Position of the intersection between the end of the mesh and the beam\
         (in cartesian system)
@@ -202,7 +202,7 @@ class Beam1D:
             tx1 = (self.limits[0,1]-self.pos[0])/self.direc[0]
             tx2 = (self.limits[0,0]-self.pos[0])/self.direc[0]
             tx = max(tx1,tx2)
-        
+
         # Y-direction
         if self.direc[1] == 0.0:
             ty = np.inf
@@ -210,7 +210,7 @@ class Beam1D:
             ty1 = (self.limits[1,1]-self.pos[1])/self.direc[1]
             ty2 = (self.limits[1,0]-self.pos[1])/self.direc[1]
             ty = max(ty1,ty2)
-        
+
         # Z-direction
         if self.direc[2] == 0.0:
             tz = np.inf
@@ -223,16 +223,16 @@ class Beam1D:
         if not (np.isfinite(t_) & (t_>0)).any():
             raise NameError('The beam does not cross the window')
         t = np.argmin(t_)
-        
+
         return self.pos + self.direc*t_[t]*(1-eps)
 
     def get_quantities(self,pos,t_,quant,eq=False, check=True):
         """ Compute the quantities from the datas
-        
+
         Use the list of string quant for taking the good values inside the simulation datas.
         See :func:`interpolate_data <sdp.plasma.xgc.load_XGC_BES.XGC_Loader_BES.interpolate_data>`
 
-        
+
         :param np.array[N,3] pos: List of position where to take the quantities (in cartesian system)
         :param int t_: Time step considered
         :param list[str] quant: List containing the wanted quantities \
@@ -248,8 +248,8 @@ class Beam1D:
         if isinstance(t_,list):
             raise NameError('Only one time should be given')
         return self.data.interpolate_data(pos,t_,quant,eq,check)
-        
-        
+
+
     def compute_beam_on_mesh(self):
         r""" Compute the beam density on the mesh and the interpolant.
 
@@ -280,7 +280,7 @@ class Beam1D:
         n0 = np.zeros(len(self.beam_comp))
         n0 = np.sqrt(2*self.mass_b*SI['amu'])*self.power
         n0 *= self.frac/(self.beam_comp*SI['keV']/1000)**(1.5)
-        
+
         # define the quadrature formula for this method
         quad = integ.integration_points(1,'GL2') # Gauss-Legendre order 2
         # can be rewritten by computing the integral of all the interval at
@@ -303,7 +303,7 @@ class Beam1D:
                     pt = quad.pts[:,np.newaxis]*diff + av
                     # compute all the values needed for the integral
                     ne, T = self.get_quantities(pt,self.t_,['ne','Te'],self.eq,check=False)
-                    
+
                     # attenuation coefficient from adas
                     S = self.collisions.get_attenutation(
                         self.beam_comp[beam_nber],ne,self.mass_b[beam_nber],
@@ -314,7 +314,7 @@ class Beam1D:
                     temp1 = np.sum(ne*S*quad.w)
                     temp1 *= norm_/self.speed[beam_nber]
                     temp_beam[beam_nber] += temp1
-                    
+
                 self.density_beam[:,j] = self.density_beam[:,j-1] - \
                                                 temp_beam
 
@@ -323,8 +323,8 @@ class Beam1D:
         # interpolant for the beam
         for i in range(len(self.beam_comp)):
             self.nb_tck.append(interpolate.splrep(self.dl,self.density_beam[i,:],k=1))
-        
-            
+
+
     def get_mesh(self):
         """ Acces method to the mesh
 
@@ -343,7 +343,7 @@ class Beam1D:
 
     def get_beam_density(self,pos):
         """ Compute the beam density with the help of the interpolant.
-        
+
         Change the coordinate of the position from the cartesian system to
         the beam system and, after, interpolate the data.
 
@@ -362,7 +362,7 @@ class Beam1D:
         proj = np.einsum('ij,j->i',dist,self.direc)
         stddev = self.get_width(proj)
         stddev2 = stddev**2
-        
+
         # cubic spline for finding the value along the axis
         for i in range(len(self.beam_comp)):
             for j in range(pos.shape[0]):
@@ -376,13 +376,13 @@ class Beam1D:
             2*np.pi*stddev[0]*stddev[1])
         return nb
 
-                    
-        
+
+
     def get_emis(self,pos,t_):
         r""" Compute the emission at a given position and time step
 
         :math:`\varepsilon = \langle\sigma v\rangle n_b n_e`
-       
+
         :param np.array[N,3] pos: Position in the cartesian system
         :param float t_: Time step
 
@@ -418,7 +418,7 @@ class Beam1D:
 
         Therefore the emissivity is given by:
         :math:`\varepsilon_l(P) = \frac{n_\text{ex}(P)}{\tau}`
-       
+
         :param np.array[N,3] pos: Position in the cartesian system
         :param float t_: Time step
 
@@ -431,7 +431,7 @@ class Beam1D:
         emis = np.zeros((len(self.beam_comp),pos.shape[0]))
         # avoid the computation at each time
         ne_in, Te_in = self.get_quantities(pos,t_,['ne','Te'])
-        
+
         #nb_in = self.get_beam_density(pos)
         for k in self.coll_emis:
             file_nber = k[0]
@@ -450,7 +450,7 @@ class Beam1D:
 
             step = up_lim/float(self.Nlt-1)
             delta = step[...,np.newaxis]*np.arange(0, self.Nlt)
-            
+
             # average position (a+b)/2
             av = 0.5*(delta[...,:-1] + delta[...,1:])
             # half distance (b-a)/2
@@ -469,8 +469,8 @@ class Beam1D:
 
             n_b = self.get_beam_density(x)[beam_nber,...]
             n_b = np.reshape(n_b,pt.shape)
-        
-            
+
+
             f = self.collisions.get_emission(self.beam_comp[beam_nber],n_e.flatten()
                                              ,self.mass_b[beam_nber],Te.flatten(),file_nber)
             f = np.reshape(f,pt.shape)
@@ -478,7 +478,7 @@ class Beam1D:
             # should be change if l depends on position
             f = n_b*f*n_e*np.exp(-pt/(l[...,np.newaxis,np.newaxis]*
                                       self.speed[beam_nber]))/self.speed[beam_nber]
-            
+
             if np.isnan(f).any():
                 print 'isnan',np.isnan(f)
                 print 'pos',pos

@@ -33,7 +33,7 @@ omega = N*omega_c[NR/2+1]
 
 def show_omega():
     print omega
-    
+
 
 
 def CalcM12(k_ll,N,p):
@@ -59,7 +59,7 @@ def CalcM12(k_ll,N,p):
     else:
         print 'wrong parameter, n+p should be 1 or 2.'
         return np.nan
-        
+
 def CalcM13(k_ll,N,p):
     n = np.absolute(N)
     psi = k_ll*c**2/(np.sqrt(2)*omega*vt)
@@ -78,7 +78,7 @@ def CalcM13(k_ll,N,p):
     else:
         print 'wrong parameter, n+p should be 1 or 2.'
         return np.nan
-        
+
 
 def scan_k_12(raw_k):
     global NR
@@ -112,6 +112,6 @@ def draw3D(k,M):
     X,K = np.meshgrid(x,k)
     ax.plot_surface(X,K,M[:,66:133],cmap=cm.coolwarm,antialiased = False)
     return fig
-    
-    
+
+
 

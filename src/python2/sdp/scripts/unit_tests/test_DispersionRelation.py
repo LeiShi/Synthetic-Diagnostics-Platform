@@ -20,9 +20,9 @@ e = cgs['e']
 keV = cgs['keV']
 pi = np.pi
 
-tp.set_parameter1D(ne_shape='uniform', ne_0=6.0e13, Te_shape='uniform', 
+tp.set_parameter1D(ne_shape='uniform', ne_0=6.0e13, Te_shape='uniform',
                    Te_0=15*keV, B_0=3.0e4)
-                   
+
 p1d = tp.create_profile1D()
 p1d.setup_interps()
 c_dielect = dt.ColdElectronColdIon(p1d)

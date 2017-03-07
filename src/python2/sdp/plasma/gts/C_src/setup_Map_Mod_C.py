@@ -11,8 +11,8 @@ if(My_Sys == 'NERSC'):
 elif(My_Sys == 'PPPL'):
     netcdf_dir = os.environ['NETCDF_DIR']
     gsl_dir = os.environ['GSL_DIR']
-    numpy_dir = os.environ['NUMPY_HOME']    
-    
+    numpy_dir = os.environ['NUMPY_HOME']
+
 #mpi_dir=os.environ['MPICH_DIR']
 #mpi_dir='/opt/cray/mpt/6.0.2/gni/mpich2-cray/81'
 #mpi_dir = '/opt/cray/mpt/5.6.4/gni/mpich2-pgi/119'  #for Hopper

@@ -1,6 +1,6 @@
 #Typical Measured Spectrum of Semrock FF01-661/20 Optical Filter	
 #For wavelengths between 320 and 1120 nm, values near or below 3e-7 (Optical Density 6.5) are measurement noise limited.
-#For wavelengths < 320 nm and > 1120 nm, values near or below 3e-6 (Optical Density 5.5) are measurement noise limited. 
+#For wavelengths < 320 nm and > 1120 nm, values near or below 3e-6 (Optical Density 5.5) are measurement noise limited.
 #Data format:  Wavelength (nm) <tab> Transmission (0 to 1)
 551.0	1.6258e-08
 551.2	1.7154e-08

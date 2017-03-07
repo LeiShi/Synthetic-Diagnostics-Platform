@@ -13,7 +13,7 @@ import sdp.plasma.dielectensor as dt
 import sdp.plasma.analytic.testparameter as tp
 
 #p2d = tp.create_profile2D(True)
-tp.set_parameter1D(Te_0=10*tp.cgs['keV'], Te_shape='uniform', 
+tp.set_parameter1D(Te_0=10*tp.cgs['keV'], Te_shape='uniform',
                    ne_shape='uniform')
 
 p1d = tp.create_profile1D()

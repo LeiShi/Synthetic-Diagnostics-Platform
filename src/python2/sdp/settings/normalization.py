@@ -1,7 +1,7 @@
 """ Normalization Plans and Functions
 """
 
-# Module depends on PhysConst ( Temporarily not necessary ) 
+# Module depends on PhysConst ( Temporarily not necessary )
 # from .PhysConst import CurUnitSys as cu
 
 class NormalizationError(Exception):
@@ -38,10 +38,10 @@ class Norm:
         this._data = dict(L=1, m=1, t=1)
         for key in N.keys():
             this._data[key]= N[key]
-            
-        
 
-    
+
+
+
     # set up customized normalization
     def set_normalization(this,**N):
         """ Let users modify the normalization after creating a Norm object. It's usually dangerous. Use this method carefully.

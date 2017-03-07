@@ -15,7 +15,7 @@ def get_interval_gaussian(cutoff,sigma,N):
     :param float cutoff: Limits of the integral
     :param float sigma: Standard deviation of the gaussian
     :param int N: Number of points for the integrals
-    
+
     :return: Points of the mesh (each one contains 1/(N-1) % of the total integral)
     :rtype: np.array[N]
     """
@@ -38,13 +38,13 @@ def get_interval_exponential(cutoff,tau,N,check=True):
     :param float or np.array[Npt] cutoff: Limits of the integral
     :param float or np.array[Npt] tau: Characteristic lenght of the exponential
     :param int N: Number of points for the integrals
-    
+
     :return: Points of the mesh (each one contains 1/(N-1) % of the total integral)
     :rtype: np.array[Npt,N]
     """
     tau = np.atleast_1d(tau)
     cutoff = np.atleast_1d(cutoff)
-    
+
     if check and (cutoff/tau < 5.0).any():
         print 'Cutoff value small: only {} % of the integral is taken in account'.format(100*(1-np.exp(-cutoff/tau)))
     x = np.linspace(0.0,1.0,N)
@@ -73,7 +73,7 @@ def integration_points(dim, meth, obj='', size=-1):
         elif meth == 'GL2':
             w = np.array([2.0])
             points = np.array([0.0])
-            
+
         elif meth == 'GL4': # gauss legendre with accuracy order 4, exactness 3 and 2 points.
             w = np.array([1.0,1.0])
             temp = np.sqrt(1.0/3.0)
@@ -89,7 +89,7 @@ def integration_points(dim, meth, obj='', size=-1):
             points[0] = 0
             points[1] = np.sqrt(3.0/5.0)
             points[2] = -points[1]
-            
+
         elif meth == 'GL8':
             temp = (2.0/7.0)*np.sqrt(6.0/5.0)
             points = np.zeros(4)
@@ -170,7 +170,7 @@ def integration_points(dim, meth, obj='', size=-1):
                 w = np.zeros(7)
                 w[0] = 1.0/4.0
                 w[1:] = 1.0/8.0
-                
+
                 points = np.zeros((7,2))
 
                 x = np.sqrt(2.0/3.0)*size
@@ -192,11 +192,11 @@ def integration_points(dim, meth, obj='', size=-1):
         else:
             raise NameError('Method not implemented')
 
-            
+
     else:
         raise NameError('Method not implemented')
 
-    
+
     named = collections.namedtuple('Quadrature',['w','pts'])
     return named(w,points) # can be acces with the following way
     # .w or .pts

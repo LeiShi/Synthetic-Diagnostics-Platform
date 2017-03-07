@@ -96,15 +96,15 @@ int loadNTProfiles(const char* fname,int** n_prof,REAL** a_p, REAL** n_p,REAL** 
   int file_id; // id for file
   int a_dim_id;  // ids for dimensions
   int a_id,ne_id,Ti_id,Te_id; // ids for variables
-  size_t *n;   
+  size_t *n;
   int error_code;		// non-zero means netcdf error
-     
+
   *n_prof=(int*)PyMem_Malloc(sizeof(int));
   n=(size_t *)PyMem_Malloc(sizeof(size_t));
-  
+
   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
-     
+
   if ((error_code = nc_inq_dimid(file_id, "profiles_radial_grid", &a_dim_id))) // get the dimension id
     ERR(error_code);
   if ((error_code = nc_inq_dimlen(file_id,a_dim_id,n)))
@@ -125,7 +125,7 @@ int loadNTProfiles(const char* fname,int** n_prof,REAL** a_p, REAL** n_p,REAL** 
   *Ti_p = (REAL*)PyMem_Malloc(sizeof(REAL)* (*n));
   *Te_p = (REAL*)PyMem_Malloc(sizeof(REAL)* (*n));
   PyMem_Free(n);
-  
+
   if ((error_code = nc_get_var_double(file_id,a_id,*a_p)))
     ERR(error_code);
   if ((error_code = nc_get_var_double(file_id,ne_id,*n_p)))
@@ -181,17 +181,17 @@ int writeTextFile(char *fname,int n,REAL Rwant[],REAL Zwant[],REAL a[],REAL thet
   int time_dim_id, toroidal_dim_id, mgrid_dim_id;
   int d3_dim_ids[ARRAY3D]; // ids for dimensions: time steps,toroidal,poloidal slice; also 3d array of these 3 dimensions
   int phi_id; // ids for 2D variable arrays
-     
+
   int error_code;		// non-zero means netcdf error
   if ((error_code = nc_create(fname, NC_CLOBBER, &file_id))) // create & open the netcdf file
     ERR(error_code);
 
      // define the dimensions
-  if ((error_code = nc_def_dim(file_id, "timesteps", nTimeSteps, &time_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "timesteps", nTimeSteps, &time_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "ntoroidal", ntoroidal, &toroidal_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "ntoroidal", ntoroidal, &toroidal_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "mgrid", mgrid, &mgrid_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "mgrid", mgrid, &mgrid_dim_id)))
     ERR(error_code);
 
   d3_dim_ids[0] = time_dim_id;	// give lengths of each dimension
@@ -201,20 +201,20 @@ int writeTextFile(char *fname,int n,REAL Rwant[],REAL Zwant[],REAL a[],REAL thet
    // define the variables
   if ((error_code = nc_def_var(file_id,"potential",NC_REAL,ARRAY3D,d3_dim_ids,&phi_id)))
     ERR(error_code);
-  
+
   // define the unit for each variable
  if ((error_code = nc_put_att_text(file_id, phi_id, UNITS, strlen(KEV), KEV)))
       ERR(error_code);
 
   if ((error_code = nc_enddef(file_id))) // end define mode
     ERR(error_code);
-     
+
   // write the data to the file
   // 3D arrays
   if ((error_code = nc_put_var_real(file_id,phi_id,phi)))
     ERR(error_code);
 
-  // close the file 
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
   return 0;
@@ -229,25 +229,25 @@ int writeFlucCoordFile(char *fname,int nx,int ny,int nz,REAL x[],REAL y[],REAL z
   int x_dim_id, y_dim_id,z_dim_id,xyz_dim_ids[ARRAY3D];  // ids for dimensions: interior coords, boundary coords, 2d array of r,z dimensions
   int nx_id,ny_id,nz_id,r_mag_axis_id,z_mag_axis_id; // ids for scalar variables
   int x_id,y_id,z_id,Rwant_id,Zwant_id,zeta_id,Ract_id,Zact_id,a_id,theta_id,Rinitial_id,Zinitial_id; // ids for 3d arrays
-     
+
   int error_code;		// non-zero means netcdf error
-  
+
   if ((error_code = nc_create(fname, NC_CLOBBER, &file_id))) // create & open the netcdf file
     ERR(error_code);
 
      // define the dimensions
-  if ((error_code = nc_def_dim(file_id, "x_dim", nx, &x_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "x_dim", nx, &x_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "y_dim", ny, &y_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "y_dim", ny, &y_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "z_dim", ny, &z_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "z_dim", ny, &z_dim_id)))
     ERR(error_code);
 
   xyz_dim_ids[0] = x_dim_id;	// give lengths of each dimension
-  xyz_dim_ids[1] = y_dim_id;	// 
-  xyz_dim_ids[2] = z_dim_id;	// 
+  xyz_dim_ids[1] = y_dim_id;	//
+  xyz_dim_ids[2] = z_dim_id;	//
 
-    
+
   // define the variables
   // scalar variables
 if ((error_code = nc_def_var(file_id,"nx",NC_INT,SCALAR,NULL,&nx_id)))
@@ -260,7 +260,7 @@ if ((error_code = nc_def_var(file_id,"nz",NC_INT,SCALAR,NULL,&nz_id)))
     ERR(error_code);
 if ((error_code = nc_def_var(file_id,"Z_mag_axis",NC_REAL,SCALAR,NULL,&z_mag_axis_id)))
     ERR(error_code);
-  // 3-D arrays 
+  // 3-D arrays
   if ((error_code = nc_def_var(file_id,"a",NC_REAL,ARRAY3D,xyz_dim_ids,&a_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"theta",NC_REAL,ARRAY3D,xyz_dim_ids,&theta_id)))
@@ -278,14 +278,14 @@ if ((error_code = nc_def_var(file_id,"z",NC_REAL,ARRAY3D,xyz_dim_ids,&z_id)))
   if ((error_code = nc_def_var(file_id,"Zwant",NC_REAL,ARRAY3D,xyz_dim_ids,&Zwant_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"R",NC_REAL,ARRAY3D,xyz_dim_ids,&Ract_id)))
-    ERR(error_code);  
+    ERR(error_code);
   if ((error_code = nc_def_var(file_id,"Z",NC_REAL,ARRAY3D,xyz_dim_ids,&Zact_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"Rinitial",NC_REAL,ARRAY3D,xyz_dim_ids,&Rinitial_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"Zinitial",NC_REAL,ARRAY3D,xyz_dim_ids,&Zinitial_id)))
     ERR(error_code);
-  
+
   // define the unit for each variable
  if ((error_code = nc_put_att_text(file_id, x_id, UNITS, strlen(METERS), METERS)))
       ERR(error_code);
@@ -304,7 +304,7 @@ if ((error_code = nc_put_att_text(file_id, Zact_id, UNITS, strlen(METERS), METER
 
   if ((error_code = nc_enddef(file_id))) // end define mode
     ERR(error_code);
-     
+
   // write the data to the file
   // scalars
 if ((error_code = nc_put_var_int(file_id,nx_id,&nx)))
@@ -342,9 +342,9 @@ if ((error_code = nc_put_var_real(file_id,z_id,z)))
     ERR(error_code);
   if ((error_code = nc_put_var_real(file_id,Zinitial_id,Zinitial)))
     ERR(error_code);
-  
-     
-  // close the file 
+
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
 
@@ -360,13 +360,13 @@ int readFlucCoordFile(char *fname,size_t *nx,size_t *ny,size_t *nz,size_t *ntime
   int file_id; // id for file
   int x_dim_id, y_dim_id,z_dim_id, xyz_dim_ids, timesteps_dim_id;  // ids for dimensions
   int a_id,theta_id,zeta_id,timesteps_id; // ids for variables
-     
+
   int error_code;		// non-zero means netcdf error
-     
-  
+
+
   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
-     
+
   if ((error_code = nc_inq_dimid(file_id, "x_dim", &x_dim_id))) // get the dimension id
     ERR(error_code);
   if ((error_code = nc_inq_dimlen(file_id, x_dim_id, nx))) // get the dimension length
@@ -388,8 +388,8 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
   *theta = (REAL *)PyMem_Malloc(space3d);
   *zeta = (REAL *)PyMem_Malloc(space3d);
   *timesteps = (int *)PyMem_Malloc(*ntimesteps*sizeof(int));
- 
-     
+
+
   // get the variable ids
     if ((error_code = nc_inq_varid(file_id,"a",&a_id)))
     ERR(error_code);
@@ -399,8 +399,8 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
     ERR(error_code);
   if ((error_code = nc_inq_varid(file_id,"timesteps",&timesteps_id)))
     ERR(error_code);
-  
-  
+
+
   // read in the data to memory
     if ((error_code = nc_get_var_real(file_id,a_id,*a)))
     ERR(error_code);
@@ -410,11 +410,11 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
     ERR(error_code);
   if ((error_code = nc_get_var_int(file_id,timesteps_id,*timesteps)))
     ERR(error_code);
-     
-  // close the file 
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
-     
+
 
   return 0;
 }
@@ -430,10 +430,10 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
 //   size_t Nx,Ny,Nz;
 //   int ndims,x_dim_id, y_dim_id,z_dim_id,npts_dim_id;  // id for dimension
 //   int x_id,y_id,z_id; // id for variables
-     
+
 //   int error_code;		// non-zero means netcdf error
-     
-  
+
+
 //   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
 //     ERR(error_code);
 
@@ -475,8 +475,8 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
 //   *x = (REAL *)PyMem_Malloc(Nx*sizeof(REAL));
 //   *y = (REAL *)PyMem_Malloc(Ny*sizeof(REAL));
 //   *z = (REAL *)PyMem_Malloc(Nz*sizeof(REAL));
- 
-     
+
+
 //   // get the variable ids
 //     if ((error_code = nc_inq_varid(file_id,"xx",&x_id)))
 //     ERR(error_code);
@@ -484,8 +484,8 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
 //     ERR(error_code);
 //   if ((error_code = nc_inq_varid(file_id,"zz",&z_id)))
 //     ERR(error_code);
-  
-  
+
+
 //   // read in the data to memory
 //     if ((error_code = nc_get_var_real(file_id,x_id,*x)))
 //     ERR(error_code);
@@ -493,11 +493,11 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
 //     ERR(error_code);
 //   if ((error_code = nc_get_var_real(file_id,z_id,*z)))
 //     ERR(error_code);
-     
-//   // close the file 
+
+//   // close the file
 //   if ((error_code = nc_close(file_id)))
 //     ERR(error_code);
-     
+
 //   return 0;
 // }
 
@@ -511,10 +511,10 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
 //   size_t Nr,Nz;
 //   int ndims,R_dim_id, Z_dim_id,npts_dim_id;  // id for dimension
 //   int R_id,Z_id; // id for variables
-     
+
 //   int error_code;		// non-zero means netcdf error
-     
-  
+
+
 //   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
 //     ERR(error_code);
 
@@ -545,29 +545,29 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
 //    READ_SPECIFIED_2D_COORD_FILE_ERR("error reading coordinate file; see documentation for proper structure.");
 //  }
 
-  
+
 //   // allocate arrays
 //   *R = (REAL *)PyMem_Malloc(Nr*sizeof(REAL));
 //   *Z = (REAL *)PyMem_Malloc(Nz*sizeof(REAL));
-  
-     
+
+
 //   // get the variable ids
 //     if ((error_code = nc_inq_varid(file_id,"rr",&R_id)))
 //     ERR(error_code);
 //    if ((error_code = nc_inq_varid(file_id,"zz",&Z_id)))
 //     ERR(error_code);
-  
-  
+
+
 //   // read in the data to memory
 //     if ((error_code = nc_get_var_real(file_id,R_id,*R)))
 //     ERR(error_code);
 //    if ((error_code = nc_get_var_real(file_id,Z_id,*Z)))
 //     ERR(error_code);
-     
-//   // close the file 
+
+//   // close the file
 //   if ((error_code = nc_close(file_id)))
 //     ERR(error_code);
-     
+
 //   return 0;
 // }
 
@@ -581,9 +581,9 @@ int writeFlucFile(char *fname,int nx,int ny,int nz,REAL phi[]){
   int x_dim_id, y_dim_id,z_dim_id,xyz_dim_ids[ARRAY3D];  // ids for dimensions: interior coords, boundary coords, 2d array of r,z dimensions
   size_t Nx,Ny,Nz; // ids for scalar variables
   int phi_id; // ids for 3d arrays
-     
+
   int error_code;		// non-zero means netcdf error
-  
+
   if ((error_code = nc_open(fname, NC_WRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
 
@@ -612,23 +612,23 @@ if ((error_code = nc_inq_dimid(file_id, "z_dim", &z_dim_id))) // get the dimensi
 
   if ((error_code = nc_redef(file_id))) // enter re-define mode to add a variable
     ERR(error_code);
-      
+
   // define the variables
-  // 3-D arrays 
+  // 3-D arrays
   if ((error_code = nc_def_var(file_id,"phi",NC_REAL,ARRAY3D,xyz_dim_ids,&phi_id)))
     ERR(error_code);
 
 
   if ((error_code = nc_enddef(file_id))) // end define mode
     ERR(error_code);
-     
+
   // write the data to the file
   // 3D arrays
   if ((error_code = nc_put_var_real(file_id,phi_id,phi)))
     ERR(error_code);
-  
-     
-  // close the file 
+
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
 
@@ -651,9 +651,9 @@ int write2dSnapshot(char* fname, int nr,int nz, REAL R1d[],REAL Z1d[], REAL T[],
 
   if ((error_code = nc_create(fname, NC_CLOBBER, &file_id))) // create & open the netcdf file
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "r_dim", nr, &r_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "r_dim", nr, &r_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "z_dim", nz, &z_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "z_dim", nz, &z_dim_id)))
     ERR(error_code);
 
   rz_dim_ids[0] = z_dim_id;	// give lengths of each dimension
@@ -687,7 +687,7 @@ int write2dSnapshot(char* fname, int nr,int nz, REAL R1d[],REAL Z1d[], REAL T[],
     ERR(error_code);
   if ((error_code = nc_put_var_real(file_id,ne_id,ne)))
     ERR(error_code);
-  
+
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
 
@@ -706,25 +706,25 @@ int write2dNetcdfFile(char *fname,int nr,int nz,size_t ntimesteps,int nboundary,
   int R1d_id,Z1d_id,R_bdy_id,Z_bdy_id,timesteps_id; // ids for 1D variable arrays
   int a_id,theta_id,R_id,Z_id,Bm_id,Bpol_id,T_id,Te_id,P_id,ne_id,ne_tilde_id,phi_id,
     Rinitial_id,Zinitial_id,qprofile_id; // ids for 2D variable arrays
-     
+
   int error_code;		// non-zero means netcdf error
-  
+
   // if(nr!=nz){
 //     fprintf(stderr,"writeNetcdfFile: nr (%d) and nz (%d) not equal\n",nr,nz);
 //     exit(1);
-//   }   
-  
+//   }
+
   if ((error_code = nc_create(fname, NC_CLOBBER, &file_id))) // create & open the netcdf file
     ERR(error_code);
 
      // define the dimensions
-  if ((error_code = nc_def_dim(file_id, "r_dim", nr, &r_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "r_dim", nr, &r_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "z_dim", nz, &z_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "z_dim", nz, &z_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "timesteps_dim", ntimesteps, &timesteps_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "timesteps_dim", ntimesteps, &timesteps_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "dim_404", nboundary, &rbdy_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "dim_404", nboundary, &rbdy_dim_id)))
     ERR(error_code);
 
   rz_dim_ids[0] = z_dim_id;	// give lengths of each dimension
@@ -732,11 +732,11 @@ int write2dNetcdfFile(char *fname,int nr,int nz,size_t ntimesteps,int nboundary,
   rzt_dim_ids[0] = timesteps_dim_id;	// for fluctuation data
   rzt_dim_ids[1] = z_dim_id;	//
   rzt_dim_ids[2] = r_dim_id;	//
-  
+
 
 //   if ((error_code = nc_def_dim(file_id, "dim_101_2", nr*nz, &dim_id2))) // define the dimensions for 2D arrays
 //     ERR(error_code);
-     
+
   // define the variables
   // scalar variables
 if ((error_code = nc_def_var(file_id,"nr",NC_INT,SCALAR,NULL,&nr_id)))
@@ -760,7 +760,7 @@ if ((error_code = nc_def_var(file_id,"rbdy",NC_REAL,ARRAY1D,&rbdy_dim_id,&R_bdy_
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"zbdy",NC_REAL,ARRAY1D,&rbdy_dim_id,&Z_bdy_id)))
     ERR(error_code);
-  // 2-D arrays 
+  // 2-D arrays
   if ((error_code = nc_def_var(file_id,"a",NC_REAL,ARRAY2D,rz_dim_ids,&a_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"theta",NC_REAL,ARRAY2D,rz_dim_ids,&theta_id)))
@@ -778,7 +778,7 @@ if ((error_code = nc_def_var(file_id,"bpol",NC_REAL,ARRAY2D,rz_dim_ids,&Bpol_id)
   if ((error_code = nc_def_var(file_id,"te",NC_REAL,ARRAY2D,rz_dim_ids,&Te_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"qrz",NC_REAL,ARRAY2D,rz_dim_ids,&qprofile_id)))
-    ERR(error_code);  
+    ERR(error_code);
   if ((error_code = nc_def_var(file_id,"P",NC_REAL,ARRAY2D,rz_dim_ids,&P_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"ne",NC_REAL,ARRAY2D,rz_dim_ids,&ne_id)))
@@ -792,7 +792,7 @@ if ((error_code = nc_def_var(file_id,"ne_tilde",NC_REAL,ARRAY3D,rzt_dim_ids,&ne_
     ERR(error_code);
 if ((error_code = nc_def_var(file_id,"phi",NC_REAL,ARRAY3D,rzt_dim_ids,&phi_id)))
     ERR(error_code);
-  
+
   // define the unit for each variable
  if ((error_code = nc_put_att_text(file_id, R1d_id, UNITS, strlen(METERS), METERS)))
       ERR(error_code);
@@ -813,7 +813,7 @@ if ((error_code = nc_put_att_text(file_id, ne_tilde_id, UNITS, strlen(M3), M3)))
 
   if ((error_code = nc_enddef(file_id))) // end define mode
     ERR(error_code);
-     
+
   // write the data to the file
   // scalars
 if ((error_code = nc_put_var_int(file_id,nr_id,&nr)))
@@ -869,8 +869,8 @@ if ((error_code = nc_put_var_real(file_id,ne_tilde_id,ne_tilde)))
    ERR(error_code);
  if ((error_code = nc_put_var_real(file_id,phi_id,phi)))
    ERR(error_code);
-     
-  // close the file 
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
 
@@ -889,32 +889,32 @@ int write3dNetcdfFile(char *fname,int nx,int ny,int nz,size_t ntimesteps,int nbo
   int x1d_id,y1d_id,z1d_id,timesteps_id,R_bdy_id,Z_bdy_id; // ids for 1D variable arrays
   int a_id,theta_id,zeta_id,Rwant_id,Zwant_id,Ract_id,Zact_id,Bm_id,Bpol_id,T_id,Te_id,
     P_id,ne_id,ne_tilde_id,phi_id,Rinitial_id,Zinitial_id,qprofile_id; // ids for 3D variable arrays
-     
+
   int error_code;		// non-zero means netcdf error
-     
+
   if ((error_code = nc_create(fname, NC_CLOBBER, &file_id))) // create & open the netcdf file
     ERR(error_code);
 
      // define the dimensions
-  if ((error_code = nc_def_dim(file_id, "x_dim", nx, &x_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "x_dim", nx, &x_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "y_dim", ny, &y_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "y_dim", ny, &y_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "z_dim", nz, &z_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "z_dim", nz, &z_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "timesteps_dim", ntimesteps, &timesteps_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "timesteps_dim", ntimesteps, &timesteps_dim_id)))
     ERR(error_code);
-  if ((error_code = nc_def_dim(file_id, "boundary_dim", nboundary, &rbdy_dim_id))) 
+  if ((error_code = nc_def_dim(file_id, "boundary_dim", nboundary, &rbdy_dim_id)))
     ERR(error_code);
 
   xyz_dim_ids[0] = z_dim_id;	// give lengths of each dimension
-  xyz_dim_ids[1] = y_dim_id;	// 
-  xyz_dim_ids[2] = x_dim_id;	// 
+  xyz_dim_ids[1] = y_dim_id;	//
+  xyz_dim_ids[2] = x_dim_id;	//
   xyzt_dim_ids[0] = timesteps_dim_id;	// for fluctuations
-  xyzt_dim_ids[1] = z_dim_id;	// 
-  xyzt_dim_ids[2] = y_dim_id;	// 
-  xyzt_dim_ids[3] = x_dim_id;	// 
-       
+  xyzt_dim_ids[1] = z_dim_id;	//
+  xyzt_dim_ids[2] = y_dim_id;	//
+  xyzt_dim_ids[3] = x_dim_id;	//
+
   // define the variables
   // scalar variables
 if ((error_code = nc_def_var(file_id,"nx",NC_INT,SCALAR,NULL,&nx_id)))
@@ -942,7 +942,7 @@ if ((error_code = nc_def_var(file_id,"rbdy",NC_REAL,ARRAY1D,&rbdy_dim_id,&R_bdy_
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"zbdy",NC_REAL,ARRAY1D,&rbdy_dim_id,&Z_bdy_id)))
     ERR(error_code);
-  // 3-D arrays 
+  // 3-D arrays
   if ((error_code = nc_def_var(file_id,"a",NC_REAL,ARRAY3D,xyz_dim_ids,&a_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"theta",NC_REAL,ARRAY3D,xyz_dim_ids,&theta_id)))
@@ -966,7 +966,7 @@ if ((error_code = nc_def_var(file_id,"bpol",NC_REAL,ARRAY3D,xyz_dim_ids,&Bpol_id
   if ((error_code = nc_def_var(file_id,"te",NC_REAL,ARRAY3D,xyz_dim_ids,&Te_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"qrz",NC_REAL,ARRAY3D,xyz_dim_ids,&qprofile_id)))
-    ERR(error_code);  
+    ERR(error_code);
   if ((error_code = nc_def_var(file_id,"P",NC_REAL,ARRAY3D,xyz_dim_ids,&P_id)))
     ERR(error_code);
   if ((error_code = nc_def_var(file_id,"ne",NC_REAL,ARRAY3D,xyz_dim_ids,&ne_id)))
@@ -980,7 +980,7 @@ if ((error_code = nc_def_var(file_id,"ne_tilde",NC_REAL,ARRAY4D,xyzt_dim_ids,&ne
     ERR(error_code);
 if ((error_code = nc_def_var(file_id,"phi",NC_REAL,ARRAY4D,xyzt_dim_ids,&phi_id)))
     ERR(error_code);
-  
+
   // define the unit for each variable
  if ((error_code = nc_put_att_text(file_id, x1d_id, UNITS, strlen(METERS), METERS)))
       ERR(error_code);
@@ -1003,7 +1003,7 @@ if ((error_code = nc_put_att_text(file_id, ne_tilde_id, UNITS, strlen(M3), M3)))
 
   if ((error_code = nc_enddef(file_id))) // end define mode
     ERR(error_code);
-     
+
   // write the data to the file
   // scalars
 if ((error_code = nc_put_var_int(file_id,nx_id,&nx)))
@@ -1069,8 +1069,8 @@ if ((error_code = nc_put_var_real(file_id,ne_tilde_id,ne_tilde)))
    ERR(error_code);
  if ((error_code = nc_put_var_real(file_id,phi_id,phi)))
    ERR(error_code);
-     
-  // close the file 
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
 
@@ -1091,13 +1091,13 @@ int readNetcdfFile(char *fname,int *nr,int *nz,REAL *R1d[],REAL *Z1d[],REAL *a[]
   int r_dim_id, z_dim_id, rz_dim_ids;  // id for dimension
   size_t m;
   int R1d_id,Z1d_id,a_id,theta_id,R_id,Z_id,Bm_id,Bpol_id,T_id,Te_id,P_id,ne_id,Rinitial_id,Zinitial_id,qprofile_id; // id for variables
-     
+
   int error_code;		// non-zero means netcdf error
-     
-  
+
+
   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
-     
+
   if ((error_code = nc_inq_dimid(file_id, "dim_101", &r_dim_id))) // get the dimension id
     ERR(error_code);
   if ((error_code = nc_inq_dimlen(file_id, r_dim_id, &m))) // get the dimension length
@@ -1108,7 +1108,7 @@ int readNetcdfFile(char *fname,int *nr,int *nz,REAL *R1d[],REAL *Z1d[],REAL *a[]
 //     ERR(error_code);
 //   if ((error_code = nc_inq_dimlen(file_id, dim_id2, &m))) // get the dimension length
 //     ERR(error_code);
- 
+
 //   if(m != *nr*(*nz)){
 //     fprintf(stderr,"readNetcdfFile Error: nr != nz\n  nr:%d,nz:%d,m:%d\n",*nr,*nz,m);
 //     exit(1);
@@ -1131,7 +1131,7 @@ int readNetcdfFile(char *fname,int *nr,int *nz,REAL *R1d[],REAL *Z1d[],REAL *a[]
   *Rinitial = (REAL *)PyMem_Malloc(space2d);
   *Zinitial = (REAL *)PyMem_Malloc(space2d);
   *qprofile = (REAL *)PyMem_Malloc(space2d);
-     
+
   // get the variable ids
   if ((error_code = nc_inq_varid(file_id,"rr",&R1d_id)))
     ERR(error_code);
@@ -1163,7 +1163,7 @@ if ((error_code = nc_inq_varid(file_id,"Bpol",&Bpol_id)))
     ERR(error_code);
   if ((error_code = nc_inq_varid(file_id,"qrz",&qprofile_id)))
     ERR(error_code);
-  
+
   // read in the data to memory
   if ((error_code = nc_get_var_real(file_id,R1d_id,*R1d)))
     ERR(error_code);
@@ -1195,11 +1195,11 @@ if ((error_code = nc_get_var_real(file_id,Bpol_id,*Bpol)))
     ERR(error_code);
   if ((error_code = nc_get_var_real(file_id,qprofile_id,*qprofile)))
     ERR(error_code);
-     
-  // close the file 
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
-     
+
 
   return 0;
 }
@@ -1215,17 +1215,17 @@ int readSpecified2dCoordFile(char *fname,size_t *nr,size_t *nz,size_t *ntimestep
   int file_id; // id for file
   int r_dim_id, z_dim_id, timesteps_dim_id;  // ids for dimension
   int R1d_id,Z1d_id,zeta_id,timesteps_id; // ids for variables
-     
+
   int error_code;		// non-zero means netcdf error
-  
+
   #if VERBOSE > 0
    fprintf(stderr,"Reading coordinate file: %s\n",fname);
   #endif
-   
-  
+
+
   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
-     
+
   if ((error_code = nc_inq_dimid(file_id, "r_dim", &r_dim_id))) // get the dimension id
     ERR(error_code);
   if ((error_code = nc_inq_dimlen(file_id, r_dim_id, nr))) // get the dimension length
@@ -1245,7 +1245,7 @@ if ((error_code = nc_inq_dimlen(file_id, timesteps_dim_id, ntimesteps))) // get 
   *R1d = (REAL *)PyMem_Malloc(*nr*sizeof(REAL));
   *Z1d = (REAL *)PyMem_Malloc(*nz*sizeof(REAL));
   *timesteps = (int *)PyMem_Malloc(*ntimesteps*sizeof(int));
-     
+
   // get the variable ids
   if ((error_code = nc_inq_varid(file_id,"r",&R1d_id)))
     ERR(error_code);
@@ -1255,7 +1255,7 @@ if ((error_code = nc_inq_dimlen(file_id, timesteps_dim_id, ntimesteps))) // get 
     ERR(error_code);
   if ((error_code = nc_inq_varid(file_id,"zeta",&zeta_id)))
     ERR(error_code);
-  
+
   // read in the data to memory
   if ((error_code = nc_get_var_real(file_id,R1d_id,*R1d)))
     ERR(error_code);
@@ -1265,11 +1265,11 @@ if ((error_code = nc_inq_dimlen(file_id, timesteps_dim_id, ntimesteps))) // get 
     ERR(error_code);
   if ((error_code = nc_get_var_real(file_id,zeta_id,zeta)))
     ERR(error_code);
-     
-  // close the file 
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
-     
+
   return 0;
 }
  */
@@ -1283,13 +1283,13 @@ int readSpecified3dCoordFile(char *fname,size_t *nx,size_t *ny,size_t *nz,size_t
   int file_id; // id for file
   int x_dim_id, y_dim_id, z_dim_id, timesteps_dim_id;  // ids for dimension
   int x1d_id,y1d_id,z1d_id,timesteps_id; // ids for variables
-     
+
   int error_code;		// non-zero means netcdf error
-     
-  
+
+
   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
-     
+
   if ((error_code = nc_inq_dimid(file_id, "x_dim", &x_dim_id))) // get the dimension id
     ERR(error_code);
   if ((error_code = nc_inq_dimlen(file_id, x_dim_id, nx))) // get the dimension length
@@ -1312,7 +1312,7 @@ if ((error_code = nc_inq_dimlen(file_id, timesteps_dim_id, ntimesteps))) // get 
   *y1d = (REAL *)PyMem_Malloc(*ny*sizeof(REAL));
   *z1d = (REAL *)PyMem_Malloc(*nz*sizeof(REAL));
   *timesteps = (int *)PyMem_Malloc(*ntimesteps*sizeof(int));
-     
+
   // get the variable ids
   if ((error_code = nc_inq_varid(file_id,"x",&x1d_id)))
     ERR(error_code);
@@ -1322,7 +1322,7 @@ if ((error_code = nc_inq_dimlen(file_id, timesteps_dim_id, ntimesteps))) // get 
     ERR(error_code);
   if ((error_code = nc_inq_varid(file_id,"timesteps",&timesteps_id)))
     ERR(error_code);
-  
+
   // read in the data to memory
   if ((error_code = nc_get_var_real(file_id,x1d_id,*x1d)))
     ERR(error_code);
@@ -1332,11 +1332,11 @@ if ((error_code = nc_inq_dimlen(file_id, timesteps_dim_id, ntimesteps))) // get 
     ERR(error_code);
   if ((error_code = nc_get_var_int(file_id,timesteps_id,*timesteps)))
     ERR(error_code);
-     
-  // close the file 
+
+  // close the file
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
-     
+
   return 0;
 }
  */
@@ -1387,7 +1387,7 @@ int phiArrRemoveDuplicates(int nTimeSteps, int ntoroidal,int mgrid,int mpsi,int 
 }
 
 //! Reads all potential files in a given directory
-/*! Reads all potential files in a given directory, of the form PHI.xxxxx , where "xxxxx" is 
+/*! Reads all potential files in a given directory, of the form PHI.xxxxx , where "xxxxx" is
     the toroidal index (poloidal slice) for the potential fluctuations it contains.  This
     function can read in data from as many time steps as desired, and also reads in other
     useful information:
@@ -1411,7 +1411,7 @@ int readAllPhiFiles(char *path,int nTimeSteps,int timeSteps[],int phi_integers[]
 
   int mgrid = phi_integers[3];	   // unpack # of grid points at each toroidal location
   int ntoroidal = phi_integers[5]; // unpack the number of toroidal grid points (number of PHI.000xx files)
-  
+
   #if DEBUG > 0
   ntoroidal = 16;		// for development, so we don't need to read as many files
   #endif
@@ -1427,13 +1427,13 @@ int readAllPhiFiles(char *path,int nTimeSteps,int timeSteps[],int phi_integers[]
     MaxNtor=ntoroidal;
   REAL ***phi_arr = realAllocContiguous3d(nTimeSteps,MaxNtor,mgrid);
   *phi = phi_arr;
-  
+
   // copy the potential fluctuations from the timesteps of interest to this new array
   for(i=0;i<nTimeSteps;i++)
     for(j=0;j<mgrid;j++) phi_arr[i][0][j] = phi_steps[timeSteps[i]][j];
   // free memory associated with phi_steps, since another block will be assigned with each call to readPhiFile
   realFreeDiscontiguous2d(*nsteps,&phi_steps);
-  
+
 
   // loop reading all the other potential files, keeping only the potential fluc. for the timestep of interest
   //Lei Shi temp
@@ -1487,7 +1487,7 @@ int readPhiFile(char *fname,int phi_integers[],REAL phi_reals[N_PHI_REALS],int *
   int mgrid = phi_integers[3];	// unlike the fortran convention, phi_steps[isteps][0:mgrid-1]
   int mzetamax = phi_integers[4];
   int ntoroidal = phi_integers[5];
-  
+
   int space1dint = mpsi*sizeof(int);
   int space1dreal = mpsi*sizeof(REAL);
   int space2d = mzeta*mgrid*sizeof(REAL);
@@ -1550,8 +1550,8 @@ if(advanceFortranRecord(inputFile,fortranRecordByteCount))
     //   is called multiple times with the same arguments
     *phi_steps = (REAL **)PyMem_Realloc((void**)*phi_steps,sizeof(REAL *)*(i+1));
     (*phi_steps)[i] = (REAL *)PyMem_Malloc(space2d);
-    
-    fortranRecordByteCount = mzeta*(mgrid)*sizeof(REAL); 
+
+    fortranRecordByteCount = mzeta*(mgrid)*sizeof(REAL);
     if(advanceFortranRecord(inputFile,fortranRecordByteCount))
       READPHI_ERR("Fortran record byte count mismatch"); // begin record
     if(fread((*phi_steps)[i],sizeof(REAL),mzeta*mgrid,inputFile) != mzeta*mgrid)
@@ -1569,7 +1569,7 @@ if(advanceFortranRecord(inputFile,fortranRecordByteCount))
 }
 
 
-//The following two functions take care of the new output files: DEN.XXXXX 
+//The following two functions take care of the new output files: DEN.XXXXX
 // These files contains non-adiabatic response of ions and electrons. namely, the non-adiabatic ti, ni, te, ne.
 
 
@@ -1593,7 +1593,7 @@ int readAllDenFiles(char *path,int nTimeSteps,int timeSteps[],int phi_integers[]
 
   int mgrid = phi_integers[3];	   // unpack # of grid points at each toroidal location
   int ntoroidal = phi_integers[5]; // unpack the number of toroidal grid points (number of PHI.000xx files)
-  
+
   #if DEBUG > 0
   ntoroidal = 16;		// for development, so we don't need to read as many files
   #endif
@@ -1616,7 +1616,7 @@ int readAllDenFiles(char *path,int nTimeSteps,int timeSteps[],int phi_integers[]
   *te = te_arr;
   REAL ***ne_arr = realAllocContiguous3d(nTimeSteps,MaxNtor,mgrid);
   *ne = ne_arr;
-  
+
   // copy the non-adiabatic responses from the timesteps of interest to this new array
   for(i=0;i<nTimeSteps;i++)
     for(j=0;j<mgrid;j++) \
@@ -1631,7 +1631,7 @@ int readAllDenFiles(char *path,int nTimeSteps,int timeSteps[],int phi_integers[]
   realFreeDiscontiguous2d(*nsteps,&ni_steps);
   realFreeDiscontiguous2d(*nsteps,&te_steps);
   realFreeDiscontiguous2d(*nsteps,&ne_steps);
-  
+
 
   // loop reading all the other potential files, keeping only the potential fluc. for the timestep of interest
   //Lei Shi temp
@@ -1693,7 +1693,7 @@ int readDenFile(char *fname,int phi_integers[],REAL phi_reals[N_PHI_REALS],int *
   int mgrid = phi_integers[3];	// unlike the fortran convention, phi_steps[isteps][0:mgrid-1]
   int mzetamax = phi_integers[4];
   int ntoroidal = phi_integers[5];
-  
+
   int space1dint = mpsi*sizeof(int);
   int space1dreal = mpsi*sizeof(REAL);
   int space2d = mzeta*mgrid*sizeof(REAL);
@@ -1769,15 +1769,15 @@ int readDenFile(char *fname,int phi_integers[],REAL phi_reals[N_PHI_REALS],int *
 
     *te_steps = (REAL **)PyMem_Realloc((void**)*te_steps,sizeof(REAL *)*(i+1));
     (*te_steps)[i] = (REAL *)PyMem_Malloc(space2d);
-    
-    fortranRecordByteCount = 4*mzeta*(mgrid)*sizeof(REAL); 
+
+    fortranRecordByteCount = 4*mzeta*(mgrid)*sizeof(REAL);
 
     if(advanceFortranRecord(inputFile,fortranRecordByteCount))
       READPHI_ERR("Fortran record byte count mismatch"); // begin record
-    
+
     if(fread((*ni_steps)[i],sizeof(REAL),mzeta*mgrid,inputFile) != mzeta*mgrid)
       READPHI_ERR("ni data read error");
-    
+
     if(fread((*ti_steps)[i],sizeof(REAL),mzeta*mgrid,inputFile) != mzeta*mgrid)
       READPHI_ERR("ti data read error");
 
@@ -1825,7 +1825,7 @@ REAL *readPsiGridFile(char* fname,int mpsi){
   int m;
   if ((error_code = nc_open(fname, NC_NOWRITE, &file_id))) // create & open the netcdf file
     ERR(error_code);
-     
+
   if ((error_code = nc_inq_dimid(file_id, "mpsip1", &psi_dim_id))) // get the dimension id
     ERR(error_code);
   if ((error_code = nc_inq_dimlen(file_id, psi_dim_id, &m))) // get the dimension length
@@ -1837,7 +1837,7 @@ REAL *readPsiGridFile(char* fname,int mpsi){
   if ((error_code = nc_inq_varid(file_id,"psi_grid",&psi_id)))
     ERR(error_code);
   if ((error_code = nc_get_var_real(file_id,psi_id,psi_grid)))
-    ERR(error_code); 
+    ERR(error_code);
   if ((error_code = nc_close(file_id)))
     ERR(error_code);
   return psi_grid;

@@ -24,7 +24,7 @@ F92 = pdf.Fq(phi,psi,9)
 
 
 def plotF():
-    
+
     fig, ax = plt.subplots(2,1)
     ax[0].plot(-phi2, np.real(F52), label='q=5/2')
     ax[0].plot(-phi2, np.real(F72), label='q=7/2')
@@ -37,7 +37,7 @@ def plotF():
     ax[0].axhline(y=0, color='k')
     ax[0].axvline(x=0, color='k')
     ax[0].legend(loc='best')
-    
+
     ax[1].plot(-phi2, -np.imag(F52), label='q=5/2')
     ax[1].plot(-phi2, -np.imag(F72), label='q=7/2')
     ax[1].plot(-phi2, -np.imag(F92), label='q=9/2')
@@ -50,10 +50,10 @@ def plotF():
     ax[1].axhline(y=0, color='k')
     ax[1].axvline(x=0, color='k')
     ax[1].legend(loc='best')
-    
+
     return fig
-    
-    
+
+
 mudelta = np.linspace(-30, 30, 1001)
 psi1D = np.linspace(-20, 20, 1001)
 mudelta2D = mudelta[np.newaxis, :] + np.zeros((1001,1001))
@@ -66,17 +66,16 @@ F7_1 = pdf.Fmq(phi2D, psi2D, 1, 7)
 
 
 def plotF2D(F):
-    
+
     fig, ax = plt.subplots()
-    
-    image0= ax.imshow(F, extent=[-30, 30, -20, 20], 
+
+    image0= ax.imshow(F, extent=[-30, 30, -20, 20],
                          origin='lower')
     ax.set_ylabel(r'$\psi$')
     ax.set_xlabel(r'$\mu\delta$')
     fig.colorbar(image0)
-    
+
     return fig
-    
-    
-    
-    
+
+
+
