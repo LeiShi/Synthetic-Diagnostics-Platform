@@ -175,12 +175,20 @@ class RmpLoader(object):
         # has cos and sin part on real and imaginary parts respectively
         self.alpha_m = np.copy(m3d_raw.variables['alpha_real'].data) + \
                      1j*np.copy(m3d_raw.variables['alpha_imag'].data)
+        # Convert the unit of alpha_m to be consistent with SI units
+        # Note that the B_mn quantities are in Gauss while the equilibrium
+        # B field quantities are in Tesla and meter
+        self.alpha_m *= 1e-4
+
         # rescale the perturbation to desired level
         self.alpha_m *= self.scale
+
         # dB_m is the perpendicular component of perturbed magnetic field
         # Fourier decomposition in theta
         self.dB_m = np.copy(m3d_raw.variables['bmn_real'].data) + \
                     1j* np.copy(m3d_raw.variables['bmn_imag'].data)
+        # dB_m is in Gauss, we need to convert it into Tesla
+        self.dB_m *= 1e-4
         self.dB_m *= self.scale
 
         self.A = np.copy(m3d_raw.variables['area'].data)
