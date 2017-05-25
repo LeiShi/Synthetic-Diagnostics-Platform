@@ -6,6 +6,7 @@ Created on Fri Oct 28 15:51:53 2016
 
 basic smoothing techniques
 """
+from __future__ import print_function
 
 def smooth(data, method='121', axis=-1, periodic=0, passes=1):
     r""" Simple averaging smooth over raw data, currently only support
@@ -27,6 +28,6 @@ one is currently not availabel.')
             if periodic == 1:
                 data[..., -1] = data[..., 0] = 0.25*(d1 + dn2 + data[..., 0])
     else:
-        print "smoothing is not done, data has not changed."
+        print("smoothing is not done, data has not changed.")
 
 

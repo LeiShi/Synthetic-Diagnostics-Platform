@@ -20,7 +20,7 @@ class Norm:
 
     Attributes:
         _data: dictionary contains the values of each normalization quantity
-        set_normalization: methed sets the values after Norm opject created
+        set_normalization: method sets the values after Norm opject created
         tell: method returns _data
     """
 
