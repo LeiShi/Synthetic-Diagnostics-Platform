@@ -20,6 +20,10 @@ Currently, SDP has synthetic [ECEI](ECEI2D tutorial.ipynb), [reflectometry](FWR2
 3. **Jupyter Notebook**
 
     This documentation and other tutorials are written in Jupyter Notebook format. Refer to the [Jupyter documentation](http://jupyter.readthedocs.io/en/latest/index.html) if you need help on using this document.
+    
+4. **Git and Git-LFS**
+
+    The most convenient way to obtain SDP is through its GitHub repository. You'll need to be familiar with [Git](https://git-scm.com/). Here is an interactive [tutorial](https://try.github.io/) on Git. Another key tool to successfully clone SDP is the [Git-LFS](https://git-lfs.github.com/). **CLONE WITHOUT Git-LFS WILL RESULT IN MISSING KEY DATA FILES IN THE PACKAGE.**
 
 # Recommended IDE
 
