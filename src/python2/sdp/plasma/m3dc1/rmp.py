@@ -249,7 +249,7 @@ class RmpLoader(object):
         n.
         """
         res = self.m*self.F[:, np.newaxis]+self.n*self.I[:, np.newaxis]
-        self._alpha_mc = 1j*self.A[:, np.newaxis]*self.dB_m/ ((2*np.pi)**4*res)
+        self._alpha_mc = 1j*self.A[:, np.newaxis]*self.dB_m/ ((2*np.pi)**2*res)
 
     def rescale(self, scale=1):
         """Rescale the perturbations"""
