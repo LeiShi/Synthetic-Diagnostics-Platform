@@ -139,7 +139,7 @@ boundary. Check psi values, they should be normalized psi_wall.')
         """
         psi_1d = np.array(psi)
         assert psi_1d.ndim <= 1, "Only 1D array of psi is allowed."
-        assert nzeta%2==1, 'nzeta need to be odd for FFT shifts'
+        assert ntheta%2==1, 'ntheta need to be odd for FFT shifts'
         theta_1d = np.linspace(0, 2*np.pi, ntheta)
         zeta_1d = np.linspace(0, 2*np.pi, nzeta)
 
@@ -151,14 +151,14 @@ boundary. Check psi values, they should be normalized psi_wall.')
         # Note that the convention was alpha = sum alpha_mn*exp(in zeta-im theta)
         # So the inversed relation is alpha_mn = 1/mn sum alpha*exp(-in zeta +
         # im theta)
-        alpha_n = np.fft.fft(alpha_arr,axis=0,norm=None)/nzeta
-        # the np.fft.fft convention has the opposite sign for zeta, we need to
-        # revert the n harmonics, first shift the array to have increasing
+        alpha_m = np.fft.fft(alpha_arr,axis=1,norm=None)/ntheta
+        # the np.fft.fft convention has the opposite sign for theta, we need to
+        # revert the m harmonics, first shift the array to have increasing
         # order
-        alpha_n = np.fft.fftshift(alpha_n, axes=0)
+        alpha_m = np.fft.fftshift(alpha_m, axes=1)
         # revert the whole array
-        alpha_n = np.flip(alpha_n, axis=0)
-        # shift back to FFT order, nzeta is assumed odd
-        alpha_n = np.fft.ifftshift(alpha_n, axes=0)
-        # normal FFT on theta and return
-        return np.fft.fft(alpha_n, axis=1,norm=None)/ntheta
+        alpha_m = np.flip(alpha_m, axis=1)
+        # shift back to FFT order, mtheta is assumed odd
+        alpha_m = np.fft.ifftshift(alpha_m, axes=1)
+        # normal FFT on zeta and return
+        return np.fft.fft(alpha_m, axis=0,norm=None)/nzeta
