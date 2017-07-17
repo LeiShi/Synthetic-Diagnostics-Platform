@@ -139,9 +139,11 @@ boundary. Check psi values, they should be normalized psi_wall.')
         """
         psi_1d = np.array(psi)
         assert psi_1d.ndim <= 1, "Only 1D array of psi is allowed."
-        assert ntheta%2==1, 'ntheta need to be odd for FFT shifts'
-        theta_1d = np.linspace(0, 2*np.pi, ntheta)
-        zeta_1d = np.linspace(0, 2*np.pi, nzeta)
+        assert ntheta%2==0, 'ntheta need to be even for FFT shifts'
+        # take out the periodic point so the FFT is symmetric and can be easily
+        # flipped
+        theta_1d = np.linspace(0, 2*np.pi, ntheta)[0:-1]
+        zeta_1d = np.linspace(0, 2*np.pi, nzeta)[0:-1]
 
         zeta_mesh, theta_mesh, psi_mesh = np.meshgrid(zeta_1d, theta_1d,
                                                       psi_1d, indexing='ij')
