@@ -10,7 +10,7 @@ REAL findMax(int n,REAL data[]){
       locMax=data[i];
   }
   return locMax;
-} 
+}
 REAL findMin(int n,REAL data[]){
   REAL locMin=data[0];
   int i;

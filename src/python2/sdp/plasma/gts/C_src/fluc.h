@@ -14,7 +14,7 @@
 
 // files
 extern char* NTFileName; // used by get_fluctuations
-extern char* GTS_DATA_DIR; 
+extern char* GTS_DATA_DIR;
 
 // linear interpolation between two points
 #define N_NEAREST_TOROIDAL 2
@@ -66,7 +66,7 @@ int traceBtoTorodialPosn(int npts,int ntoroidal,int mpsi,REAL a[],REAL thetaOut[
   REAL *phi = (REAL *)PyMem_Malloc(n3d*sizeof(REAL));
   int flag[n3d];
   status = get_fluctuations(n3d,ntimesteps,phi,a,theta,zeta,timesteps,flag);
-  
+
   // write to netCDF file
   status = writeFlucFile(FLUC_FNAME,nx,ny,nz,phi);
 
@@ -79,7 +79,7 @@ int traceBtoTorodialPosn(int npts,int ntoroidal,int mpsi,REAL a[],REAL thetaOut[
 int get_fluctuations(int npts,size_t nTimeSteps,int* ntoroidal_out,REAL phi[], REAL ne[],REAL te[],REAL a[],REAL theta[],REAL zeta[],int timeSteps[],int flag[], int toroidal_startnum){
   // We have the (a,theta,zeta) coords of the points.
   // Now we need to interpolate the fluctuation values to those points.
-  
+
   // read in potential data from PHI.000xx files
   char fname[FNAME_MAX_CHARS];
   int phi_ints[N_PHI_INTEGERS];
@@ -99,7 +99,7 @@ int get_fluctuations(int npts,size_t nTimeSteps,int* ntoroidal_out,REAL phi[], R
 
   //  also gives potential[N_TIME_STEPS][ntoroidal][mgrid]
   //  nTimeSteps = 1 if so we're just looking at 1 time step, but can be > 1
-  
+
 
 
 //#if VERBOSE
@@ -110,9 +110,9 @@ int get_fluctuations(int npts,size_t nTimeSteps,int* ntoroidal_out,REAL phi[], R
   int mgrid = phi_ints[3];	// phi_steps[nsteps][mgrid]
   int ntoroidal = phi_ints[5];	// number of toroidal points (poloidal slices)
 
-  
+
   // read in psi_grid data
-  //Lei Shi temp off 
+  //Lei Shi temp off
   REAL *psi_grid = readPsiGridFile(NTFileName,mpsi);
   /* REAL *psi_grid=(REAL*) PyMem_Malloc(sizeof(REAL)*mpsi);
   int idx;
@@ -160,7 +160,7 @@ int get_fluctuations(int npts,size_t nTimeSteps,int* ntoroidal_out,REAL phi[], R
     status = interpolateTorPolPsi(npts,&te[i*npts],a,ntoroidal,mgrid,te_raw[i],deltazeta,toroidalIdxs,
 				  theta_grid_idxs,delta_theta_grid,mtheta,psi_grid_idxs,psi_grid,flag);
     status = interpolateTorPolPsi(npts,&ne[i*npts],a,ntoroidal,mgrid,ne_raw[i],deltazeta,toroidalIdxs,
-				  theta_grid_idxs,delta_theta_grid,mtheta,psi_grid_idxs,psi_grid,flag); 
+				  theta_grid_idxs,delta_theta_grid,mtheta,psi_grid_idxs,psi_grid,flag);
   }
 
   // free memory
@@ -236,7 +236,7 @@ int nearestThetaGridMap(int npts,int nearestThetaGridIdxs[npts][N_NEAREST_PSIGRI
 	dthetagrid = 2.0*M_PI/((double)mtheta[psi_idx]);
 	itheta_grid= (int)floor(this_theta/dthetagrid);
 	nearestThetaGridIdxs[i][j][0] = itheta_grid + igrid[psi_idx];
-	nearestThetaGridIdxs[i][j][1] = itheta_grid + igrid[psi_idx]+ 1; // since there is an extra point at 2pi, don't have to worry about exceeding the max idx for this psi 
+	nearestThetaGridIdxs[i][j][1] = itheta_grid + igrid[psi_idx]+ 1; // since there is an extra point at 2pi, don't have to worry about exceeding the max idx for this psi
 	deltaThetaGridVals[i][j] = this_theta - dthetagrid*itheta_grid; // distance between our point of interest and the theta grid point just below it.
       }
     }
@@ -266,7 +266,7 @@ int nearestPoloidalSlices(int npts,int ntoroidal,REAL zeta[],int toroidalIdxs[np
       int upper_slice = (int)fmod(lower_slice+1,ntoroidal); // ranges from 0 to ntoroidal-1
       toroidalIdxs[i][0]=lower_slice;
       toroidalIdxs[i][1]=upper_slice;
-      
+
       // again, these to lines are commented out to get the distances right
       //     deltazeta[i][0]=SETRANGE_MPI_PPI(zeta[i]-dzeta*(0.5+lower_slice));
       //     deltazeta[i][1]=SETRANGE_MPI_PPI(zeta[i]-dzeta*(0.5+upper_slice));

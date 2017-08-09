@@ -6,7 +6,7 @@ Functions:
         Compute the solid angle of a disk on/off-axis from the pos
         the center of the circle should be in (0,0,0)
     compute_threshold_solid_angle(x,y,pos,rx,ry):
-        Compute a normalization of the threshold for the function 
+        Compute a normalization of the threshold for the function
         :func:`solid_angle_seg <FPSDP.Maths.Funcs.solid_angle_seg>`
     solid_angle_seg(pos,x,r,islens,Nth,Nr):
         Compute the solid angle of a disk where a segment has been removed.
@@ -15,13 +15,13 @@ Functions:
     determinent3d(x1,y1,z1,x2,y2,z2,x3,y3,z3):
         calculate the determinent of 3*3 matrix
     low_pass_box(s,nc):
-        returns the low pass filtered frequency sequence of s, with critical 
-        frequency set by location nc. 
+        returns the low pass filtered frequency sequence of s, with critical
+        frequency set by location nc.
     high_pass_box(s,nc):
-        returns the high pass filtered frequency sequence of s, with critical 
-        frequency set by location nc. 
+        returns the high pass filtered frequency sequence of s, with critical
+        frequency set by location nc.
     band_pass_box(s,nl,nh):
-        composition of high_pass_box and low_pass_box. 
+        composition of high_pass_box and low_pass_box.
     correlation(s1,s2):
         Calculate the correlation between two arrays of data.
     sweeping_correlation(s1,s2,dt=1,nt_min=100):
@@ -30,17 +30,17 @@ Functions:
         given sampled function values f(x) = y, search and interpolate for x0
         s.t. f(x0) = y0. y is assumed monotonically increasing.
 
-Callable classes:   
+Callable classes:
     poly3_curve(x1, y1, x2, y2, yp1=0, yp2=0):
-        Third order polynomial curve for connecting two points (x1,y1) and 
+        Third order polynomial curve for connecting two points (x1,y1) and
         (x2,y2), given the constraints of the derivatives at these points, yp1,
         yp2.
-        
+
         __call__(x): evaluate polynomial value at x
-        
+
     poly2_curve(x1, y1, x2, y2, yp2=0):
         2nd order polynomial curve connecting
-    
+
 """
 import scipy as sp
 import numpy as np
@@ -76,12 +76,12 @@ def solid_angle_disk(pos,r):
       \Omega = \left\{\begin{array}{lr}
       2\pi-\frac{2L}{R_\text{max}}K(k)-\pi\Lambda_0(\xi,k) & r_0 < r_m \\
       \phantom{2}\pi-\frac{2L}{R_\text{max}}K(k) & r_0 = r_m \\
-      \phantom{2\pi}-\frac{2L}{R_\text{max}}K(k)+\pi\Lambda_0(\xi,k) & r_0 > 
+      \phantom{2\pi}-\frac{2L}{R_\text{max}}K(k)+\pi\Lambda_0(\xi,k) & r_0 >
       r_m \\
       \end{array}\right.
 
     Read the paper of `Paxton  <http://scitation.aip.org/content/aip/journal
-    /rsi/30/4/10.1063/1.1716590>`_ "Solid Angle Calculation for a 
+    /rsi/30/4/10.1063/1.1716590>`_ "Solid Angle Calculation for a
     Circular Disk" in 1959 for the exact computation.
 
     :param np.array[N,3] pos: Position from which computing the solid angle
@@ -127,7 +127,7 @@ def solid_angle_disk(pos,r):
 
 
 def compute_threshold_solid_angle(x,y,pos,rx,ry):
-    """ Compute a normalization of the threshold for the function 
+    """ Compute a normalization of the threshold for the function
     :func:`solid_angle_seg <sdp.math.Funcs.solid_angle_seg>`
 
     :param list[x1,x2] x: Intersection on the ring of the mixed case
@@ -155,7 +155,7 @@ def compute_threshold_solid_angle(x,y,pos,rx,ry):
     angle[ind] = 2*np.pi - angle[ind]
     # approximation of the solid angle for full circle - segment
     A = ((np.pi-0.5*angle)*rx**2 + Atri)/pos[...,2]**2
-    
+
     # same but with y
     y1 = y[0]
     y2 = y[1]
@@ -175,34 +175,34 @@ def compute_threshold_solid_angle(x,y,pos,rx,ry):
 
     return A
 
-    
+
 
 def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     r""" Compute the solid angle of a disk where a segment has been removed.
-    
-    First, the numerical integration will be carried out over the biggest area 
+
+    First, the numerical integration will be carried out over the biggest area
     of the disk,
-    and, in a second time, if necessary, the integral over the full disk is 
-    computed (with the analytical formula) and subtracted by the numerical 
+    and, in a second time, if necessary, the integral over the full disk is
+    computed (with the analytical formula) and subtracted by the numerical
     integral.
-    When we want to compute the small area with this methods, the error can be 
-    bigger than the solid angle, therefore an external check need to be done 
-    (usually this method is used in a computation in two step with the other 
+    When we want to compute the small area with this methods, the error can be
+    bigger than the solid angle, therefore an external check need to be done
+    (usually this method is used in a computation in two step with the other
     one that will be a lot bigger than this error)
-    
-    The idea is to compute numerically the 2D integral by splitting the domain 
-    in sector of the same angle and doing a Gauss-Legendre quadrature formula 
+
+    The idea is to compute numerically the 2D integral by splitting the domain
+    in sector of the same angle and doing a Gauss-Legendre quadrature formula
     over each dimension.
-    
-    In a first time, the maximum radius (that will depends on the coordinate 
+
+    In a first time, the maximum radius (that will depends on the coordinate
     :math:`\theta`)has to be compute.
-    
+
     WARNING: This function assumed that all the points are at the same distance
     of the focus points.
 
-    In this figure, we want to compute the area between the black line and the 
+    In this figure, we want to compute the area between the black line and the
     blue one.
-    
+
     .. tikz::
        \draw [red,dashed,domain=115:180] plot ({6*cos(\x)}, {6*sin(\x)});
        \draw [red,dashed,domain=360:425] plot ({6*cos(\x)}, {6*sin(\x)});
@@ -225,15 +225,15 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
        \node at (0.25,5.4) {x};
        \node at (0.8,5.2) {$r_{max}$};
 
-        
+
     :todo: improvement: remove useless computation of rmax
     :param np.array[N,3] pos: Position in the optical system
-    :param list[np.array[N],..] x: 
-        Position of the intersection on the ring (list contains 2 elements) 
-    :param float r: 
+    :param list[np.array[N],..] x:
+        Position of the intersection on the ring (list contains 2 elements)
+    :param float r:
         Radius of the disk (should be centered at (0,0,0) and the perpendicular
         should be along the z-axis)
-    :param float islens: 
+    :param float islens:
         None if it is not the lens, otherwise the distance between the lens and
         the focus point
     :param int Nth: Number of sections for the theta quadrature formula
@@ -242,26 +242,26 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     :return: Solid angle
     :rtype: np.array[N]
     """
-    
+
     # split the two intersections in two variables
     x1 = x[0]
     x2 = x[1]
-    
+
     # limits (in angle) considered for the integration
     theta = np.linspace(0,2*np.pi,Nth)
     quadr = integ.integration_points(1,'GL4') # Gauss-Legendre order 4
     quadt = integ.integration_points(1,'GL4') # Gauss-Legendre order 4
-    
+
     # mid point of the limits in theta
     av = 0.5*(theta[:-1] + theta[1:])
     # half size of the intervals in theta
     diff = 0.5*np.diff(theta)
     # array containing all the value of theta that will be computed
     th = diff[:,np.newaxis]*quadt.pts + av[:,np.newaxis]
-    
+
     # perpendicular vector to x1->x2
     perp = np.copy(-pos[:,:2])
-    
+
     # indices where we want to compute the big part
     ind = np.einsum('ij,ij->i',perp,x1) > 0
 
@@ -269,35 +269,35 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     # origin
     perp[~ind] = -perp[~ind]
     perp = perp/np.sqrt(np.sum(perp**2,axis=1))[:,np.newaxis]
-    # in the case of the lens and between the fiber and the lens, we want the 
+    # in the case of the lens and between the fiber and the lens, we want the
     # opposite case
     if islens is not None:
         test = pos[:,2] < islens
         ind[test] = ~ind[test]
-    
+
     # unit vector for each angle
     delta = np.array([np.cos(th),np.sin(th)])
     delta = np.rollaxis(delta,0,3)
     # now detla[Nth-1,quadt,dim]
-    
+
     # compute the scalar product (=> the cos)
     cospsi = np.einsum('ak,ijk->aij',perp,delta)
     # index where the line can cross the segment
     ind2 = cospsi > 0
-    
+
     # distance between line
     d = np.abs(x1[:,0]*x2[:,1]-x2[:,0]*x1[:,1])/np.sqrt(np.sum((x2-x1)**2,axis=1))
-    
+
     #print('useless computations')
     #:todo: This can be improved
     # compute the distance along theta where the segment is crossed
     rmax = d[:,np.newaxis,np.newaxis]/cospsi
-    # if the line cannot be cross, therefore the computation can raise some 
+    # if the line cannot be cross, therefore the computation can raise some
     # troubl => set it manually to the good value
     rmax[~ind2] = r
     # take the min between the intersection with the segment and the circle
     rmax = np.minimum(r,rmax)
-    
+
     # array containing the evaluation of the function that will be integrated
     R = np.zeros((pos.shape[0],Nth-1,quadt.pts.shape[0], Nr-1,
                   quadr.pts.shape[0],3))
@@ -322,15 +322,15 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
     omega = np.sum(np.sum(temp*R*quadr.w,axis=4)*diffr,axis=3)
     # Theta quadrature
     omega = np.sum(diff*np.sum(rmax*omega*quadt.w,axis=2),axis=1)
-    
-    # multiply by the scalar product between the position and the normal (to 
-    # the disk) vector 
+
+    # multiply by the scalar product between the position and the normal (to
+    # the disk) vector
     omega *= np.abs(pos[:,2])
 
     # change the area that we want to compute
     omega[~ind] = solid_angle_disk(pos[~ind,:],r)-omega[~ind]
     temp = solid_angle_disk(pos[~ind,:],r)
-        
+
     return omega
 
 
@@ -339,12 +339,12 @@ def solid_angle_seg(pos,x,r,islens,Nth,Nr):
 
 def my_quad(y,x):
     """quadratic integration on given grids
-        I = Sum (y[i+1]+y[i])*(x[i+1]-x[i])/2  
+        I = Sum (y[i+1]+y[i])*(x[i+1]-x[i])/2
     """
     I = 0.
     for i in range(len(x)-1):
         I += (y[i+1]+y[i])*(x[i+1]-x[i])/2.
-        
+
     return I
 
 def determinent3d(x1,y1,z1,x2,y2,z2,x3,y3,z3):
@@ -355,20 +355,20 @@ def determinent3d(x1,y1,z1,x2,y2,z2,x3,y3,z3):
 
 
 def low_pass_box(s,nc):
-    """returns the low pass filtered frequency sequence of s, with critical 
-    frequency set by location nc. 
-    
-    nc must be less than half of the length of s. 
-    
+    """returns the low pass filtered frequency sequence of s, with critical
+    frequency set by location nc.
+
+    nc must be less than half of the length of s.
+
     Assuming s is a frequency domain spectra which obey numpy.fft.fft format.
-    
-    ideal box filter is used, which means the frequencies higher than that set 
-    by nc will be erased totally, and the frequencies lower than nc will be 
+
+    ideal box filter is used, which means the frequencies higher than that set
+    by nc will be erased totally, and the frequencies lower than nc will be
     untouched.
-    
-    
+
+
     :param array_like s: frequency spectra that need to be filtered
-    :param int nc: the critical frequency index above which the signal will be 
+    :param int nc: the critical frequency index above which the signal will be
                    erased
     """
 
@@ -385,19 +385,19 @@ happen to the input spectra.")
     return s_filtered	
 
 def high_pass_box(s,nc):
-    """returns the high pass filtered frequency sequence of s, with critical 
-    frequency set by location nc. 
-    
-    nc must be less than half of the length of s. 
-    
+    """returns the high pass filtered frequency sequence of s, with critical
+    frequency set by location nc.
+
+    nc must be less than half of the length of s.
+
     Assuming s is a frequency domain spectra which obey numpy.fft.fft format.
-    
-    Ideal box filter is used, which means the frequencies lower than that set 
-    by nc will be erased totally, and the frequencies higher than nc will be 
+
+    Ideal box filter is used, which means the frequencies lower than that set
+    by nc will be erased totally, and the frequencies higher than nc will be
     untouched.
-    
+
     :param array_like s: frequency spectra that need to be filtered
-    :param int nc: the critical frequency index below which the signal will be 
+    :param int nc: the critical frequency index below which the signal will be
                    erased
     """
 
@@ -414,15 +414,15 @@ def high_pass_box(s,nc):
     return s_filtered	
 
 def band_pass_box(s,nl,nh):
-    """A composition of high_pass_box and low_pass_box. 
-    
-    nl and nh are lower and higher frequency domain indices respectively, 
+    """A composition of high_pass_box and low_pass_box.
+
+    nl and nh are lower and higher frequency domain indices respectively,
     which are in turn passed into low/high_pass_box functions.
-    
+
     :param array_like s: frequency spectra that need to be filtered
-    :param int nl: the critical frequency index below which the signal will be 
-                   erased 
-    :param int nh: the critical frequency index above which the signal will be 
+    :param int nl: the critical frequency index below which the signal will be
+                   erased
+    :param int nh: the critical frequency index above which the signal will be
                    erased
     """
     s_low_filtered = high_pass_box(s,nl)
@@ -431,10 +431,10 @@ def band_pass_box(s,nl,nh):
 
 def correlation(s1,s2):
     """Calculate the correlation between two arrays of data.
-    
-    s1 and s2 can be multi-dimensional, the average will be taken over all the 
-    dimensions. Returns the correlation, which will be a (complex) number 
-    between 0 and 1 (in the sense of the modular).  
+
+    s1 and s2 can be multi-dimensional, the average will be taken over all the
+    dimensions. Returns the correlation, which will be a (complex) number
+    between 0 and 1 (in the sense of the modular).
     """
     s1_tilde = s1#-np.average(s1)
     s2_tilde = s2#-np.average(s2)
@@ -446,59 +446,59 @@ def correlation(s1,s2):
 
 def sweeping_correlation(s1,s2,dt=1,nt_min=100):
     r"""Calculate the correlation of two given time-series signals.
-    
+
     Correlation is defined as:
 
-    .. math::    
+    .. math::
         \gamma(s_1,s_2) = \frac{\left< \tilde{s}_1 \cdot \tilde{s}_2^* \right>}
-                          {\sqrt{\left<|\tilde{s}_1|^2 \right> \cdot 
+                          {\sqrt{\left<|\tilde{s}_1|^2 \right> \cdot
                                  \left< |\tilde{s}_2|^2\right>}}
 
-    where :math:`\tilde{s} \equiv s - \left<s\right>`, 
+    where :math:`\tilde{s} \equiv s - \left<s\right>`,
     :math:`\left<\dots\right>` denotes time average.
 
     Sweeping correlation is carried out by correlating one signal to a delayed
     (or advanced) version of the other signal.
-    
+
     :param s1,s2: signals to be correlated, the first dimension is "time".
     :type s1,s2: ndarray with same shape
-    :param int dt: sweeping step size, move s2 dt units in time every step, 
+    :param int dt: sweeping step size, move s2 dt units in time every step,
                    and carryout another correlation with s1
-    :param int nt_min: 
-        optional, the minimum time overlap for sweeping correlation, the 
-        average must be taken over longer time period than set by this, 
-        otherwise sweeping will stop. Default to be 100. 
-        
+    :param int nt_min:
+        optional, the minimum time overlap for sweeping correlation, the
+        average must be taken over longer time period than set by this,
+        otherwise sweeping will stop. Default to be 100.
+
     :return SCorrelation:
-    :rtype: ndarray, same shape as s1 and s2 except for the first dimension, 
-            the first dimension length will be total number of sweeping 
-            correlations, it's determined by dt, nt_min, and the original time 
+    :rtype: ndarray, same shape as s1 and s2 except for the first dimension,
+            the first dimension length will be total number of sweeping
+            correlations, it's determined by dt, nt_min, and the original time
             series length. Indexing convention for time dimension is similar to
-            that in fft, if total length is 2n+1, index 0 is for correlation 
-            without moving, index 1 to n for s2 delayed compared to s1, index 
-            -1 to -n for s2 advanced compared to s1.        
+            that in fft, if total length is 2n+1, index 0 is for correlation
+            without moving, index 1 to n for s2 delayed compared to s1, index
+            -1 to -n for s2 advanced compared to s1.
     """
 
     assert (s1.shape == s2.shape),'Shapes of two signals don\'t match. s1:{0},\
 s2:{1}'.format(str(s1.shape),str(s2.shape))
-    
+
     shape = s1.shape
     nt = shape[0]
     assert (nt >= nt_min ),'signal length {0} is shorter than minimum length: \
 {1}.'.format(nt,nt_min)
     spatial_shape = shape[1:]
-    
-    n_wing = int((nt-nt_min)/dt) # length of single wing of the result    
-    
+
+    n_wing = int((nt-nt_min)/dt) # length of single wing of the result
+
     n_sweep = n_wing*2 + 1 # total sweep correlation numbers
-    
+
     # concatenate last dimension to spatial dimensions
-    SCorrelation = np.empty((n_sweep,)+spatial_shape,dtype = 'complex128') 
-    
+    SCorrelation = np.empty((n_sweep,)+spatial_shape,dtype = 'complex128')
+
     #first get rid of the mean signal
     s1 = s1 - np.mean(s1,axis=0)
-    s2 = s2 - np.mean(s2,axis=0)    
-    
+    s2 = s2 - np.mean(s2,axis=0)
+
     for i in range(-n_wing,n_wing+1):
         delta_t = dt*i
         if delta_t < 0:#when s2 is moved advance to s1
@@ -507,7 +507,7 @@ s2:{1}'.format(str(s1.shape),str(s2.shape))
             SCorrelation[i] = np.average(s1_moved*np.conj(s2_moved),axis=0)/\
                               np.sqrt(np.average(s1_moved*np.conj(s1_moved),
                                                  axis=0) * \
-                                      np.average(s2_moved*np.conj(s2_moved), 
+                                      np.average(s2_moved*np.conj(s2_moved),
                                                  axis=0))
         elif delta_t == 0:#when not moved
             SCorrelation[i] = np.average(s1*np.conj(s2),axis=0)/\
@@ -519,27 +519,27 @@ s2:{1}'.format(str(s1.shape),str(s2.shape))
             SCorrelation[i] = np.average(s1_moved*np.conj(s2_moved),axis=0)/\
                               np.sqrt(np.average(s1_moved*np.conj(s1_moved),
                                                  axis=0) * \
-                                      np.average(s2_moved*np.conj(s2_moved), 
+                                      np.average(s2_moved*np.conj(s2_moved),
                                                  axis=0))
     return SCorrelation
-    
+
 
 def search_root(x, y, y0):
-    """given sampled function values f(x) = y, search and interpolate for 
-    x0 s.t. f(x0) = y0. 
-    
+    """given sampled function values f(x) = y, search and interpolate for
+    x0 s.t. f(x0) = y0.
+
     y is assumed monotonically increasing.
-    
+
     :param x: variable, monotonically changing
     :type x: 1D array of float
     :param y: value, monotonically increasing
     :type y: 1D array of float
     :param y0: value(s) looked for
     :type y0: float or array of float
-    
+
     :return x0: corresponding variable of y0
     :rtype: same shape as y0
-    
+
     :raise ValueError: if y0 is out of the range (min_y, max_y)
     """
 
@@ -550,14 +550,14 @@ def search_root(x, y, y0):
     assert x.ndim == 1
     assert y.ndim == 1
     assert x.shape == y.shape
-    
+
     if (y[0] > y[-1]):
         x = x[::-1]
         y = y[::-1]
-        
+
     assert np.all(np.argsort(y) == np.arange(len(y))), 'y must be monotonically \
 increasing or decreasing!'
-    
+
     ny = len(y)
 
     x0 = np.zeros_like(y0, dtype='float')
@@ -565,7 +565,7 @@ increasing or decreasing!'
         shape = x0.shape
         x0_flat = x0.flatten()
         y0_flat = y0.flatten()
-        
+
         for i, yi in enumerate(y0_flat):
             idx = np.searchsorted(y, yi, side='right')
             if (idx == ny) or (idx == 0):
@@ -589,62 +589,62 @@ increasing or decreasing!'
             y_p = y[idx-1]
             y_n = y[idx]
             x0 = x_n - (x_n - x_p)/(y_n - y_p)*(y_n - y0)
-            
+
     return x0
-    
+
 
 class poly_curve(object):
     """ Abstract Base class for polynomial curve connectors
     """
-    
+
     __metaclass__ = ABCMeta
-    
+
     @property
     def x1(self):
         return self._x1
-        
+
     @x1.setter
     def x1(self,x):
         self._x1 = x
-        
+
     @x1.deleter
     def x1(self):
         del self._x1
-        
+
     @property
     def x2(self):
         return self._x2
-        
+
     @x2.setter
     def x2(self,x):
         self._x2 = x
-        
+
     @x2.deleter
     def x2(self):
         del self._x1
-    
-    @property    
+
+    @property
     def poly(self):
         return self._poly
-        
+
     @poly.setter
     def poly(self,p):
         self._poly = p
-        
+
     @poly.deleter
     def poly(self):
         del self._poly
-        
+
     def __call__(self,x):
-        """ Evaluate polynomial values at points given by x. 
-        
-        Connection only used at points in between, outside ones are assumed 
+        """ Evaluate polynomial values at points given by x.
+
+        Connection only used at points in between, outside ones are assumed
         flat.
-        
+
         x1 < x < x2, y = poly(x);
         x<=x1, y=y1
         x>=x2, y=y2
-        
+
         :param x: locations for evaluation
         :type x: ndarray of double
         """
@@ -654,13 +654,13 @@ class poly_curve(object):
         y[x>= self.x2] = self.y2
         mask_between = np.all([x>self.x1,x<self.x2],axis=0)
         y[mask_between] = self.poly(x[mask_between])
-        
+
         return y
-    
+
 class poly3_curve(poly_curve):
-    """Third order polynomial curve for connecting two points (x1,y1) and 
+    """Third order polynomial curve for connecting two points (x1,y1) and
     (x2,y2), given the constraints of the derivatives at these points, yp1,yp2.
-    
+
     """
     def __init__(self,x1,y1,x2,y2,yp1 = 0,yp2 = 0):
         """
@@ -670,15 +670,15 @@ class poly3_curve(poly_curve):
         :param double x2: second x location
         :param double y2: value at *x2*
         :param double yp2: derivative at *x2*
-        
+
         Create Attribute:
-            :var poly: 
-                the third order polynomial that connects the two given 
+            :var poly:
+                the third order polynomial that connects the two given
                 points (x1,y1) and (x2,y2)
             :vartype poly: numpy.poly1d object
         """
         assert not x1==x2
-        
+
         if (x1<x2):
             self.x1 = x1
             self.x2 = x2
@@ -689,38 +689,38 @@ class poly3_curve(poly_curve):
             self.x2 = x1
             self.y1 = y2
             self.y2 = y1
-        
-        
+
+
         x13 = x1**3
         x12 = x1**2
         x23 = x2**3
-        x22 = x2**2                
-        
+        x22 = x2**2
+
         a = np.array([[x13,x12,x1,1],[x23,x22,x2,1],[3*x12,2*x1,1,0],
                       [3*x22,2*x2,1,0]])
         b = np.array([y1,y2,yp1,yp2])
         coef = np.linalg.solve(a,b)
         self.poly = np.poly1d(coef)
-        
 
-        
-        
+
+
+
 class poly2_curve(poly_curve):
     """2nd order polynomial curve connecting
-    
+
     connect (x1,y1) and (x2,y2) with given slope :math:`dy/dx` at x2.
     :param float x1:
-    :param float y1: value at x1 
+    :param float y1: value at x1
     :param float x2:
     :param float y2: value at x2
     :param float yp2: derivative at x2
-    
+
     """
-    
+
     def __init__(self,x1,y1,x2,y2,yp2 = 0):
-        
+
         assert not x1==x2
-        
+
         if (x1<x2):
             self.x1 = x1
             self.x2 = x2
@@ -731,20 +731,20 @@ class poly2_curve(poly_curve):
             self.x2 = x1
             self.y1 = y2
             self.y2 = y1
-            
+
         x12 = x1*x1
         x22 = x2*x2
-        
+
         a = np.array([[x12,x1,1],[x22,x2,1],[2*x2,1,0]])
         b = np.array([y1,y2,yp2])
         coef = np.linalg.solve(a,b)
         self.poly = np.poly1d(coef)
-        
-    
-        
 
-        
 
-        
-        
+
+
+
+
+
+
 

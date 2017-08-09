@@ -13,7 +13,7 @@ ne_midz = ne[midz,:]
 
 freqs = np.array([30,32.5,35,37.5,42.5,45,47.5,50,55,57.5,60,62.5,65,66.5,67.5,70,72.5,75])*1e9
 
-ref_ne = (freqs/8.98e3)**2 *1e6 
+ref_ne = (freqs/8.98e3)**2 *1e6
 
 ref_lines = np.zeros((2,len(freqs)))+ref_ne
 
@@ -34,11 +34,11 @@ def plot():
     plt.plot(r[[0,-1]],ref_lines[:,top_range[0]+1:top_range[1]],'b--')
     plt.plot(r[[0,-1]],ref_lines[:,top_range[1]],'b:',label = 'inner')
     plt.plot(r[[0,-1]],ref_lines[:,top_range[1]+1:],'b:')
-    
-    
+
+
     plt.legend()
     plt.title('NSTX Reflectometry Layout')
     plt.xlabel('$R(M)$')
     plt.ylabel('$ne(m^{-3})$')
-    
-    
+
+

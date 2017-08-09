@@ -15,7 +15,7 @@ class C5_Error(Exception):
         return repr(self.value)
 
 class C5_reader:
-    """Simple reader. 
+    """Simple reader.
     """
 
     def __init__(this,filename,full_load = True):
@@ -28,7 +28,7 @@ class C5_reader:
             this.read_header()
             this.read_Efield()
             this.setup_spline()
-        
+
     def read_header(this):
         f = open(this.filename,'r')
         this.params = {}
@@ -46,14 +46,14 @@ class C5_reader:
                 elif key == 'Wavelength':
                     values = value.split()
                     num = parse_num(values[0].strip(' '))
-                    
+
                     unit = values[1].strip(' \t\n')
                     if unit == 'nm':
                         num *= 1e-7
                         this.params['Wavelength']=num
                     else:
                         raise C5_Error('Default unit for wavelength is nanometer. Please change your code5 file.')
-                        
+
                 elif key == 'Grid spacing':
                     values = value.split()
                     dx = parse_num(values[0])
@@ -66,7 +66,7 @@ class C5_reader:
                         this.params['Grid_spacing']=spacing
                     else:
                         raise C5_Error('Default unit for grid spacing is milimeter. Please change your code5 file.')
-                       
+
                 elif key == 'Coordinates':
                     values = value.split()
                     x0 = parse_num(values[0])
@@ -81,7 +81,7 @@ class C5_reader:
                         this.params['Coordinates'] = coords
                     else:
                         raise C5_Error('Default unit for coordinates is milimeter. Please change your code5 file.')
-                        
+
                 elif key == 'Direction':
                     values = value.split()
                     x_dir = parse_num(values[0])
@@ -96,7 +96,7 @@ class C5_reader:
                     this.params['Array_size']=(nx,ny)
                 else:
                     raise C5_Error('Unexpected keyword occured:{0}! Please double check the compatibility of the Code5 file version and this program.'.format(key) )
-                    
+
             else:
                 #print 'header loading finished.'
                 break
@@ -113,7 +113,7 @@ class C5_reader:
             this.E_field = np.copy(data[:,:,0]+ 1j* data[:,:,1])
         else:
             raise C5_Error( 'Right now, only complex data is accepted.')
-        
+
     def setup_spline(this,method = 'RectBivariateSpline'):
         """setup the spline interpolator for outside use
 
@@ -127,12 +127,12 @@ class C5_reader:
         E_re = np.real(this.E_field)
         E_im = np.imag(this.E_field)
 
-        
+
 
         nx,ny = this.params['Array_size']
         x0,y0,z0 = this.params['Coordinates']
         dx,dy = this.params['Grid_spacing']
-       
+
         xmin = x0 - dx*(nx-1.)/2
         xmax = x0 + dx*(nx-1.)/2
         this.X1D = np.linspace(xmin,xmax,nx)
@@ -144,4 +144,4 @@ class C5_reader:
             this.E_re_interp = RectBivariateSpline(this.Y1D,this.X1D,E_re)
             this.E_im_interp = RectBivariateSpline(this.Y1D,this.X1D,E_im)
 
-        
+

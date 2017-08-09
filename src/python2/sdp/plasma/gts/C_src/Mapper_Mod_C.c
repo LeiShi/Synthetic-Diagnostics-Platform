@@ -55,13 +55,13 @@ show_parameters_(PyObject* self, PyObject* args){
   printf("DENFileNameStart: %s \n",DEN_FNAME_START);
   printf("GTSDataDir: %s \n",GTS_DATA_DIR);
   return Py_BuildValue("i",sts);
-} 
+}
 /*
 static PyObject*
 esi_init_(PyObject* self, PyObject* args){
   int sts = 0;
   printf("MPI initializing.\n");
-  if 
+  if
 }
 */
 static PyObject*
@@ -89,8 +89,8 @@ get_GTS_profiles_(PyObject* self, PyObject* args){
   nane_arr = (PyArrayObject*)PyArray_ContiguousFromObject(input11,PyArray_DOUBLE,4,4);
   nate_arr = (PyArrayObject*)PyArray_ContiguousFromObject(input12,PyArray_DOUBLE,4,4);
   mismatch_arr = (PyArrayObject*)PyArray_ContiguousFromObject(input13,PyArray_INT,3,3);
-  printf("arrays loaded.\n"); 
-  
+  printf("arrays loaded.\n");
+
   //start dealing with GTS data
   int n3d = NX*NY*NZ;
   double *xwant,*ywant,*zwant;
@@ -126,8 +126,8 @@ get_GTS_profiles_(PyObject* self, PyObject* args){
   int *mismatch = (int*) mismatch_arr->data;
 
   printf("Finish allocate PYthon mem.\n");
-  getFluxCoords(n3d,a,theta,Btol,Ract,Zact,Rinitial,Zinitial,Rwant,Zwant,mag_axis_coords,InOutFlag,location,mismatch); 
-  
+  getFluxCoords(n3d,a,theta,Btol,Ract,Zact,Rinitial,Zinitial,Rwant,Zwant,mag_axis_coords,InOutFlag,location,mismatch);
+
   printf("Finish get FluxCoords.\n");
 
   //get the profiles
@@ -137,7 +137,7 @@ get_GTS_profiles_(PyObject* self, PyObject* args){
   double *BR = (double*) BR_arr->data;
   double *BZ = (double*) BZ_arr->data;
   double Ti0[n3d],P[n3d],qprofile[n3d];
-  
+
   getAllProfiles(n3d,Bpol,BR,BZ,Ti0,Te0,P,ne0,qprofile,a,theta,Rwant,Zwant,R_bdy,Z_bdy,InOutFlag,location);
 
   free_BoundaryPoints(R_bdy,Z_bdy);
@@ -150,7 +150,7 @@ get_GTS_profiles_(PyObject* self, PyObject* args){
 
   //decay equilibrium quantities outside LCFS
   decayNToutsideLCFS(n3d,a,ne0,Te0,Ti0,InOutFlag);
-  
+
   printf("Finish decay outside LCFS.\n");
   //get the potential fluctuations
   double phi[n3d*NT];
@@ -168,8 +168,8 @@ get_GTS_profiles_(PyObject* self, PyObject* args){
   //electrons respond adiabatically to the potential
   double *ne_tilde = (double*) dne_ad_arr->data;
   adiabaticElectronResponse(n3d,NT,ne_tilde,ne0,phi,Te0,FlucInOutFlag);
-  
-  printf("Finish adiabatic response.\n"); 
+
+  printf("Finish adiabatic response.\n");
 
   esifree();
   PyMem_Free(InOutFlag);
@@ -177,10 +177,10 @@ get_GTS_profiles_(PyObject* self, PyObject* args){
   Py_DECREF(x3d);
   Py_DECREF(y3d);
   Py_DECREF(z3d);
-  
+
   printf("Finish decreasing instances.\n");
   return Py_BuildValue("i",ntoroidal);
-  
+
 }
 
 

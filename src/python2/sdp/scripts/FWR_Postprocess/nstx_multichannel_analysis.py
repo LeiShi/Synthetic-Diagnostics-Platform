@@ -14,7 +14,7 @@ dne_ana = ana.XGC_Density_Loader('/p/gkp/lshi/XGC1_NSTX_Case/FullF_XGC_ti191_out
 
 n_channel = 16
 
-#create the distance matrix, dx[i,j] is the absolute distance between the reflection points of i-th and j-th channel 
+#create the distance matrix, dx[i,j] is the absolute distance between the reflection points of i-th and j-th channel
 dx = np.absolute(np.zeros((n_channel,n_channel))+ref_pos[np.newaxis,:]-ref_pos[:,np.newaxis])
 
 #calculate cross-correlation matrix from synthetic signals
@@ -30,7 +30,7 @@ cs_3d = fwrpp.pp.Self_Correlation(fwrpp.ref3d_out)
 
 print 'FWR data loaded'
 
-#calculate cross-correlation matrix from experimental signals, note that for our case, the simulated time slice is at t=0.632s, so we choose corresponding experimental data from 0.632-0.640, the total sample number is chosen to be 2000 because larger sample doesn't bring in any difference, since the increased samples are not statistical independent.  
+#calculate cross-correlation matrix from experimental signals, note that for our case, the simulated time slice is at t=0.632s, so we choose corresponding experimental data from 0.632-0.640, the total sample number is chosen to be 2000 because larger sample doesn't bring in any difference, since the increased samples are not statistical independent.
 
 cc_exp = nstx_exp.analyser.Cross_Correlation_by_fft(0.632,0.640,8000)
 #cc_exp_short = nstx_exp.analyser.Cross_Correlation_by_fft(0.634,0.6348,8000)
@@ -40,7 +40,7 @@ cc_exp = nstx_exp.analyser.Cross_Correlation_by_fft(0.632,0.640,8000)
 cs_exp = nstx_exp.analyser.Coherent_over_time(0.632,0.640,2e-5,1e-4)
 print 'nstx data loaded'
 
-#choose the channel ranges representing top/bottom part of pedestal, and center channels for each region. 
+#choose the channel ranges representing top/bottom part of pedestal, and center channels for each region.
 top_center = 11
 top_range = [8,12]
 
@@ -110,7 +110,7 @@ def fit_top():
     exp_t_a,exp_t_sa = fwrpp.pp.fitting_cross_correlation(exp_top,dx_top,'exponential')
     opt_t,x_t,dne_c_t = dne_ana.density_correlation(ref_pos[top_center],width = ref_pos[top_range[0]]-ref_pos[top_center])
     xgc_t_a,xgc_t_sa = opt_t
-    
+
     xmax_t = 2*np.max((np.abs(fwr_t_a),np.abs(fwr2_t_a),np.abs(exp_t_a)))
     xfit_t = np.linspace(0,xmax_t,500)
     fwr_fit_t = fwrpp.pp.exponential_fit(xfit_t,fwr_t_a)
@@ -146,10 +146,10 @@ def fit_bot():
     fwr01_b_a,fwr01_b_sa = fwrpp.pp.fitting_cross_correlation(fwr01_bot,dx_bot,'gaussian')
     fwr3d_b_a,fwr3d_b_sa = fwrpp.pp.fitting_cross_correlation(fwr3d_bot,dx_bot,'gaussian')
     exp_b_a,exp_b_sa = fwrpp.pp.fitting_cross_correlation(exp_bot,dx_bot,'gaussian')
-    
+
     opt_b,x_b,dne_c_b = dne_ana.density_correlation(ref_pos[bottom_center],width = ref_pos[bottom_range[0]]-ref_pos[bottom_center])
     xgc_b_a,xgc_b_sa = opt_b
-    
+
     xmax_b = 2*np.sqrt(np.max((np.abs(fwr_b_a),np.abs(fwr2_b_a),np.abs(exp_b_a))))
     xfit_b = np.linspace(0,xmax_b,500)
     fwr_fit_b = fwrpp.pp.gaussian_fit(xfit_b,fwr_b_a)

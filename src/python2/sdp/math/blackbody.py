@@ -32,4 +32,3 @@ def planck_formula(omega, T):
     else:
         # at most one input is an array, natural broadcasting is sufficient
         return C * omega**3 / (np.exp(hbar*omega/T)-1)
-    

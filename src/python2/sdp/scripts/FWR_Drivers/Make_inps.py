@@ -14,11 +14,11 @@ class FWR3D_input_maker:
     """
     def __init__(self):
         self.initialize()
-        
+
     def initialize(self):
-        
+
         ############################
-        # user system environment settings. 
+        # user system environment settings.
         # Make sure these variables are set to YOUR running environment values.
         ###########################
 
@@ -48,25 +48,25 @@ class FWR3D_input_maker:
         self.fullw_out = True
 
         #****************
-        # Geometry Setup 
+        # Geometry Setup
         #****************
 
-        # Y&Z mesh (assumed the same in all 3 regions) 
+        # Y&Z mesh (assumed the same in all 3 regions)
         self.Ymin = -5
         self.Ymax = 5
         self.Zmin = -5
         self.Zmax = 5
         self.NY = 32 # Y grid points, need to be 2**n number for FFT
-        self.NZ = 32 # Z grid number, 2**n for same reason 
+        self.NZ = 32 # Z grid number, 2**n for same reason
 
         # 3 regions in X are:
         # vacuum region: from Antenna to the plasma boundary
         # paraxial region: from plasma boudary to somewhere near reflecting layer
-        # full wave region: containing reflecting layer 
+        # full wave region: containing reflecting layer
 
         # 4 X coordinates needed:
 
-        # antenna location 
+        # antenna location
         self.x_antenna = 120
         # plasma boundary (boundary between vacuum and paraxial region)
         self.x_paraxial_vacuum_bnd = 110
@@ -77,7 +77,7 @@ class FWR3D_input_maker:
 
         #MPI Processes number setup
         #Domain number in x,y,z dimension:
-        #BE CAREFUL, the total number of domains (nproc_x*nproc_y*nproc_z) MUST be equal to the total number of the processes in MPI_COMM_WORLD, the latter is normally the total number of processors requested. 
+        #BE CAREFUL, the total number of domains (nproc_x*nproc_y*nproc_z) MUST be equal to the total number of the processes in MPI_COMM_WORLD, the latter is normally the total number of processors requested.
         self.nproc_x = 8
         self.nproc_y = 1
         self.nproc_z = 1
@@ -92,9 +92,9 @@ class FWR3D_input_maker:
         self.nx_wavelength = 10
         # formula for derived quantities(will be evaluated in method update_para):
         # full wave total grid number in x direction, set to have 10 points with in one vacuum wave length
-        # self.nx_full_wave = int((self.x_full_wave_paraxial_bnd-self.x_min_full_wave)*self.ant_freq/3e10 * self.nx_wavelength) 
+        # self.nx_full_wave = int((self.x_full_wave_paraxial_bnd-self.x_min_full_wave)*self.ant_freq/3e10 * self.nx_wavelength)
 
-        # full wave grid step size in x direction, equals total full-wave region length divided by total grid number. Should be very close to 1/10 of vacuum wave length 
+        # full wave grid step size in x direction, equals total full-wave region length divided by total grid number. Should be very close to 1/10 of vacuum wave length
         # self.dx_fw = float(self.x_full_wave_paraxial_bnd-self.x_min_full_wave)/self.nx_full_wave
 
         #*******************
@@ -108,7 +108,7 @@ class FWR3D_input_maker:
         self.code5_datafile = 'antenna_pattern_launch_1400.txt'
 
         # center location in Y&Z
-        # Note that if you read the antenna pattern from a code5 file, these coordinates will relocate your whole pattern, keep the center aligned. 
+        # Note that if you read the antenna pattern from a code5 file, these coordinates will relocate your whole pattern, keep the center aligned.
         self.ant_center_y = 0
         self.ant_center_z = 0
 
@@ -121,7 +121,7 @@ class FWR3D_input_maker:
         self.ant_height_z = 1.8
 
         # focal length of the beam (cm)
-        self.ant_focal = -100 
+        self.ant_focal = -100
 
         # launch angle (radian)
         self.ant_angle_y = -0.5017*np.pi # np.pi is the constant PI stored in numpy module
@@ -154,11 +154,11 @@ class FWR3D_input_maker:
         #flags to couple with reflect main program
         #read paraxial output from main program or not. Normally True.
         self.read_paraxial = True
-        #use specified mesh or not. If set False, will use the mesh defined in main program. Normally False. 
+        #use specified mesh or not. If set False, will use the mesh defined in main program. Normally False.
         self.submesh = False
 
         #absorbing boundary condition parameters
-        #These parameters controls the numerical boundary condition of the full wave solver. If the absorption switch is turned off, a simple E=0 boundary condition will be used. If absorption is on, then a finite width layer will be placed right inside the boundary, and the field will gradually decay to zero due to artificially added numerical collision damping. This means in the wave equation, an imaginary part of frequency is added, denoted as Nu.  
+        #These parameters controls the numerical boundary condition of the full wave solver. If the absorption switch is turned off, a simple E=0 boundary condition will be used. If absorption is on, then a finite width layer will be placed right inside the boundary, and the field will gradually decay to zero due to artificially added numerical collision damping. This means in the wave equation, an imaginary part of frequency is added, denoted as Nu.
         #artificial collision damping rate, in the unit of wave real frequency
         self.Nu_ampl = 1
         #absorption layer width in x,y,z direction, in the unit of vacuum wave length, symmetric on both ends assumed
@@ -166,7 +166,7 @@ class FWR3D_input_maker:
         self.Nu_width_y = 0.5
         self.Nu_width_z = 0.5
         #switchs to turn on the absorbing layers
-        #Normally, all the 6 boundaries should all be set to True . However, since the reflection layer SHOULD be inside the calculation area, ideally all the wave power will be reflected back, thus no wave touches x_min boundary. It is then reasonable to set the x_min boundary to be False, so there will be no artificial damping. When everything is set correctly, this should not significantly change the solution. If something went wrong, a non zero field may appear at x_min boundary. This can be used as a warning. 
+        #Normally, all the 6 boundaries should all be set to True . However, since the reflection layer SHOULD be inside the calculation area, ideally all the wave power will be reflected back, thus no wave touches x_min boundary. It is then reasonable to set the x_min boundary to be False, so there will be no artificial damping. When everything is set correctly, this should not significantly change the solution. If something went wrong, a non zero field may appear at x_min boundary. This can be used as a warning.
         self.absorb_x_min = False
         self.absorb_x_max = True
         self.absorb_y_min = True
@@ -221,11 +221,11 @@ class FWR3D_input_maker:
         #fluctuation file
         self.fluctuation_file = 'fluctuation1_0.cdf'
 
-        # wave polarization (O or X) 
+        # wave polarization (O or X)
         self.polarization = 'O'
 
-	# The (y,z) coordinates of main light path. Incidental wave is assumed mainly along x direction. The central ray is then assumed mainly along x direction inspite of possible refraction and defraction effects of plasma. Epsilon is fully calculated along x at the specified (y,z) coordinates. Then on each y,z plane, delta_epsilon is calculated to the first order in dn/n. The total epsilon is then the sum of the delta_epsilon on the (x,y,z) location and the main ray epsilon at the x value. 
-	self.yz_cut = [0,0]  
+	# The (y,z) coordinates of main light path. Incidental wave is assumed mainly along x direction. The central ray is then assumed mainly along x direction inspite of possible refraction and defraction effects of plasma. Epsilon is fully calculated along x at the specified (y,z) coordinates. Then on each y,z plane, delta_epsilon is calculated to the first order in dn/n. The total epsilon is then the sum of the delta_epsilon on the (x,y,z) location and the main ray epsilon at the x value.
+	self.yz_cut = [0,0]
 
         ##############################
         # End of the Parameter Setting Up
@@ -250,7 +250,7 @@ class FWR3D_input_maker:
                       'mpi':'MPI.inp'
                      }
 
-        # dictionary for all the namelist objects contained in each file,  
+        # dictionary for all the namelist objects contained in each file,
         self.NML_Dicts = {'ant':NmlDict(ANTENNA_NML={}),
                      'eps':NmlDict(EPSILON_NML={}),
                      'geo':NmlDict(geometry_nested_nml={},geometry_spec_nml={}),
@@ -278,7 +278,7 @@ class FWR3D_input_maker:
         self.BCKER_NML = self.NML_Dicts['bc_ker']
         self.FW_NML = self.NML_Dicts['fw']
         self.MPI_NML = self.NML_Dicts['mpi']
-        
+
 
 
     def update_para(self):
@@ -292,7 +292,7 @@ class FWR3D_input_maker:
         self.omega_dt = self.dx_fw*self.ant_freq*2*np.pi/6e10/2
         # total time
         self.nt = self.nx_full_wave*self.nr_crossings*2
-        # output skipping time 
+        # output skipping time
         self.iskip = int(self.nt/self.itime)
         # source locations
         self.ixs = [int(self.nx_full_wave*self.source_location),int(self.nx_full_wave*self.source_location) + self.outer_source_dnx]
@@ -301,7 +301,7 @@ class FWR3D_input_maker:
 
 
         self.ANT_NML['ANTENNA_NML'] = NmlDict({'read_code5_data' : self.read_code5_data,
-                    'code5_datafile' : self.code5_datafile,   
+                    'code5_datafile' : self.code5_datafile,
                     'ANT_CENTER':[self.ant_center_y,self.ant_center_z],
                     'ANT_HEIGHT':[self.ant_height_y,self.ant_height_z],
                     'FOCAL_LENGTH':self.ant_focal,
@@ -318,7 +318,7 @@ class FWR3D_input_maker:
                     'generate_fluctuations':True,
                     'fluctuation_type':self.fluctuation_type,
                     'fluctuation_file':self.fluctuation_file,
-                    'POLARIZATION':self.polarization,            
+                    'POLARIZATION':self.polarization,
                     'yz_cut':self.yz_cut,
                     'OUTPUT':self.eps_out,
                     'OUTPUT_EPS_1D':self.eps_1d_out
@@ -340,7 +340,7 @@ class FWR3D_input_maker:
                     'z_limits_paraxial':[self.Zmin, self.Zmax],
                     'y_limits_overall':[self.Ymin , self.Ymax],
                     'y_limits_full_wave':[self.Ymin ,self.Ymax],
-                    'y_limits_paraxial':[self.Ymin , self.Ymax]            
+                    'y_limits_paraxial':[self.Ymin , self.Ymax]
                     })
 
         self.FW_NML['VEC_FW_EXPL_NML'] = NmlDict({'read_paraxial' : self.read_paraxial,
@@ -365,7 +365,7 @@ class FWR3D_input_maker:
             'timer': True,
             'detector': False,
             'spectrum': False,
-            'zdim_is_unlimited': True,#set z-dimension to be unlimited in cdf_file record, get around with the 4GB array size limit. 
+            'zdim_is_unlimited': True,#set z-dimension to be unlimited in cdf_file record, get around with the 4GB array size limit.
             'log':False
             })
         self.MOD_NML['FW_expl_interface_nml'] = NmlDict({
@@ -395,7 +395,7 @@ class FWR3D_input_maker:
 
     def make_input(self,ftype):
         """ create .inp file for given ftype
-        ftype: string, see the keys of FILE_NAMES dict for different ftype strings         
+        ftype: string, see the keys of FILE_NAMES dict for different ftype strings
         """
         fname = self.run_path + self.FILE_NAMES[ftype]
         self.NML_Dicts[ftype].write(fname,force = True)
@@ -433,12 +433,12 @@ class FWR3D_input_maker:
                 subp.check_call(['ln','-s',self.vec_fw,self.run_path+'mvfw_O'])
 
 
-    
+
 # run the script if executed from command line.
 
 if __name__ == '__main__':
     maker = FWR3D_input_maker()
     maker.create_all_input_files()
     maker.create_executable_links()
-   
-        
+
+

@@ -2,7 +2,7 @@ import numpy as np
 
 def runge_kutta_explicit(order,alpha=1):
     """ Coefficient of the explicit Runge-Kutta methods.
-    
+
     :param int order: Order of the Runge-Kutta method
     :returns: Coefficient of the Butcher table and the number of stage
     :rtype: tuple(a,b,c,Nstage)

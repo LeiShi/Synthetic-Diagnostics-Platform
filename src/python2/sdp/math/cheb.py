@@ -14,7 +14,7 @@ def nthpoly(n):
     c = np.zeros((n+1))
     c[n] = 1
     return c
-        
+
 
 def C0(n):
     """ integral related to zero'th order finite Larmor radius effect
@@ -24,7 +24,7 @@ def C0(n):
     kernel = chebmul(c1,c2)
     cint = chebint(kernel)
     return chebval(1,cint)
-    
+
 
 def C1(n):
     """ integral related to first order finite Larmor radius effect
@@ -33,6 +33,5 @@ def C1(n):
     c2 = nthpoly(2*n)
     kernel = chebmul(c1,c2)
     cint = chebint(kernel)
-    return chebval(1,cint)  
+    return chebval(1,cint)
 
-    
