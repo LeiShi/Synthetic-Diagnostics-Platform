@@ -8,6 +8,8 @@ basic smoothing techniques
 """
 from __future__ import print_function
 
+import numpy as np
+
 def smooth(data, method='121', axis=-1, periodic=0, passes=1):
     r""" Simple averaging smooth over raw data, currently only support
     smoothing along the last dimension
@@ -18,15 +20,18 @@ def smooth(data, method='121', axis=-1, periodic=0, passes=1):
 available methods are: {1}.'.format(method, avail_methods))
     if axis != -1:
         raise NotImplementedError('smoothing along axis other than the last \
-one is currently not availabel.')
+one is currently not available.')
+    result = np.copy(data)
     if method == '121':
         for i in xrange(passes):
-            d1 = data[..., 1]
-            dn2 = data[..., -2]
-            data[..., 1:-1] = 0.25*( data[..., :-2] + 2*data[..., 1:-1] + \
-                                     data[..., 2:])
+            d1 = result[..., 1]
+            dn2 = result[..., -2]
+            result[..., 1:-1] = 0.25*( result[..., :-2] + 2*result[..., 1:-1]\
+                                       + result[..., 2:])
             if periodic == 1:
-                data[..., -1] = data[..., 0] = 0.25*(d1 + dn2 + data[..., 0])
+                result[..., 0] = 0.25*(d1 + dn2 + result[..., 0])
+                result[..., -1] = result[..., 0]
+        return result
     else:
         print("smoothing is not done, data has not changed.")
 
