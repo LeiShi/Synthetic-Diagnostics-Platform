@@ -20,23 +20,23 @@ struct esi_out{
 void initialize_esi_out(double* a, double* theta, int n){
   esi_output.n = n;
   esi_output.Fj =  (double*)xmalloc(sizeof(double)*n);
-  esi_output.Faj =  (double*)xmalloc(sizeof(double)*n);  
-  esi_output.gFaj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.gYaj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.rj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.raj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.rqj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.zj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.zaj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.zqj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.Bj =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.aaa =  (double*)xmalloc(sizeof(double)*n); 
-  esi_output.the =  (double*)xmalloc(sizeof(double)*n); 
+  esi_output.Faj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.gFaj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.gYaj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.rj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.raj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.rqj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.zj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.zaj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.zqj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.Bj =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.aaa =  (double*)xmalloc(sizeof(double)*n);
+  esi_output.the =  (double*)xmalloc(sizeof(double)*n);
   int i=0;
   for(i=0;i<n;i++){
     esi_output.aaa[i] = a[i];
     esi_output.the[i] = theta[i];
-  }  
+  }
 }
 
 void free_esi_output(){
@@ -76,12 +76,12 @@ double** get_metric_elements(){
     metric[1][i] = (esi_output.zaj[i]*esi_output.zaj[i] + esi_output.raj[i]*esi_output.raj[i])/D2; // (grad theta)^2
     metric[2][i] = 1./(esi_output.rj[i]*esi_output.rj[i]); //(grad phi)^2
     metric[3][i] = (-esi_output.raj[i]*esi_output.rqj[i]-esi_output.zaj[i]*esi_output.zqj[i])/D2; //grad a * grad theta
-    metric[4][i] = 0; //grad a * grad phi 
+    metric[4][i] = 0; //grad a * grad phi
     metric[5][i] = 0; // grad theta * grad phi
   }
 
   return metric;
-  
+
 }
 
 void free_metric_elements(double** metric){
@@ -93,7 +93,7 @@ void free_metric_elements(double** metric){
 }
 
 double* get_Jacobian(){
-  // returns the Jacobian = [grad(a) x grad(theta) . grad(phi)]^(-1) at each (a,theta) location. 
+  // returns the Jacobian = [grad(a) x grad(theta) . grad(phi)]^(-1) at each (a,theta) location.
 
   double* J = (double*) xmalloc(sizeof(double)*esi_output.n);
   int i=0;

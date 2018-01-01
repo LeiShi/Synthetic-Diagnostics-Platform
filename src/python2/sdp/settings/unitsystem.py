@@ -16,12 +16,12 @@ class UnitSystem:
 
     Attributes:
         :var _ConstDic: dictionary contains all the useful physical constants.
-    
-    Methods:    
+
+    Methods:
         :py:method:`list_const`: returns the _ConstDic dictionary.
         :py:method:`add_const`: add new const into the _ConstDic.
         :py:method:`del_const`: remove existing const from _ConstDic.
-        :py:method:`rename_const`: change the key for a const to obey user 
+        :py:method:`rename_const`: change the key for a const to obey user
                                    defined synbol rules.
     """
     def __init__(self, name, description, **CD):
@@ -43,12 +43,12 @@ class UnitSystem:
             raise
         except:
             raise
-            
+
     def __str__(self):
         return '{}\n{}\n'.format(self._name, self._description)
 
     def list_const(self):
-        """ returns the dictionary contains all the (name,value) pairs of the 
+        """ returns the dictionary contains all the (name,value) pairs of the
         consts
         """
         return self._ConstDic
@@ -56,13 +56,13 @@ class UnitSystem:
     def add_const(self, **C):
         """Add one or more constants using a keyword argument list.
 
-        :raise UnitError: If no argument is passed, a UnitError exception is 
+        :raise UnitError: If no argument is passed, a UnitError exception is
                           raised.
-        
-        :raise UnitError: If one of the passed keys already exists, the value 
+
+        :raise UnitError: If one of the passed keys already exists, the value
                           passed will be compared with the value stored. If the
-                          relative difference is less than 10e-4, the value 
-                          will be **CHANGED** to the new value. However, if the 
+                          relative difference is less than 10e-4, the value
+                          will be **CHANGED** to the new value. However, if the
                           difference is larger than that, a UnitError exception
                           will be raised.
         """
@@ -102,10 +102,10 @@ names as well.")
     def rename_const(self, **NameDic):
         """Change the name of a exsiting constant.
 
-        Keyword arguments are accepted with the key being the EXISTING name 
+        Keyword arguments are accepted with the key being the EXISTING name
         and the value being the new name.
-        
-        :raise UnitError: If keywords contain non-existing names, a UnitError 
+
+        :raise UnitError: If keywords contain non-existing names, a UnitError
                           exception will be raised.
         """
         for oldname in NameDic.keys():
@@ -118,7 +118,7 @@ names as well.")
 # some pre-defined unit systems
 # quantities' values based on NRL Plasma Formulary Revised 2009
 cgs = UnitSystem('cgs','Length: centi-meter\nMass: gram\nTime: second',
-                 
+
 # elementary charge
                  e = 4.8032e-10,
 # electron mass

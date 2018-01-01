@@ -66,10 +66,10 @@ dB_B['params']['level'] = 0
 
 # We devide a whole period of fluctuation into n time steps
 ntstep = 20
-tp.set_parameter2D(Te_0 = Te0, ne_0=ne0, Te_shape='uniform', 
-                   ne_shape='Hmode',dte_te=dte_te, 
+tp.set_parameter2D(Te_0 = Te0, ne_0=ne0, Te_shape='uniform',
+                   ne_shape='Hmode',dte_te=dte_te,
                    dne_ne=dne_ne, dB_B=dB_B,
-                   NR=400, NZ=400, timesteps=np.arange(ntstep), 
+                   NR=400, NZ=400, timesteps=np.arange(ntstep),
                    dt=1/(ntstep*freq_fluc))
 p2d_fluc = tp.create_profile2D(fluctuation=True)
 p2d_fluc.setup_interps()
@@ -82,12 +82,12 @@ ch_wid = 1
 
 k = omega/c
 
-detector_array = [GaussianAntenna(omega_list=[omega], k_list=[k], 
-                                  power_list=[1], waist_x=x, 
+detector_array = [GaussianAntenna(omega_list=[omega], k_list=[k],
+                                  power_list=[1], waist_x=x,
                                   waist_y=y, w_0y=ch_wid, tilt_h=0) \
                   for y in y_array]
-                      
-x1D = np.linspace(251, 216, 160) 
+
+x1D = np.linspace(251, 216, 160)
 y1D = np.linspace(-30, 30, 65)
 z1D = np.linspace(-30, 30, 65)
 
@@ -95,13 +95,13 @@ z1D = np.linspace(-30, 30, 65)
 try:
     ece_inphase_run
 except NameError:
-    ece = rcp.ECE2D(plasma=p2d_fluc, detector=detector_array[3], max_harmonic=2, 
+    ece = rcp.ECE2D(plasma=p2d_fluc, detector=detector_array[3], max_harmonic=2,
                     max_power=2)
-                    
+
     ece.set_coords([z1D, y1D, x1D])
-    
+
     ece.auto_adjust_mesh()
-    
+
     tsteps = np.arange(len(p2d_fluc.time))
     Te_t = []
     view_spot_t = []
@@ -211,10 +211,10 @@ dB_B['params']['level'] = 0
 
 # We devide a whole period of fluctuation into n time steps
 ntstep = 20
-tp.set_parameter2D(Te_0 = Te0, ne_0=ne0, Te_shape='uniform', 
-                   ne_shape='Hmode',dte_te=dte_te, 
+tp.set_parameter2D(Te_0 = Te0, ne_0=ne0, Te_shape='uniform',
+                   ne_shape='Hmode',dte_te=dte_te,
                    dne_ne=dne_ne, dB_B=dB_B,
-                   NR=200, NZ=200, timesteps=np.arange(ntstep), 
+                   NR=200, NZ=200, timesteps=np.arange(ntstep),
                    dt=1/(ntstep*freq_fluc))
 p2d_fluc_out = tp.create_profile2D(fluctuation=True)
 p2d_fluc_out.setup_interps()
@@ -222,13 +222,13 @@ p2d_fluc_out.setup_interps()
 try:
     ece_outphase_run
 except NameError:
-    ece_out = rcp.ECE2D(plasma=p2d_fluc_out, detector=detector_array[3], 
+    ece_out = rcp.ECE2D(plasma=p2d_fluc_out, detector=detector_array[3],
                         max_harmonic=2, max_power=2)
-                    
+
     ece_out.set_coords([z1D, y1D, x1D])
-    
+
     ece_out.auto_adjust_mesh()
-    
+
     tsteps = np.arange(len(p2d_fluc_out.time))
     Te_t_out = []
     view_spot_t_out = []
@@ -266,7 +266,7 @@ ax2_ne.set_ylabel('ne (cm^-3)')
 ax4 = axes[1][1]
 Te_total_out = p2d_fluc_out.Te0 + p2d_fluc_out.dTe_perp
 t = p2d_fluc_out.time[i]*1e6
-ax4.contour(ece_out.X1D, ece_out.Y1D, view_spot_t_out[i], [0.368, 0.7, 0.9], 
+ax4.contour(ece_out.X1D, ece_out.Y1D, view_spot_t_out[i], [0.368, 0.7, 0.9],
             colors='k')
 ax4.contour(p2d_fluc_out.grid.R1D, p2d_fluc_out.grid.Z1D, Te_total_out[i])
 ax4.grid(b=True, which='major')

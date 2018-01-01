@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Contain classes to carry out a full ECE Imaging diagnosis. 
+Contain classes to carry out a full ECE Imaging diagnosis.
 
 The following classes are included:
 
     ECEImagingSystem: main class for a complete ECE imaging system
     Configuration: main class reading and writing ECEI configuration file
-    
+
 
 Created on Fri Mar 18 11:07:24 2016
 
@@ -27,88 +27,88 @@ from ....plasma.profile import ECEI_Profile
 
 class ECEImagingSystem(object):
     """Main class for a complete ECE imaging system
-    
+
     Initialization
     ***************
-        __init__(plasma, detectors, polarization='X', 
-                 weakly_relativistic=True, isotropic=True, 
-                 max_harmonic=4, max_power=4, parallel=False, 
+        __init__(plasma, detectors, polarization='X',
+                 weakly_relativistic=True, isotropic=True,
+                 max_harmonic=4, max_power=4, parallel=False,
                  client=None)
-    
+
     :param plasma: plasma to be diagnosed
     :type plasma: :py:class:`sdp.plasma.PlasmaProfile.ECEIProfile` object
-    :param detectors: receiving antennas in whole system 
-    :type detectors: 
+    :param detectors: receiving antennas in whole system
+    :type detectors:
         list of :py:class`sdp.diagnostic.ecei.ecei2d.Detector2D.Detector2D`
         objects
     :param string polarization: either 'O' or 'X', the chosen polarization.
-    :param bool weakly_relativistic: model selection for both dielectric and 
-                                     current correlation tensor. If True, 
-                                     weakly relativistic formula will be used, 
-                                     otherwise non-relativistic formula is 
+    :param bool weakly_relativistic: model selection for both dielectric and
+                                     current correlation tensor. If True,
+                                     weakly relativistic formula will be used,
+                                     otherwise non-relativistic formula is
                                      used. Default is True.
-    :param bool isotropic: model selection for current correlation tensor. If 
+    :param bool isotropic: model selection for current correlation tensor. If
                            True, isotropic Maxwillian is assumed, and current
-                           correlation tensor can be directly obtained from 
-                           anti-Hermitian dielectric tensor. Otherwise, 
+                           correlation tensor can be directly obtained from
+                           anti-Hermitian dielectric tensor. Otherwise,
                            anisotropic formula is needed. Default is True.
-                           
+
     :param bool parallel: parallel run flag. Default is False.
-    :param client: ipcluster client handler, only needed for parallel 
+    :param client: ipcluster client handler, only needed for parallel
                    runs.
     :type client: Handler of Ipython cluster. object created by Client()
-                           
-    
+
+
     Methods
     *******
-    
-    set_coords(coordinates): 
-        set initial mesh in Z,Y,X 
 
-    auto_adjust_mesh(fine_coeff=1): 
-        automatically adjust grid in X    
-    
-    diagnose(time, detectorID='all'): 
-        diagnose plasma of using chosen 
+    set_coords(coordinates):
+        set initial mesh in Z,Y,X
+
+    auto_adjust_mesh(fine_coeff=1):
+        automatically adjust grid in X
+
+    diagnose(time, detectorID='all'):
+        diagnose plasma of using chosen
         time steps using chosen channels.
-    
-    
+
+
     """
-    
-    def __init__(self, plasma, detectors, polarization='X', 
-                 weakly_relativistic=True, isotropic=True, 
+
+    def __init__(self, plasma, detectors, polarization='X',
+                 weakly_relativistic=True, isotropic=True,
                  max_harmonic=4, max_power=4, parallel=False, client=None):
         """Initialize ecei System
-        
+
         :param plasma: plasma to be diagnosed
         :type plasma: :py:class:`sdp.plasma.PlasmaProfile.ECEIProfile` object
-        :param detectors: receiving antennas in whole system 
+        :param detectors: receiving antennas in whole system
         :type detectors: list of :py:class`sdp.diagnostic.ecei.
                          ecei2d.Detector2D.Detector2D` objects
         :param string polarization: either 'O' or 'X', the chosen polarization.
-        :param bool weakly_relativistic: model selection for both dielectric 
-                                         and current correlation tensor. If 
+        :param bool weakly_relativistic: model selection for both dielectric
+                                         and current correlation tensor. If
                                          True, weakly relativistic formula will
-                                         be used, otherwise non-relativistic 
+                                         be used, otherwise non-relativistic
                                          formula is used. Default is True.
-        :param bool isotropic: model selection for current correlation tensor. 
-                               If True, isotropic Maxwillian is assumed, and 
-                               current correlation tensor can be directly 
-                               obtained from anti-Hermitian dielectric tensor. 
-                               Otherwise, anisotropic formula is needed. 
+        :param bool isotropic: model selection for current correlation tensor.
+                               If True, isotropic Maxwillian is assumed, and
+                               current correlation tensor can be directly
+                               obtained from anti-Hermitian dielectric tensor.
+                               Otherwise, anisotropic formula is needed.
                                Default is True.
-        :param int max_harmonic: maximum harmonic number included in emission 
+        :param int max_harmonic: maximum harmonic number included in emission
                                  model.
-        :param int max_power: highest order of FLR effect included in weakly 
+        :param int max_power: highest order of FLR effect included in weakly
                               relativistic model. Ignored in non-relativistic
                               model.
-                               
+
         :param bool parallel: parallel run flag. Default is False.
-        :param client: ipcluster client handler, only needed for parallel 
+        :param client: ipcluster client handler, only needed for parallel
                    runs.
         :type client: Handler of Ipython cluster. object created by Client()
         """
-        
+
         self.plasma = plasma
         self.detector_list = detectors
         self._ND = len(detectors)
@@ -117,7 +117,7 @@ class ECEImagingSystem(object):
         self.isotropic = isotropic
         self.max_harmonic = max_harmonic
         self.max_power = max_power
-        
+
         if (parallel):
             self._parallel = True
             self._client = client
@@ -133,12 +133,12 @@ import sdp.diagnostic.ecei.ecei2d.ece\n\
 ECE2D = sdp.diagnostic.ecei.ecei2d.ece.ECE2D')
         else:
             self._parallel = False
-            
+
         # Now, create ECE2D object for each channel
         if not self._parallel:
-            self._channels=[ECE2D(plasma=plasma, detector=detector, 
-                                 polarization=polarization, 
-                                 weakly_relativistic=weakly_relativistic, 
+            self._channels=[ECE2D(plasma=plasma, detector=detector,
+                                 polarization=polarization,
+                                 weakly_relativistic=weakly_relativistic,
                              isotropic=isotropic, max_harmonic=max_harmonic,
                              max_power=max_power) for detector in detectors]
         else:
@@ -179,21 +179,21 @@ eces[i] = ECE2D(plasma=plasma, detector=detectors[i], **e_param)'\
                 raise Exception('Parallel Initialization Time is too long. \
 Check if something went wrong! Time elapsed: {0}s'.format(wait_time))
         self._debug_mode = np.zeros((self._ND,), dtype='bool')
-                             
-        
+
+
     def set_coords(self, coordinates, channelID='all'):
         """setup initial calculation mesh in Z,Y,X for chosen channels
-        
-        :param coordinates: [Z1D, Y1D, X1D] mesh points. Rectanglar mesh 
+
+        :param coordinates: [Z1D, Y1D, X1D] mesh points. Rectanglar mesh
                             assumed.
         :type coordinates: list of 1D arrays
-        :param channelID: Optional, ID for chosen channels. Given as a list of 
-                          indices in ``self.channels``. Default is 'all'. 
+        :param channelID: Optional, ID for chosen channels. Given as a list of
+                          indices in ``self.channels``. Default is 'all'.
         :type channelID: list of int.
         """
         if str(channelID) == 'all':
             channelID = np.arange(self._ND)
-        
+
         if not self._parallel:
             for channel_idx in channelID:
                 self._channels[channel_idx].set_coords(coordinates)
@@ -215,26 +215,26 @@ eces[{0}].set_coords(coordinates)'.format(i))
                 raise Exception('Parallel Set_coords takes too long. Check if \
 something went wrong. Time elapsed: {0}s'.format(wait_time))
             return status
-            
-    def auto_adjust_mesh(self, fine_coeff=1, channelID='all', 
+
+    def auto_adjust_mesh(self, fine_coeff=1, channelID='all',
                          wait_time_single=120, mute=False):
         """automatically adjust X grid points based on local emission intensity
         for chosen channels.
-        
-        :param float fine_coeff: coefficient of fine structure. See 
+
+        :param float fine_coeff: coefficient of fine structure. See
                                  :py:method:`sdp.diagnostic.ecei.ecei2d.
-                                 Reciprocity.ECE2D.auto_adjust_mesh` for more 
+                                 Reciprocity.ECE2D.auto_adjust_mesh` for more
                                  details.
-        :param channelID: Optional, ID for chosen channels. Given as a list of 
-                          indices in ``self.channels``. Default is 'all'. 
+        :param channelID: Optional, ID for chosen channels. Given as a list of
+                          indices in ``self.channels``. Default is 'all'.
         :type channelID: list of int.
-        :param float wait_time_single: expected execution time for single 
-                                       channel, in seconds. Only used in 
+        :param float wait_time_single: expected execution time for single
+                                       channel, in seconds. Only used in
                                        parallel mode to avoid infinite waiting.
         :param bool mute: if True, no output during execution, except warnings.
         """
         tstart = systime.clock()
-        
+
         if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         if not self._parallel:
@@ -276,19 +276,19 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
             if not mute:
                 print('Walltime: {0:.4}s'.format(tend-tstart))
             return status
-                                                            
-    def diagnose(self, time=None, debug=False, auto_patch=False, 
-                 oblique_correction=True, channelID='all', 
+
+    def diagnose(self, time=None, debug=False, auto_patch=False,
+                 oblique_correction=True, channelID='all',
                  wait_time_single=120, mute=False):
         """diagnose electron temperature with chosen channels
-        
-        :param int time: time steps in plasma profile chosen for diagnose. if 
+
+        :param int time: time steps in plasma profile chosen for diagnose. if
                          not given, only equilibrium will be used.
-        :param bool debug: debug mode flag. if True, more information will be 
+        :param bool debug: debug mode flag. if True, more information will be
                            kept for examining. Default is False.
-        :param bool auto_patch: if True, program will automatically detect the 
+        :param bool auto_patch: if True, program will automatically detect the
                                 significant range of x where emission power is
-                                originated, and add finer grid patch to that 
+                                originated, and add finer grid patch to that
                                 region. This may cause a decrease of speed, but
                                 can improve the accuracy. Default is False, the
                                 programmer is responsible to set proper x mesh.
@@ -297,11 +297,11 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
                                    :math:`\cos(\theta_h)\cos(\theta_v)` term.
                                    Default is True.
         :type oblique_correction: bool
-        :param channelID: Optional, ID for chosen channels. Given as a list of 
-                          indices in ``self.channels``. Default is 'all'. 
+        :param channelID: Optional, ID for chosen channels. Given as a list of
+                          indices in ``self.channels``. Default is 'all'.
         :type channelID: list of int.
-        :param float wait_time_single: expected execution time for single 
-                                       channel, in seconds. Only used in 
+        :param float wait_time_single: expected execution time for single
+                                       channel, in seconds. Only used in
                                        parallel mode to avoid infinite waiting.
         :param bool mute: if True, no printed output.
         """
@@ -316,7 +316,7 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
             self.Te[...] = np.nan
         else:
             self.Te = np.empty((self._ND,), dtype='float')
-                
+
         if not self._parallel:
             # single CPU version
             # if no previous Te, initialize with np.nan
@@ -328,14 +328,14 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
                     print('Channel #{}:'.format(channel_idx))
                 self._debug_mode[channel_idx] = debug
                 self.Te[channel_idx] = np.asarray(self._channels[channel_idx].\
-                                         diagnose(time=time, debug=debug, 
+                                         diagnose(time=time, debug=debug,
                                                   auto_patch=auto_patch,
                                                   oblique_correction=\
                                                   oblique_correction,
                                                   mute=mute))
             tend = systime.clock()
             if not mute:
-                print('Walltime: {0:.4}s'.format(tend-tstart))                                                  
+                print('Walltime: {0:.4}s'.format(tend-tstart))
         else:
             if not mute:
                 print('Parallel run for {0} channels on {1} engines.'.\
@@ -347,7 +347,7 @@ Check if something went wrong. Time elapsed: {0}s'.format(wait_time))
                 if not mute:
                     print('Channel #{0} on engine #{1}'.format(i, eid))
                 engine = self._client[eid]
-                engine.push(dict(time=time, debug=debug, 
+                engine.push(dict(time=time, debug=debug,
                                   auto_patch=auto_patch,
                                   oblique_correction=oblique_correction,
                                   mute=mute))
@@ -369,9 +369,9 @@ oblique_correction=oblique_correction, mute=mute)'.format(i))
 something went wrong. Time elapsed: {0}s'.format(wait_time))
             tend = systime.clock()
             if not mute:
-                print('Walltime: {0:.4}s'.format(tend-tstart))    
+                print('Walltime: {0:.4}s'.format(tend-tstart))
             return status
-        
+
     def get_channels(self, channelID='all'):
         """Detailed information for all/chosen channels"""
         if str(channelID) == 'all':
@@ -390,7 +390,7 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 channels.append(engine['eces[i].properties'])
                 print('        received.')
             return channels
-            
+
     @property
     def channels(self):
         return self.get_channels()
@@ -411,12 +411,12 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 vp.append(engine['eces[{0}].view_point'.format(i)])
         return tuple(vp)
-        
+
     @property
     def view_points(self):
         return self.get_view_points()
-    
-    def get_view_spots(self, channelID='all'):        
+
+    def get_view_spots(self, channelID='all'):
         if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -430,12 +430,12 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 vs.append(engine['eces[{0}].view_spot'.format(i)])
         return tuple(vs)
-        
+
     @property
     def view_spots(self):
         """view_spot list of all channels"""
         return self.get_view_spots()
-        
+
     def get_diag_x(self, channelID='all'):
         if str(channelID) == 'all':
             channelID = np.arange(self._ND)
@@ -450,14 +450,14 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 diag_x.append(engine['eces[{0}].diag_x'.format(i)])
         return tuple(diag_x)
-        
+
     @property
     def diag_xs(self):
         """ diag_x list of all chanels"""
         return self.get_diag_x()
-    
+
     def get_X1Ds(self, channelID='all'):
-        
+
         if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -471,14 +471,14 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 x1ds.append(engine['eces[{0}].X1D'.format(i)])
         return tuple(x1ds)
-    
+
     @property
     def X1Ds(self):
         """list containing X1D arrays of all channels"""
         return self.get_X1Ds()
-    
+
     def get_Y1Ds(self, channelID='all'):
-        
+
         if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -492,14 +492,14 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 y1ds.append(engine['eces[{0}].Y1D'.format(i)])
         return tuple(y1ds)
-        
+
     @property
     def Y1Ds(self):
         """list containing X1D arrays of all channels"""
         return self.get_Y1Ds()
-        
+
     def get_Z1Ds(self, channelID='all'):
-        
+
         if str(channelID) == 'all':
             channelID = np.arange(self._ND)
         else:
@@ -513,28 +513,28 @@ something went wrong. Time elapsed: {0}s'.format(wait_time))
                 engine = self._client[eid]
                 z1ds.append(engine['eces[{0}].Z1D'.format(i)])
         return tuple(z1ds)
-        
+
     @property
     def Z1Ds(self):
         """list containing X1D arrays of all channels"""
         return self.get_Z1Ds()
-        
+
     #def save(self, filename='./ecei_save'):
     #    """save all channel information to *filename*.npz
     #    """
-        
-        
-        
-    
-                
-    
-    
-        
-        
-                             
-        
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

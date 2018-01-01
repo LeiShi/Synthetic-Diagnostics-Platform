@@ -12,7 +12,7 @@ matplotlib.rcParams.update(pgf_with_rc_fonts)
 
 class Tools:
     """ Defines a few tools for doing some computations on the bes image
-    
+
     Two different methods of initialization have been made:
     The first one is the usual __init__ function that take as input the photon radiance, the R,Z coordinates
     and the psin value, and the second one read a npz file with a standard order and calls the __init__ method.
@@ -50,7 +50,7 @@ class Tools:
         :param bool fluc: The intensity inside the file is the total (False) or the fluctuation (True)
         :return: New instance variable
         :rtype: Tools
-        
+
         """
         data = np.load(filename)
         I = data['arr_0']
@@ -65,7 +65,7 @@ class Tools:
         The interpolation is done for each timestep
 
         :param int Nr: Number of points for the discretization in R
-        :param int Nz: Number of points for the discretization in Z 
+        :param int Nz: Number of points for the discretization in Z
         :param np.array[Ntime,R,Z] I: Picture to interpolate
         :param int timestep: Time step wanted (None compute all of them)
 
@@ -123,7 +123,7 @@ class Tools:
         plt.ylabel('Z[m]')
 
         v = np.linspace(np.min(self.I),np.max(self.I),v)
-        
+
         def animate(i):
             ax.cla()
             print 'Timestep: ', i
@@ -136,7 +136,7 @@ class Tools:
 
         # call the animator.  blit=True means only re-draw the parts that have changed.
         anim = animation.FuncAnimation(fig, animate, frames=self.I.shape[0],repeat=False)
-        
+
         # save the animation as an mp4.  This requires ffmpeg or mencoder to be
         # installed.  The extra_args ensure that the x264 codec is used, so that
         # the video can be embedded in html5.  You may need to adjust this for
@@ -146,7 +146,7 @@ class Tools:
         FFwriter = animation.FFMpegWriter()
         anim.save(name_movie, writer=FFwriter,fps=15, extra_args=['-vcodec', 'libx264'])
 
-        
+
     def comparison_picture(self,tool2,timestep,v=40,total=False):
         """ Make a picture from the data.
 
@@ -171,39 +171,39 @@ class Tools:
             #v2 = np.linspace(np.min(I),np.max(I2),v)
 
         fig, axarr = plt.subplots(1,2)
-        
+
         axarr[0].set_xlabel('R[m]')
         axarr[0].set_ylabel('Z[m]')
         axarr[1].set_xlabel('R[m]')
 
         axarr[0].locator_params(axis = 'x',nbins=5)
-        
+
         axarr[1].locator_params(axis = 'x',nbins=5)
         axarr[0].set_title(tool2.name_id)
         axarr[1].set_title(self.name_id)
-        
+
         axarr[1].set_yticklabels([])
         #plt.suptitle('Timestep : {}'.format(timestep))
-        
+
         axarr[0].plot(tool2.R,tool2.Z,'x')
         tri0 = axarr[0].tricontourf(tool2.R,tool2.Z,I2[timestep,:],v2)
         axarr[0].tricontour(self.R,self.Z,self.psin,[1])
-        
+
         axarr[1].plot(self.R,self.Z,'x')
         tri1 = axarr[1].tricontourf(self.R,self.Z,I[timestep,:],v1)
         axarr[1].tricontour(self.R,self.Z,self.psin,[1])
-        
+
 
         cb = plt.colorbar(tri0,ax=axarr[0])
         cb = plt.colorbar(tri1,ax=axarr[1])
-        
+
         plt.show()
 
 
     def comparison_movie(self,tool2,v=40,name_movie='movie_comp.mp4',interpolation=False):
         """ Make a movie from the data and save it in movie_comp.mp4
         self should be the density fluctuation
-        
+
         :param Tools tool2: bes images
         :param int v: Number of ticks for the colorbar
         :param str name_movie: Name of the output movie
@@ -220,16 +220,16 @@ class Tools:
         lim2 = np.max([np.max(tool2.I), -np.min(tool2.I)])
         v1 = np.linspace(-lim1,lim1,v)
         v2 = np.linspace(-lim2,lim2,v)
-        
+
         #v1 = np.linspace(np.min(self.I),np.max(self.I),v)
         #v2 = np.linspace(np.min(tool2.I),np.max(tool2.I),v)
         fig, axarr = plt.subplots(1,2)
-        
+
         axarr[0].set_xlabel('R[m]')
         axarr[0].set_ylabel('Z[m]')
         axarr[1].set_xlabel('R[m]')
 
-        
+
         tri0 = axarr[1].tricontourf(self.R,self.Z,self.I[0,:],v1)
         tri1 = axarr[0].tricontourf(tool2.R,tool2.Z,tool2.I[0,:],v2)
 
@@ -245,10 +245,10 @@ class Tools:
             axarr[1].locator_params(axis = 'x',nbins=5)
             axarr[1].set_title(tool2.name_id)
             axarr[0].set_title(self.name_id)
-  
+
             axarr[1].set_yticklabels([])
             plt.suptitle('Timestep : {}'.format(i))
-            
+
             axarr[0].plot(tool2.R,tool2.Z,'x')
             if interpolation:
                 tri0 = axarr[1].contourf(r,z,I[i,...].T,v2,extend='both')
@@ -268,7 +268,7 @@ class Tools:
 
         # call the animator.  blit=True means only re-draw the parts that have changed.
         anim = animation.FuncAnimation(fig, animate, frames=self.I.shape[0],repeat=False)
-        
+
         # save the animation as an mp4.  This requires ffmpeg or mencoder to be
         # installed.  The extra_args ensure that the x264 codec is used, so that
         # the video can be embedded in html5.  You may need to adjust this for
@@ -299,9 +299,9 @@ class Tools:
         from scipy.signal import correlate2d
 
         corr = np.zeros(2*np.array([Nr,Nz])-1)
-        
+
         r,z,Igrid = self.interpolate(Nr,Nz,self.I,start=start)
-            
+
         for i in range(self.Nt-start):
             if np.isfinite(Igrid[i,...]).all():
                 corr += correlate2d(Igrid[i,...],Igrid[i,...])
@@ -324,12 +324,12 @@ class Tools:
         indr_ = (r >= 0) & (r<dr_max)
         indz_ = (z >= 0) & (z<dz_max)
         ind = np.einsum('i,j->ij',indr_,indz_)
-        
+
         rm, zm = np.meshgrid(r[indr_],z[indz_])
         fft_corr = np.abs(np.fft.fft2(corr))/np.sqrt(Nr*Nz)
         corr = corr[ind]
         corr = np.reshape(corr,[np.sum(indr_),np.sum(indz_)])
-        
+
         krfft = np.fft.fftfreq(Nr,r[2]-r[1])
         kzfft = np.fft.fftfreq(Nz,z[2]-z[1])
         indrfft = (krfft >= 0) & (krfft < dkr_max)
@@ -351,7 +351,7 @@ class Tools:
 
             fft_ = fft_corr[indrfft,:]
             fft_ = fft_[:,indzfft]
-            
+
             fs = 16
             fig = plt.figure()
             #plt.title('FFT of the Correlation')
@@ -364,7 +364,7 @@ class Tools:
                 plt.colorbar()
             plt.xlabel('$k_r [m^{-1}]$',fontsize=fs)
             plt.ylabel('$k_z [m^{-1}]$',fontsize=fs)
-            
+
             plt.figure()
             # legend!
             plt.plot(r[indr_],corr[:,0],label='R')
@@ -373,7 +373,7 @@ class Tools:
             plt.ylabel('Correlation')
             plt.grid(True)
             plt.legend()
-            
+
             plt.show()
         else:
             return corr,fft_
@@ -391,7 +391,7 @@ class Tools:
 
         :return: If (figure == False), the radius and the correlation are returned.\
         :rtype: (np.array[Nr],np.array[Nr])
-        
+
         """
         ind = np.abs((self.R - Rref)/Rref) < eps
         N = np.sum(ind)
@@ -406,10 +406,10 @@ class Tools:
         for i in range(self.Nt-start):
             temp = splrep(Z_temp,I[i,:])
             Igrid[i,:] = splev(z,temp)
-            
+
         for j in range(Nz):
             corr[j] = np.corrcoef(Igrid[:,round(index*Nz)],Igrid[:,j])[0,1]
-            
+
         if not figure:
             return z-z[0],corr,ind
         else:
@@ -485,7 +485,7 @@ class Tools:
                 z, corr_,ind = tools[i].vertical_correlation(Nz,Rref,eps,figure=False,index=0,start=start)
                 temp_corr[i+1] = get_correlation_length(z,corr_)
             corr.append(temp_corr)
-            
+
         r0 = np.linspace(np.min(self.R),np.max(self.R),Nr)
         r = np.array(r)
         for i in range(len(tools)+1):
@@ -517,7 +517,7 @@ class Tools:
 
 
     def comparison_vertical_correlation(self,tools,Nz=40,Rref=2.2236,eps=0.0008,index=0.5,start=40):
-        """ Show the vertical correlation as a function of the distance for each instance in tools 
+        """ Show the vertical correlation as a function of the distance for each instance in tools
         (plus self).
 
         :param list[Tools] tools: List of Tools instance
@@ -542,7 +542,7 @@ class Tools:
     def radial_correlation(self,Nr=100,Zref=0.01195,eps=3e-2,figure=True,index=0.5,start=40):
         """
         Radial correlation for the reference plane.
-        
+
         :param int Nr: Number of points for the radial correlation
         :param float Zref: Reference plane
         :param float eps: Relative error accepted for the reference plane
@@ -581,7 +581,7 @@ class Tools:
     def comparison_radial_correlation(self,tools,Nr=100,Zref=0.01195,eps=3e-2,index=0.5,start=40):
         """
         Plot the radial correlation for each instance of tools (plus self) and for the reference plane.
-        
+
         :param list[Tools] tools: List of instance of Tools
         :param int Nr: Number of points for the radial correlation
         :param float Zref: Reference plane
@@ -594,7 +594,7 @@ class Tools:
         r,corr[0,:],ind = self.radial_correlation(Nr,Zref,eps,figure=False,index=index,start=start)
         for i in range(len(tools)):
             r,corr[i+1,:],ind = tools[i].radial_correlation(Nr,Zref,eps,figure=False,index=index,start=start)
-        
+
         plt.figure()
         plt.plot(r,corr[0,:],label=self.name_id)
         for i in range(len(tools)):
@@ -635,7 +635,7 @@ class Tools:
                 std = np.sum(I[inda:indb]**2)*np.sum(I[indc:indd]**2)
                 corr[i] = np.sum(I[inda:indb]*I[indc:indd])/np.sqrt(std)
             return corr
-        
+
         Nt = self.I.shape[0]-start
         corr = np.zeros(Nt)
         t = np.arange(-Nt+1,Nt)*dt
@@ -662,7 +662,7 @@ class Tools:
     def comparison_time_correlation(self,tools,fib=3,dt=1.56569e-6,start=40,cut=30):
         """
         Plot a comparison of the time correlation for each instance of tools (plus self)
-        
+
         :param list[Tools] tools: List of Tools that will be computed and displayed
         :param int fib: Index of the fiber
         :param float dt: Step size between each image
@@ -674,7 +674,7 @@ class Tools:
         for i in range(len(tools)):
             r,corr[i+1,:] = tools[i].time_correlation(figure=False,fib=fib,dt=dt,start=start,cut=cut)
 
-            
+
         import matplotlib.ticker as mtick
         plt.figure()
         plt.plot(r,corr[0,:],label=self.name_id)
@@ -717,8 +717,8 @@ def put_two_files_together(name1,name2,outputname):
         I[:I1.shape[0],:] = I1
         I[I1.shape[0]:,:] = I2
         np.savez(outputname,I,psin1,pos1,data1['arr_3'])
-        
-    
+
+
 """ Define a few test for checking the data given by the code
 It contains all the code used for the figure in my report
 """
@@ -742,16 +742,16 @@ def beam_density(t=150):
     nb_eq = bes.beam.density_beam
     ne_eq = bes.beam.get_quantities(bes.beam.mesh,t,['ne'],True,check=False)[0]
     bes.beam.eq = False
-    
+
     bes.beam.t_ = t-1 # will be increase in compute_beam_on_mesh
     bes.beam.compute_beam_on_mesh()
     nb_fl = bes.beam.density_beam
     ne_fl = bes.beam.get_quantities(bes.beam.mesh,t,['ne'],False,check=False)[0]
     dl = np.sqrt(np.sum((bes.beam.mesh-bes.beam.pos[np.newaxis,:])**2,axis=1))
-    
-    
+
+
     fig, axarr = plt.subplots(2,sharex=True)
-        
+
     axarr[1].plot(dl,((nb_eq-nb_fl)/nb_eq).T)
     plt.xlabel('Distance [m]')
     axarr[1].set_ylabel('Error')
@@ -765,21 +765,21 @@ def beam_density(t=150):
     axarr[0].grid(True)
     axarr[0].set_ylabel('Beam density [m$^{-3}$]')
     axarr[0].legend(['1st Eq','2nd Eq','3rd Eq'],loc=3)
-    
-    
+
+
     fig, axarr = plt.subplots(2,sharex=True)
-        
+
     axarr[1].plot(dl,((ne_eq-ne_fl)/ne_eq))
     plt.xlabel('Distance [m]')
     axarr[1].set_ylabel('Error')
     axarr[1].grid(True)
-    
+
     axarr[0].plot(dl,ne_eq)
     axarr[0].plot(dl,ne_fl)
     axarr[0].grid(True)
     axarr[0].legend(['Equilibrium','Fluctuations'],loc=2)
     axarr[0].set_ylabel('Electron Density [m$^{-3}$]')
-        
+
     plt.figure()
     tot = np.sum(nb_eq,axis=0)
     plt.plot(dl,(nb_eq/tot[np.newaxis,:]).T)
@@ -791,7 +791,7 @@ def beam_density(t=150):
     plt.xlabel('Distance [m]')
     plt.ylabel('Ratio')
     plt.grid(True)
-    
+
     plt.show()
 
 def beam_emission(Nr=40,t=81):
@@ -867,7 +867,7 @@ def check_convergence_beam_density(t=140,eq=False):
     :param bool eq: If equilibrium is wanted
     """
     bes = bes_.BES(name)
-    
+
     bes.beam.t_ = t-1 # will be increase in compute_beam_on_mesh
     bes.beam.data.current = t
     bes.beam.data.load_next_time_step(increase=False)
@@ -937,7 +937,7 @@ def check_convergence_lifetime(t=81,fib=4,beam_comp=0):
     bes.beam.Nlt = Nref
     emis_ref = bes.beam.get_emis_lifetime(bes.pos_foc[fib,:],t)[beam_comp,:]
     #test_ref = bes.beam.get_emis_lifetime(bes.pos_foc[fib,:],t,test=True)[beam_comp,:]
-    
+
     plt.figure()
     plt.title('Lifetime convergence')
     plt.loglog(N,np.abs((emis-emis_ref)/emis_ref))
@@ -962,7 +962,7 @@ def check_convergence_field_line(fib=4,phi=0.2,nber_plane=16,fwd=True):
     foc = bes.pos_foc[fib,:]
     r = np.sqrt(np.sum(foc[0:2]**2))
     z = foc[2]
-    
+
     N = np.logspace(1,3,20)
     Nref =5000
 
@@ -973,7 +973,7 @@ def check_convergence_field_line(fib=4,phi=0.2,nber_plane=16,fwd=True):
         ind = 1
     else:
         ind = 0
-        
+
     pos = np.zeros((N.shape[0],3))
     pos_ref = np.zeros(3)
 
@@ -988,7 +988,7 @@ def check_convergence_field_line(fib=4,phi=0.2,nber_plane=16,fwd=True):
         pos[i,0] = temp[ind,1] # R
         pos[i,1] = temp[ind,0] # Z
         pos[i,2] = temp[ind,2] # s
-        
+
     bes.beam.data.dphi = dphi_ref
     temp = bes.beam.data.find_interp_positions(r,z,phi,prev,nex)
     pos_ref[0] = temp[ind,1] # R
@@ -996,14 +996,14 @@ def check_convergence_field_line(fib=4,phi=0.2,nber_plane=16,fwd=True):
     pos_ref[2] = temp[ind,2] # s
 
     print temp[ind,:]
-    
+
     plt.figure()
     plt.loglog(dphi,np.abs((pos[:,0]-pos_ref[0])/pos_ref[0]),label='R')
     plt.loglog(dphi,np.abs((pos[:,1]-pos_ref[1])/pos_ref[1]),label='Z')
     plt.loglog(dphi,np.abs((pos[:,2]-pos_ref[2])/pos_ref[2]),label='s')
     plt.grid(True)
     plt.legend(loc=2)
-    
+
     plt.ylabel('Error')
     plt.xlabel('$\Delta\phi [rad]$')
     plt.show()
@@ -1011,9 +1011,9 @@ def check_convergence_field_line(fib=4,phi=0.2,nber_plane=16,fwd=True):
 
 def check_convergence_interpolation_data(t=140,fib=4,phi=0.2,nber_plane=16,eq=False):
     """ Plot the error of the field line following interpolation as a function of the
-    step size of the field line integration at the position given by 
+    step size of the field line integration at the position given by
     the focus point of the fiber and by phi
-    
+
     :param int t: Timestep wanted
     :param int fib: Index of the fiber
     :param float phi: Angle to use for the position
@@ -1030,14 +1030,14 @@ def check_convergence_interpolation_data(t=140,fib=4,phi=0.2,nber_plane=16,eq=Fa
     x = np.cos(phi)*r
     y = np.sin(phi)*r
     z = foc[2]
-    
+
     N = np.logspace(0.5,2,20)
     Nref = 1000
 
     dphi = 2*np.pi/(nber_plane*N)
     dphi_ref = 2*np.pi/(nber_plane*Nref)
 
-        
+
     ne = np.zeros((N.shape[0]))
 
     phi = np.atleast_1d(phi)
@@ -1050,14 +1050,14 @@ def check_convergence_interpolation_data(t=140,fib=4,phi=0.2,nber_plane=16,eq=Fa
     for i,dphi_ in enumerate(dphi):
         bes.beam.data.dphi = dphi_
         ne[i] = bes.beam.data.interpolate_data(pos,t,['ne'],eq,check=True)[0]
-                
+
     bes.beam.data.dphi = dphi_ref
     ne_ref = bes.beam.data.interpolate_data(pos,t,['ne'],eq,check=True)[0]
-    
+
     plt.figure()
     plt.title('Interpolation of data')
     plt.loglog(N,np.abs((ne-ne_ref)/ne_ref))
-    plt.grid(True)    
+    plt.grid(True)
     plt.ylabel('Error')
     plt.xlabel('Number of interval')
     plt.show()
@@ -1077,7 +1077,7 @@ def check_convergence_optic_int(t=81,fib=4):
     bes.beam.data.load_next_time_step(increase=False)
     bes.beam.compute_beam_on_mesh()
     bes.pos_foc = np.atleast_2d(bes.pos_foc[fib,:])
-    
+
     Nsample = 30
     N_ref = 300
     N = np.logspace(1,2,Nsample)
@@ -1094,7 +1094,7 @@ def check_convergence_optic_int(t=81,fib=4):
         bes.type_int = '2D'
         I2D[i] = bes.intensity(t,0,comp_eps=True)
         #Itest[i] = bes.intensity(t,0,comp_eps=True,test=True)
-        
+
 
     bes.Nint = N_ref
     bes.type_int = '1D'
@@ -1103,9 +1103,9 @@ def check_convergence_optic_int(t=81,fib=4):
     bes.type_int = '2D'
     I2D_ref = bes.intensity(t,0,comp_eps=True)
     #Itest_ref = bes.intensity(t,0,comp_eps=True,test=True)
-    
 
-    
+
+
     plt.figure()
     plt.title('Optical integral')
     plt.loglog(N,np.abs((I1D-I1D_ref)/I1D_ref),label='1D integral')
@@ -1134,7 +1134,7 @@ def check_convergence_solid_angle_to_analy(R=0.5,Z=0.1,radius=0.4,Nth=100,Nr=10)
     x1 = np.array([x,y]).T
     x2 = np.array([-x,y]).T
     pos = np.array(np.ones((Nsample,1))*np.array([[0,R,Z]]))
-    
+
     solid = solid_angle_seg(pos,[x1,x2],radius,0,Nth,Nr)
     analytical = solid_angle_disk(pos[0,:],radius)
 
@@ -1170,7 +1170,7 @@ def check_convergence_solid_angle():
         Th[i] = F.solid_angle_seg(pos,x,r,False,N_,N_ref)
 
     ref = F.solid_angle_seg(pos,x,r,False,N_ref,N_ref)
-    
+
     plt.figure()
     plt.title('Solid Angle')
     plt.loglog(N,np.abs((R-ref)/ref),label='R')
@@ -1197,7 +1197,7 @@ def check_field_line_integration(R=2.23,Z=0.01,phi=0.1,Nrot=10,fwd=True,data_nam
     data = xgc_.XGC_Loader_local(data_name,1,182,1,np.array([[0.1,1],[0.1,1]]),0.001)
     # take all the planes into account
     n_plane = data.n_plane
-    
+
     Rcur = np.atleast_1d(R)
     Zcur = np.atleast_1d(Z)
     phicur = np.atleast_1d(phi)
@@ -1247,7 +1247,7 @@ def check_field_line_integration(R=2.23,Z=0.01,phi=0.1,Nrot=10,fwd=True,data_nam
     plt.ylabel('Relative error in $\psi$')
     plt.show()
 
-    
+
 def check_geometry(minorR=0.67,majorR=1.67, name = './bes.in'):
     """ Plot the geometry read by the synthetic diagnostics
     The default Tokamak is the D3D (only a very simple model of the tokamak
@@ -1263,7 +1263,7 @@ def check_geometry(minorR=0.67,majorR=1.67, name = './bes.in'):
     bes = bes_.BES(name)
     foc = bes.pos_foc
     r = np.sqrt(np.sum(foc[:,:2]**2,axis=1))
-    
+
     plt.figure()
     plt.title('Top view')
     perp = np.copy(bes.beam.direc)
@@ -1317,9 +1317,9 @@ def check_geometry(minorR=0.67,majorR=1.67, name = './bes.in'):
 
     plt.plot(x_tok,y_tok,label='Tokamak')
     plt.legend()
-    
+
     plt.show()
-    
+
 
 
 def compute_beam_config(Rsource,phisource, Rtan,R=np.array([])):
@@ -1364,24 +1364,24 @@ def interpolation_toroidal_plane(phi=-2.38,t=130,Nr=1000,Nz=1000,R=(1.82,2.3),
     :param list[] R: R min and max
     :param list[] Z: Z min and max
     """
-    
+
     bes = bes_.BES(name)
-    
+
     bes.beam.t_ = t-1 # will be increase in compute_beam_on_mesh
     print bes.beam.data.shift
     bes.beam.data.current = t
     bes.beam.data.load_next_time_step(increase=False)
 
-    
+
     r = np.linspace(R[0],R[1],Nr)
     z = np.linspace(Z[0],Z[1],Nz)
     R,Z = np.meshgrid(r,z)
     R = R.flatten()
     Z = Z.flatten()
-    
+
     x = R*np.cos(phi)
     y = R*np.sin(phi)
-    
+
     ne = bes.beam.data.interpolate_data(np.array([x,y,Z]).T,t,['ne'],False,True)[0]
     ne = np.reshape(ne,(Nr,Nz))
     R = np.reshape(R,(Nr,Nz))
@@ -1413,7 +1413,7 @@ def solid_angle_evolution(Rmax=2,Zmax=0.1,Nr=80,Nz=100,fib=4,v=40):
     for i in range(Nz):
         pos = np.array([r,np.zeros(r.shape),z[i]*np.ones(r.shape)]).T
         eps[i,:] = bes.get_solid_angle(pos,fib)
-        
+
     Z -= bes.dist[fib]
 
     plt.figure()
@@ -1437,7 +1437,7 @@ def solid_angle_evolution(Rmax=2,Zmax=0.1,Nr=80,Nz=100,fib=4,v=40):
     plt.xlabel('Distance from the central line')
     plt.ylabel('Solid Angle')
 
-    
+
     plt.show()
 
 
@@ -1450,11 +1450,11 @@ def compute_scaling_factor(ne_fluc=0.1,T_fluc=0.01,radial=True,Radius=(1.67,0.67
     :param float ne_fluc: Ratio of density fluctations
     :param float T_fluc: Ratio of temperature fluctuations
     :param bool radial: Choice between real focus point or a radial analysis (on the midplane)
-    :param list[float,float] Radius: Major and minor radius of the tokamak (default is D3D, useful only if radial is True) 
+    :param list[float,float] Radius: Major and minor radius of the tokamak (default is D3D, useful only if radial is True)
     :param int Nr: Number of fiber (useful only if radial is True)
     :param bool graph: Choice bwteen return the values or ploting the graph
     :param load_XGC_local xgc: Choice between loading a new XGC or using an existing one.
-    
+
     :return: Position (R or (R,Z)), the coefficient C and the difference between I_fl and I
     :rtype: (np.array[Nr])*3 or (np.array[Nr])*4
     """
@@ -1588,7 +1588,7 @@ def scaling_dependency_density(Tref=0.2,Nn=100,Radius=1.67):
         C[j] = temp[1]
         R = temp[0]
         dI[j] = temp[2]
-        
+
     #T,ne = np.meshgrid(T,ne)
     plt.figure()
     plt.plot(ne,C)

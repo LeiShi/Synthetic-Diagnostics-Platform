@@ -30,4 +30,4 @@ class MovieMaker:
         ani = anim.FuncAnimation(self.fig,self.updatefig,interval = self.interval)
         plt.show()
 
-        
+

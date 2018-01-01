@@ -59,7 +59,7 @@ def get_interp_planes_local(my_xgc,phi3D):
 class XGC_Loader_local():
     """Loader classe for a local diagnostics and without a grid.
 
-    The idea of this loader is to compute one time step at a time and calling the function 
+    The idea of this loader is to compute one time step at a time and calling the function
     :func:`load_next_time_step` at the end of the time step that have two different ways to work.
     The first one is to load the next time step and the second one to give the index of the time step.
     The function :func:`interpolate_data` is used to obtain the data from any position.
@@ -69,7 +69,7 @@ class XGC_Loader_local():
     in the output of XGC1 is big enough (the field line integration need to stay is the same size of the plasma if the integration
     is made from one plane to the other).
     The second case is just done by giving phi min/max and will just load the planes that are concerned.
-   
+
     :param str xgc_path: Name of the directory containing the data
     :param int t_start: Time step at which starting the diagnostics
     :param int t_end: Time step at which stoping the diagnostics
@@ -92,7 +92,7 @@ class XGC_Loader_local():
         """
 
         print 'Loading XGC output data'
-        
+
         self.xgc_path = xgc_path
         self.mesh_file = xgc_path + 'xgc.mesh.h5'
         self.bfield_file = xgc_path + 'xgc.bfield.h5'
@@ -102,7 +102,7 @@ class XGC_Loader_local():
         self.ne_input_file = xgc_path+'ne_input.in'
         self.shift = shift
         self.kind = kind
-        
+
         print 'from directory:'+ self.xgc_path
         self.unit_dic = load_m(self.unit_file)
         self.tstep = self.unit_dic['sml_dt']*self.unit_dic['diag_1d_period']
@@ -122,7 +122,7 @@ class XGC_Loader_local():
             self.lim = True
             self.Zmin = limits[2,0]
             self.Zmax = limits[2,1]
-            
+
         # limits in tokamak coordinates
         x = np.linspace(self.Xmin,self.Xmax,100)
         y = np.linspace(self.Ymin,self.Ymax,100)
@@ -136,9 +136,9 @@ class XGC_Loader_local():
 
         phi = np.array([[self.Xmin,self.Ymin],[self.Xmin,self.Ymax],
                         [self.Xmax,self.Ymin],[self.Xmax,self.Ymax]])
-        
+
         phi = np.arctan2(phi[:,1],phi[:,0])
-        
+
         # put the value between [0,2pi]
         tempmin = np.min(phi)
         tempmax = np.max(phi)
@@ -147,7 +147,7 @@ class XGC_Loader_local():
         self.Phimax = np.max(phi)
 
         self.dphi = dphi
-        
+
         self.load_B_3D()
         print 'B loaded.'
 
@@ -155,7 +155,7 @@ class XGC_Loader_local():
         phi[phi<0] += 2*np.pi
         self.refprevplane,self.refnextplane = get_interp_planes_local(self,phi)
         print 'interpolation planes obtained.'
-        
+
         self.load_eq_3D()
         print 'equlibrium loaded.'
 
@@ -163,9 +163,9 @@ class XGC_Loader_local():
 
     def load_next_time_step(self,increase=True,t=None):
         """ Load all the quantities for the next time step.
-        
+
         The old quantities are overwritten.
-        
+
         :param bool increase: Define if the time step should be increase or not
         :param int t: Time step to load (index in self.time)
         """
@@ -177,17 +177,17 @@ class XGC_Loader_local():
         if self.current >= len(self.time_steps):
             raise XGC_Loader_Error('The time step is bigger than the ones\
             requested')
-        
 
-        self.load_fluctuations_3D_all()        
+
+        self.load_fluctuations_3D_all()
         print 'fluctuations loaded.'
-        
+
         self.compute_interpolant()
         print 'interpolant computed'
-        
-            
+
+
     def load_mesh_psi_3D(self):
-        """load R-Z mesh and psi values, then create map between each psi 
+        """load R-Z mesh and psi values, then create map between each psi
            value and the series of points on that surface, calculate the arc length table.
         """
         # open the file
@@ -220,7 +220,7 @@ class XGC_Loader_local():
             self.Rmax = np.min([self.Rmax,1.001*np.max(Rpts)])
             self.Zmin = np.max([self.Zmin,0.999*np.min(Zpts)])
             self.Zmax = np.min([self.Zmax,1.001*np.max(Zpts)])
-            
+
         mesh.close()
 
         # get the number of toroidal planes from fluctuation data file
@@ -229,8 +229,8 @@ class XGC_Loader_local():
         self.n_plane = fmesh['dpot'].shape[1]
 
         fmesh.close()
-        
-        
+
+
 
     def load_B_3D(self,eps=0.01):
         """Load equilibrium magnetic field data and compute the interpolant.
@@ -269,7 +269,7 @@ class XGC_Loader_local():
             interp1 = self.find_interp_positions(r,z,phi,prev,next_)
             # case on the other side
             phi = (1-eps)*self.shift*np.ones(r.shape)
-            prev,next_ = get_interp_planes_local(self,phi)        
+            prev,next_ = get_interp_planes_local(self,phi)
             interp2 = self.find_interp_positions(r,z,phi,prev,next_)
 
             # find min/max
@@ -287,27 +287,27 @@ class XGC_Loader_local():
             self.Zmin = np.min([self.Zmin,zmin1,zmin2])
             self.Zmax = np.max([self.Zmax,zmax1,zmax2])
             # remove the points outside the window
-            self.ind = (self.points[:,0] > self.Rmin) & (self.points[:,0] < self.Rmax)        
+            self.ind = (self.points[:,0] > self.Rmin) & (self.points[:,0] < self.Rmax)
             self.ind = self.ind & (self.points[:,1] > self.Zmin) & (self.points[:,1] < self.Zmax)
             self.points = self.points[self.ind,:]
             print 'Keep: ',str(self.points.shape[0]),'Points on a total of: '\
                 ,str(self.ind.shape[0])
 
-        
+
             print 'Zlimits: [',np.min(self.points[:,1]),np.max(self.points[:,1]),']'
             print 'Rlimits: [',np.min(self.points[:,0]),np.max(self.points[:,0]),']'
         return 0
 
 
     def load_fluctuations_3D_all(self):
-        """Load non-adiabatic electron density and electrical static 
+        """Load non-adiabatic electron density and electrical static
         potential fluctuations for 3D mesh.
         The required planes are calculated and stored in sorted array.
         fluctuation data on each plane is stored in the same order.
-        Note that for full-F runs, the perturbed electron density 
+        Note that for full-F runs, the perturbed electron density
         includes both turbulent fluctuations and equilibrium relaxation,
         this loading method doesn't differentiate them and will read all of them.
-        
+
         """
         # list of all planes of interest
         self.planes = np.unique(np.array([np.unique(self.refprevplane),
@@ -318,29 +318,29 @@ class XGC_Loader_local():
         # the last dimension is for the mesh position
         self.nane = np.zeros( (len(self.planes),
                                len(self.points[:,0])) )
-        
+
         self.phi = np.zeros( (len(self.planes),
                               len(self.points[:,0])) )
-        
+
         flucf = self.xgc_path + 'xgc.3d.'+str(self.time_steps[self.current]).zfill(5)+'.h5'
         fluc_mesh = h5.File(flucf,'r')
 
         if self.lim:
             self.phi += np.swapaxes(
                 fluc_mesh['dpot'][self.ind,:][:,(self.planes)%self.n_plane],0,1)
-            
+
             self.nane += np.swapaxes(
                 fluc_mesh['eden'][self.ind,:][:,(self.planes)%self.n_plane],0,1)
 
         else:
             self.phi += np.swapaxes(
                 fluc_mesh['dpot'][:,:][:,(self.planes)%self.n_plane],0,1)
-            
+
             self.nane += np.swapaxes(
                 fluc_mesh['eden'][:,:][:,(self.planes)%self.n_plane],0,1)
-            
+
         fluc_mesh.close()
-            
+
         return 0
 
     def load_eq_3D(self):
@@ -371,7 +371,7 @@ class XGC_Loader_local():
         self.ne_min = np.min(eq_ne)
         self.te0_sp = splrep(eq_psi,eq_te,k=1)
         self.ne0_sp = splrep(eq_psi,eq_ne,k=1)
-        
+
         eq_mesh.close()
 
     def calc_total_ne_3D(self,psi,nane,pot):
@@ -379,11 +379,11 @@ class XGC_Loader_local():
 
         :param np.array[N] psi: Psi in mks unit
         :param np.array[N] nane: Fluctuation of the density
-        :param np.array[N] pot: Potential 
+        :param np.array[N] pot: Potential
 
         :returns: Total density
         :rtype: np.array[N]
-        
+
         """
         # temperature and density (equilibrium) on the psi mesh
         te0 = splev(psi,self.te0_sp)
@@ -391,7 +391,7 @@ class XGC_Loader_local():
         te0[te0<self.te_min/10] = self.te_min/10
         ne0 = splev(psi,self.ne0_sp)
         ne0[ne0<self.ne_min/10] = self.ne_min/10
-        
+
         dne_ad = np.zeros(pot.shape)
         dne_ad += ne0*pot/te0
         ind = np.isfinite(dne_ad)
@@ -407,7 +407,7 @@ class XGC_Loader_local():
         ne[na_valid_idx] += nane[na_valid_idx]
         ne[~ind | ~ind2] = ne0[~ind | ~ind2]
         return ne
-    
+
     def compute_interpolant(self):
         """ Compute the interpolant for the ion and electron
             density
@@ -424,11 +424,11 @@ class XGC_Loader_local():
                     CloughTocher2DInterpolator(self.points,np.array([self.phi[j,:],self.nane[j,:]]).T,fill_value=np.nan))
             else:
                 raise NameError("The method '{}' is not defined".format(self.kind))
-    
+
 
     def find_interp_positions(self,r,z,phi,prev_,next_):
         """Using B field information and follows the exact field line.
-        
+
         :param np.array[N] r: R coordinates
         :param np.array[N] z: Z coordinates
         :param np.array[N] phi: Phi coordinates
@@ -457,7 +457,7 @@ class XGC_Loader_local():
         while np.sum(ind) != 0:
             phi_planes[ind] = phi_planes[ind] - 2*np.pi
             ind = phi_planes > 2*np.pi
-        
+
 
         # the previous/next planes depend on the direction of the field
         if(self.CO_DIR):
@@ -511,7 +511,7 @@ class XGC_Loader_local():
             dR_FWD = step*np.sum(b[np.newaxis,:]*K[:,0,:],axis=1)
             dZ_FWD = step*np.sum(b[np.newaxis,:]*K[:,1,:],axis=1)
             ds_FWD = np.abs(step)*np.sum(b[np.newaxis,:]*K[:,2,:],axis=1)
-            
+
             #when the point gets outside of the XGC mesh, set BR,BZ to zero.
             dR_FWD[~np.isfinite(dR_FWD)] = 0.0
             dZ_FWD[~np.isfinite(dZ_FWD)] = 0.0
@@ -543,7 +543,7 @@ class XGC_Loader_local():
                 Btemp = self.B_interp(Rtemp,Ztemp)
                 indinf = np.isfinite(Btemp[:,2])
                 # evaluate the function
-                
+
                 K[indinf,0,i] = Rtemp[indinf] * Btemp[indinf,0] / Btemp[indinf,2]
                 K[indinf,1,i] = Rtemp[indinf] * Btemp[indinf,1] / Btemp[indinf,2]
                 K[indinf,2,i] = np.sqrt(Rtemp[indinf]**2 + K[indinf,0,i]**2 + K[indinf,1,i]**2)
@@ -553,7 +553,7 @@ class XGC_Loader_local():
             dR_BWD = step*np.sum(b[np.newaxis,:]*K[:,0,:],axis=1)
             dZ_BWD = step*np.sum(b[np.newaxis,:]*K[:,1,:],axis=1)
             ds_BWD = np.abs(step)*np.sum(b[np.newaxis,:]*K[:,2,:],axis=1)
-            
+
             #when the point gets outside of the XGC mesh, set BR,BZ to zero.
             dR_BWD[~np.isfinite(dR_BWD)] = 0.0
             dZ_BWD[~np.isfinite(dZ_BWD)] = 0.0
@@ -566,7 +566,7 @@ class XGC_Loader_local():
             ind = (phiBWD != 0)
 
         interp_positions = np.zeros((2,3,r.shape[0]))
-        
+
         interp_positions[0,0,...] = R_BWD
         interp_positions[0,1,...] = Z_BWD
         tot = (s_BWD+s_FWD)
@@ -581,7 +581,7 @@ class XGC_Loader_local():
 
     def interpolate_data(self,pos,timestep,quant,eq,check=True):
         """ Interpolate the data to the position wanted
-        
+
         :param np.array[N,3] pos: Position (in cartesian system)
         :param int timestep: Time step wanted (used to check if an error is not made)
         :param list[str] quant: Desired quantities (can be 'ni', 'ne', 'Ti', 'Te')
@@ -594,7 +594,7 @@ class XGC_Loader_local():
         if (timestep is not self.current) and (eq is False):
             print 'Maybe an error is made, the requested time step is not the same than the XGC one'
             print timestep, self.current
-        
+
 
         # compute the coordinate in the torroidal system
         r = np.sqrt(np.sum(pos[...,0:2]**2,axis=-1)).flatten()
@@ -602,12 +602,12 @@ class XGC_Loader_local():
         phi = np.arctan2(pos[...,1],pos[...,0]).flatten()
         # goes into the interval [0,2pi]
         phi[phi<0] += 2*np.pi
-        
+
         # get the planes for theses points
         prevplane,nextplane = get_interp_planes_local(self,phi)
         # check if asking for densities
         ne_bool = 'ne' in quant
-        
+
         if eq or ('Te' in quant) or ('Ti' in quant):
             #psi on grid
             psi = self.psi_interp(r,z)
@@ -626,7 +626,7 @@ class XGC_Loader_local():
             Ti = splev(psi,self.ti0_sp)
             Ti[Ti < self.ti_min/10] = self.ti_min/10
 
-                
+
         if not eq:
             if ne_bool:
                 ne = np.zeros(r.shape[0])
@@ -636,7 +636,7 @@ class XGC_Loader_local():
                     ind = ind & ((self.Zmax > interp_positions[1,1]) & (interp_positions[1,1] > self.Zmin))
                     ind = ind & (self.Rmax > interp_positions[0,0]) & (interp_positions[0,0] > self.Rmin)
                     ind = ind & (self.Rmax > interp_positions[1,0]) & (interp_positions[1,0] > self.Rmin)
-                
+
                 #create index dictionary, for each key as plane number and
                 # value the corresponding indices where the plane is used as previous or next plane.
                 prev_idx = {}
@@ -648,12 +648,12 @@ class XGC_Loader_local():
                 #for each time step, first create the 2 arrays of quantities for interpolation
                 prevn = np.zeros((r.shape[0],2))
                 nextn = np.zeros((prevn.shape[0],2))
-                
+
                 for j in range(len(self.planes)):
                     # interpolation on the poloidal planes
                     prevn[prev_idx[j]] = self.interpfluc[j](
                         interp_positions[0,0][prev_idx[j]], interp_positions[0,1][prev_idx[j]])
-                    
+
                     nextn[next_idx[j]] = self.interpfluc[j](
                         interp_positions[1,0][next_idx[j]], interp_positions[1,1][next_idx[j]])
                 # interpolation along the field line
@@ -674,7 +674,7 @@ class XGC_Loader_local():
                         print 'next',nextn[~ind,:]
                         print interp_positions[:,:,~ind]
 
-                    
+
         ret = ()
         # put the data in the good order
         for i in quant:
@@ -688,6 +688,6 @@ class XGC_Loader_local():
                 raise XGC_Loader_Error("'{}' is not a valid value in the evaluation of XGC data".format(i))
         return ret
 
-        
+
 
 

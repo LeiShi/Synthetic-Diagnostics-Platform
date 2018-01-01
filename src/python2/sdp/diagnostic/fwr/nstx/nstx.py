@@ -26,7 +26,7 @@ class NSTX_REF_Loader:
     def __init__(this,filename):
         """initialize with a hdf5 filename, should be a raw data output from NSTX reflectometry measurement.
 
-        
+
         """
         this.filename = filename
         f = h5.File(filename,'r')
@@ -34,23 +34,23 @@ class NSTX_REF_Loader:
         this.dt = f['mydata'][0]['DT']
         this.freq = f['mydata'][0]['FREQUENCY']*1e-9 #Change to GHz
         this.nt = len(f['mydata'][0]['INPHASE'])
-        f.close()    
+        f.close()
     def getI(this):
-        """returns the inphase component of the reflectometry signal 
+        """returns the inphase component of the reflectometry signal
         """
         f = h5.File(this.filename,'r')
         this.I = f['mydata'][0]['INPHASE']
         f.close()
         return this.I
-        
+
     def getQ(this):
-        """returns the out of phase component of the reflectometry signal 
+        """returns the out of phase component of the reflectometry signal
         """
         f= h5.File(this.filename,'r')
         this.Q = f['mydata'][0]['QUADRATURE']
         f.close()
         return this.Q
-    
+
     def getT(this):
         """returns the time array with the same shape as I and Q
         """
@@ -66,7 +66,7 @@ class NSTX_REF_Loader:
             output1: the complex signal,with original resolution
             output2: the corresponding time array
         """
-        
+
         try:
             if(tstart< this.t0 or tend > this.T[-1]):
                 raise NSTX_Error('Reading raw signal error: time period outside original data.')
@@ -74,7 +74,7 @@ class NSTX_REF_Loader:
             this.getT()
             if(tstart< this.t0 or tend > this.T[-1]):
                 raise NSTX_Error('Reading raw signal error: time period outside original data.')
-            
+
         nstart = int( (tstart-this.t0)/this.dt )
         nend = int( (tend-this.t0)/this.dt )
 
@@ -116,14 +116,14 @@ class FFT_result:
         this.f = f
 
 class Analyser:
-    """ Contains all the Post-process methods 
+    """ Contains all the Post-process methods
     """
 
     def __init__(this, nstx_loaders):
         """ Initialize with an NSTX_REF_loader array
         """
         this.loaders = nstx_loaders
-        
+
 
     def phase(this, time_arr, tol = 1e-5, **params):
         """Calculate the extended phase curve in a given time.
@@ -163,12 +163,12 @@ class Analyser:
         phase_interp = interp1d(T[1:-1],phase_raw[0]+phase_mod) # note that the time array now needs to be shorten by 1.
         return (phase_interp(time_arr),phase_interp,phase_mod,dph_new)
 
-    
+
     def amp(this, time_arr, tol = 1e-5, **params):
         """calculates the amplitude of the fluctuating signal
         Since amplitude is much simpler than phase, we can simply calculate sqrt(I**2 + Q**2) where I,Q are in-phase and out-of-phase components.
         """
-        
+
         if('loader_num' in params.keys()):
             loader = this.loaders[params['loader_num']]
         else:
@@ -185,7 +185,7 @@ class Analyser:
         amp = np.abs(S)
         amp_interp = interp1d(T,amp)
         return amp_interp(time_arr)
-        
+
 
     def fft(this,tol = 1e-5, **params):
         """OUT OF DATE. WILL BE UPDATED SOON.
@@ -200,7 +200,7 @@ class Analyser:
                 loader_num : loader = this.loaders[loader_num]
                 frequency : check if abs(loader.freq-frequency)/frequency<tol, if find one, then use this loader, if not, raise an error.
             3)Chose the In phase component or Quadrature component
-                component = 'I', 'Q', 'Amp', 'Phase' or 'Cplx' 
+                component = 'I', 'Q', 'Amp', 'Phase' or 'Cplx'
         returns:
             FFT_result object.
         """
@@ -270,13 +270,13 @@ class Analyser:
         """
 
         nf = len(this.loaders)
-        
+
         #first load all the signals from the loaders
 
         M = []
-        
+
         for i in range(nf):
-            loader = this.loaders[i]            
+            loader = this.loaders[i]
             M.append(loader.signal(tstart,tend))
 
         M = np.array(M)
@@ -297,9 +297,9 @@ class Analyser:
                     cross[f1,f0] = np.conj(cross[f0,f1])
                 else:
                     pass
-        
+
         return (self,cross)
-            
+
     def Coherent_over_time(this,start, end, step, window, loader_num = 'all'):
         """The coherent signal (also called 'self_correlation' before) is defined in function Self_and_Cross_Correlation.
         Arguments:
@@ -316,7 +316,7 @@ class Analyser:
             loaders = this.loaders
 
         if(start < window/2):
-                start = window/2 
+                start = window/2
 
         t_arr = np.arange(start,end,step)
 
@@ -331,21 +331,21 @@ class Analyser:
             I = loader.getI()
             Q = loader.getQ()
             sig = I+ 1j*Q
-            
+
             for j in np.arange(NT):
                 t = t_arr[j]
-            
+
                 left_bdy = t-window/2
                 right_bdy = t+window/2
-            
+
                 n_left = int((left_bdy - loader.t0)/loader.dt)
                 n_right = int((right_bdy - loader.t0)/loader.dt)
 
                 M = sig[n_left:n_right]
-                
+
                 M_bar = np.average(M)
                 M2_bar = np.average(M*np.conj(M))
-                
+
                 coh_sig[i,j] = M_bar/np.sqrt(M2_bar)
 
         return coh_sig
@@ -358,7 +358,7 @@ class Analyser:
 
         Arguments:
             start,end,nt: double; time inteval chosen to carry out the cross correlation. The time series will be determined as t_arr = np.linspace(start,end,nt)
-            loader_num: list of int (default to be a string 'all');the loaders used in calculating the cross correlation. if given, need to be a list of int. Otherwise, by default, all the channels in the analyser will be used. 
+            loader_num: list of int (default to be a string 'all');the loaders used in calculating the cross correlation. if given, need to be a list of int. Otherwise, by default, all the channels in the analyser will be used.
         [1] Observation of ion scale fluctuations in the pedestal region during the edge-localized-mode cycle on the National Spherical torus Experiment. A.Diallo, G.J.Kramer, at. el. Phys. Plasmas 20, 012505(2013)
         """
 
@@ -407,8 +407,8 @@ class Analyser:
             time_arr: double ndarray, contains all the time steps for calculation, (units: second)
             loader_nums: (optional) the channel numbers chosen for cross correlation. default to use all the channels in Analyser.
 
-        Output: 3D array: shape (NL,NL,NT), NL = len(loader_nums) is the number of chosen channels, NT = len(time_arr) is the length of time series. The component (i,j,k) is the cross correlation between channel i and channel j. k <= [(NT-1)/2] and >= [-(NT-1)/2] denotes the time displacement between these two channels. Our convention is that i is delayed k*dT time compared to j. If k<0, it means that i is putting ahead of j. 
-        
+        Output: 3D array: shape (NL,NL,NT), NL = len(loader_nums) is the number of chosen channels, NT = len(time_arr) is the length of time series. The component (i,j,k) is the cross correlation between channel i and channel j. k <= [(NT-1)/2] and >= [-(NT-1)/2] denotes the time displacement between these two channels. Our convention is that i is delayed k*dT time compared to j. If k<0, it means that i is putting ahead of j.
+
         """
 
         if(loader_nums == 'all'):
@@ -450,7 +450,7 @@ def band_pass_filter(sig,dt,freq_low,freq_high):
 
     Return:
         filtered_sig: array-like, complex, same shape as sig. The reconstructed filtered signal. Notice that phase and magnitude are filtered and reconstructed separately, and then combined to get the complex signal. It is NOT the same as directly filter the complex input signal with a given frequency band.
-    
+
     """
     #get the phase and magnitude series.
     pha = phase(sig)[0]
@@ -458,32 +458,32 @@ def band_pass_filter(sig,dt,freq_low,freq_high):
     #averaged magnitude will be used for reconstruction of the signal
     mean_mag = np.mean(mag)
 
-    #get the fft frequency array         
+    #get the fft frequency array
     n = len(sig)
     freqs = np.fft.fftfreq(n,dt)
     idx_low,idx_high = np.searchsorted(freqs[:n/2+1],[freq_low,freq_high]) #note that only first half of the frequency array is holding positive frequencies. The rest are negative ones.
-    
+
     #get the fft result for pahse and magnitude
     pha_spect = np.fft.fft(pha) #Full fft is used here for filtering and inverse fft
     filtered_pha_spect = band_pass_box(pha_spect,idx_low,idx_high)
-    
+
     mag_spect = np.fft.fft(mag)
     filtered_mag_spect= band_pass_box(mag_spect,idx_low,idx_high)
 
     #reconstruct filtered phase and magnitude time sequence
     filtered_pha = np.fft.ifft(filtered_pha_spect)
     filtered_mag = np.fft.ifft(filtered_mag_spect) + mean_mag # We want to stack the magnitude fluctuation on top of the averaged magnitude
-    
-    return filtered_mag * np.exp(1j * filtered_pha) # sig = mag* exp(i*phi)
-    
-            
-            
 
-                
-        
-            
-          
-        
-                    
-        
-        
+    return filtered_mag * np.exp(1j * filtered_pha) # sig = mag* exp(i*phi)
+
+
+
+
+
+
+
+
+
+
+
+

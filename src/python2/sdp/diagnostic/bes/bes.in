@@ -53,7 +53,7 @@ n_high = 3
 Nlt = 50
 # t_max*lifetime = upper value of the integrale for the lifetime effect
 # cutoff value
-# if t_max = 0, the lifetime will not be 
+# if t_max = 0, the lifetime will not be
 # used in Beam1d.get_emis_lifetime()
 t_max = 8.0
 # Lifetime of the excited particles
@@ -86,7 +86,7 @@ R = [2.22364, 2.23378, 2.24402, 2.25411, 2.26448, 2.27514,
      2.28568, 2.29622, 2.22364, 2.23378, 2.24402, 2.25411,
      2.26448, 2.27514, 2.28568, 2.29622]
 
-  
+
 Z = [-0.0140560, -0.0145320,  -0.0145320,  -0.0147840,  -0.0152600,  -0.0152600,
      -0.0154120, -0.0156640,  -0.000916000,-0.00106800, -0.00129200, -0.00151600,
      -0.00166800,-0.00166800, -0.00182000, -0.00179200, -0.0408400,  -0.0414160,

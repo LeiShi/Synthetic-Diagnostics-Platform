@@ -134,7 +134,7 @@ dv.push(dict(working_path = working_path,
              run_No = run_No))
 
 def make_dirs(f_arr = freqs,t_arr = time_arr, nc = n_cross_section, ask=True):
-    
+
     os.chdir(working_path+'RUNS/')
     #create the RUN directory for the new run
     try:
@@ -142,13 +142,13 @@ def make_dirs(f_arr = freqs,t_arr = time_arr, nc = n_cross_section, ask=True):
     except subp.CalledProcessError as e:
         if(ask):
             clean = raw_input('RUN Number:'+str(run_No)+' already existed!\n Do you want to overwrite it anyway? This will erase all the data under the existing directory, please make sure you have saved all the useful data or simply change the run_No in the script and try again.\n Now, do you REALLY want to overwrite the existing data?(y/n):  ')
-        
+
             if 'n' in clean:
                 print 'I take that as a NO, process interupted.'
                 raise e
             elif 'y' in clean:
                 print 'This means YES.'
-                
+
                 try:
                     subp.check_call(['rm','-r','RUN'+str(run_No)])
                 except:
@@ -163,7 +163,7 @@ def make_dirs(f_arr = freqs,t_arr = time_arr, nc = n_cross_section, ask=True):
             raise e
 
     os.chdir(full_output_path)
-    subp.check_call(['cp',working_path+'SCRIPTS/ALCATOR_FWR2D_Driver.py','./'])    
+    subp.check_call(['cp',working_path+'SCRIPTS/ALCATOR_FWR2D_Driver.py','./'])
     #create the subdirectories for each detector(frequency) and plasma realization, add necessary links and copies of corresponding files.
 
     for f in f_arr:
@@ -181,7 +181,7 @@ def make_dirs(f_arr = freqs,t_arr = time_arr, nc = n_cross_section, ask=True):
                     #make links to  the input files
                     subp.check_call(['ln','-s',input_path+FWR_driver_input_head+str(int(f*10))+'.txt',FWR_driver_link_name])
                     subp.check_call(['ln','-s',input_path + incident_antenna_pattern_head + str(int(f*10))+'.txt',incident_antenna_link_name])
-                    subp.check_call(['ln','-s',input_path + receiver_antenna_pattern_head + str(int(f*10))+'.txt',receiver_antenna_link_name])               
+                    subp.check_call(['ln','-s',input_path + receiver_antenna_pattern_head + str(int(f*10))+'.txt',receiver_antenna_link_name])
                     os.chdir('../../..')
         except subp.CalledProcessError:
             print 'Something is wrong, check the running environment.'
@@ -200,15 +200,15 @@ def start_run(params):
 	    print >>output, 'Exception catched:{0}. from Case f={1},t={2},nc={3}. This run is skipped, others will continue, assuming this error is because you are trying to continue running the Script to finish a prematurely stopped run. Be sure this is the case to go on to use the result.'.format(str(e),f,t,nc)
 	else:
 	    print >>output, 'Case f={0},t={1},nc={2} finished without exceptions.'.format(f,t,nc)
-         
+
 
 def launch(f_arr,t_arr,nc):
     """launch multiple tasks of FWR2D runs for given freqs, t_arr and total cross-section number
     """
     param_list = [(f,t,ic) for f in f_arr for t in t_arr for ic in range(nc)]
-    ar = dv.map_async(start_run,param_list)    
+    ar = dv.map_async(start_run,param_list)
     return ar
-    
+
 #run the functions:
 
 def main(argv):
@@ -227,11 +227,11 @@ def main(argv):
     except(getopt.GetoptError):
         print 'unexpected option. use -h to see allowed options.'
         sys.exit(2)
-    
+
     t_use = time_arr
     f_use = freqs #[freqs[i] for i in range(1)]
     nc_use = 1
-    
+
     for opt,arg in opts:
         if(opt == '-h'):
             print('main routine that runs the driver:\naccepts arguments to modify frequencies, time_array, and number of cross-section\noptions accepted:\n-f: followed by a list of frequencies, [...]\n-t: followed by a tuple setting (tstart, tend,tstep)\n-c: followed by an int to specify number of cross-sections\n-n: create new dir\n-a: ask when running directory already exists.\n-h: showing help information')
@@ -239,7 +239,7 @@ def main(argv):
         if(opt == '-f'):
             f_use = eval(arg)
         if(opt == '-t'):
-            tstart,tend,tstep = eval(arg)            
+            tstart,tend,tstep = eval(arg)
             t_use = range(tstart,tend+1,tstep)
         if(opt == '-c'):
             nc_use = eval(arg)
@@ -253,15 +253,15 @@ def main(argv):
             except subp.CalledProcessError:
                 print 'Creating new directory fails. Run_No may already exist. Resolve the problem and run again.'
                 sys.exit(3)
-    
+
     print('Running in directory:{0}\nWith parameters:\nf_use={1}\nt_use={2}\nnc_use={3}\n'.format(full_output_path,str(f_use),str(t_use),str(nc_use)))
-                
+
     ar = launch(f_arr = f_use,t_arr = t_use,nc = nc_use)
     print('FWR processes launched.')
     ar.wait_interactive()
     print('All FWR2D runs finished. Check detailed output at output.txt in every run directory.')
-        
-    
+
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

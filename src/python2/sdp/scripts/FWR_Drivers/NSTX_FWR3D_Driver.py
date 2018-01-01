@@ -72,20 +72,20 @@ all_output = False
 
 
 def make_dirs(f_arr = freqs_chosen,t_arr = time_arr, nc = n_cross_section):
-    
+
     os.chdir(working_path+'Correlation_Runs/3DRUNS/')
     #create the RUN directory for the new run
     try:
         subp.check_call(['mkdir','RUN'+str(run_No)])
     except subp.CalledProcessError as e:
         clean = raw_input('RUN Number:'+str(run_No)+' already existed!\n Do you want to overwrite it anyway? This will erase all the data under the existing directory, please make sure you have saved all the useful data or simply change the run_No in the script and try again.\n Now, do you REALLY want to overwrite the existing data?(y/n):  ')
-    
+
         if 'n' in clean:
             print 'I take that as a NO, process interupted.'
             raise e
         elif 'y' in clean:
             print 'This means YES.'
-            
+
             try:
                 subp.check_call(['rm','-r','RUN'+str(run_No)])
             except:
@@ -98,7 +98,7 @@ def make_dirs(f_arr = freqs_chosen,t_arr = time_arr, nc = n_cross_section):
             raise e
 
     os.chdir(working_path+'Correlation_Runs/3DRUNS/RUN'+str(run_No))
-        
+
     #create the subdirectories for each detector(frequency) and plasma realization, add necessary links and copies of corresponding files.
 
     for f in f_arr:
@@ -126,7 +126,7 @@ def make_dirs(f_arr = freqs_chosen,t_arr = time_arr, nc = n_cross_section):
                     #make links to  the antenna pattern files
                     subp.check_call(['ln','-s',input_path + incident_antenna_pattern_head + str(int(f*10))+'.txt',incident_antenna_link_name])
                     subp.check_call(['ln','-s',input_path + receiver_antenna_pattern_head + str(int(f*10))+'.txt',receiver_antenna_link_name])
-                    
+
                     #call functions from Make_inps to create necessary .inp files
                     #modify corresponding parameters in Make_inps script
                     if(all_output):
@@ -135,7 +135,7 @@ def make_dirs(f_arr = freqs_chosen,t_arr = time_arr, nc = n_cross_section):
                         full_out = '.FALSE.'
 
                     mi = Make_inps.FWR3D_input_maker()
-                    
+
                     mi.eps_out = full_out
                     mi.eps_1d_out = full_out
                     mi.vac_out = full_out
@@ -147,13 +147,13 @@ def make_dirs(f_arr = freqs_chosen,t_arr = time_arr, nc = n_cross_section):
                     mi.ant_freq = f*1e9
                     mi.equilibrium_file = equilibrium_link_name
                     mi.fluctuation_file = fluc_link_name
-                    
+
                     mi.create_all_input_files()
                     os.chdir('../../..')
         except subp.CalledProcessError:
             print 'Something is wrong, check the running environment.'
             raise
-        
+
 def make_batch(f_arr=freqs_chosen,t_arr=time_arr,nc = n_cross_section):
     """write batch job files for chosen frequencies and time slices
     """
@@ -179,8 +179,8 @@ def make_batch(f_arr=freqs_chosen,t_arr=time_arr,nc = n_cross_section):
                     batch_file.write('rm ./3dout.cdf\n')
                 batch_file.close()
                 os.chdir('../../..')
-    
-    
+
+
 
 def submit(f_arr=freqs_chosen,t_arr=time_arr,nc = n_cross_section):
     """ submit the batch jobs

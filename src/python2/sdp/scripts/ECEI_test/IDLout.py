@@ -1,4 +1,4 @@
-"""script for write out ECEI plasma parameters and result to a file for IDL to read 
+"""script for write out ECEI plasma parameters and result to a file for IDL to read
 
 file contains (in order):
     NR: number of grid along the path
@@ -9,7 +9,7 @@ file contains (in order):
     Te_arr: 2D array (NF,NR),electron temperature on the grids
     B_arr: 2D array (NF,NR),total B field on the grids
     f_arr: array contains all the frequencies
-    PYalpha: 2D array (NF,NR), contains calculated alpha values, note that in python the later index is faster varying, and in IDL the opposite.  
+    PYalpha: 2D array (NF,NR), contains calculated alpha values, note that in python the later index is faster varying, and in IDL the opposite.
 """
 import numpy as np
 def IDLoutput(Profs,alphas,filename = "IDLout.dat"):
@@ -21,7 +21,7 @@ def IDLoutput(Profs,alphas,filename = "IDLout.dat"):
     B_arr = []
     f_arr = []
     PYalpha = []
-    for i in range(NF):    
+    for i in range(NF):
         R_arr.append(Profs[i]['Grid'].R2D[0,:])
         Z_arr.append(Profs[i]['Grid'].Z2D[0,:])
         ne_arr.append(Profs[i]['ne'][0,:])
@@ -44,6 +44,5 @@ def IDLoutput(Profs,alphas,filename = "IDLout.dat"):
                 fout.write('\n')
             fout.write('\n')
         fout.flush()
-    
-                
-    
+
+

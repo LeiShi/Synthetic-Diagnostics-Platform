@@ -14,8 +14,8 @@ def load_2d(freqs = freqs, t_arr = t_arr):
     ref2d_out = pp.Reflectometer_Output(fwr_run_path,freqs,t_arr,nc_2d,full_load = False)
     ref2d_out.load_E_out('E_out_{0}.sav'.format(freqs[0]))
     return ref2d_out
-    
-    
+
+
 fwr3d_run_path = '/p/gkp/lshi/XGC1_NSTX_Case/Correlation_Runs/3DRUNS/RUN_FullF_multi_cross_min_out/'
 
 def load_3d(freqs = freqs,t_arr = t_arr):

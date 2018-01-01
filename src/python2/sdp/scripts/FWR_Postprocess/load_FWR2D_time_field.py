@@ -1,6 +1,6 @@
 
 
-"""script to collect all the time series FWR2D results 
+"""script to collect all the time series FWR2D results
 """
 
 from scipy.io.netcdf import netcdf_file
@@ -33,8 +33,8 @@ class FWR2D_time_data:
             self.load_data()
         else:
             print 'Full_Load = False. Nothing done. Please load data from saved files.'
-        
-            
+
+
 
     def initialize_arrays(self):
         """Read in necessary parameters and setup empty arrays
@@ -90,14 +90,14 @@ class FWR2D_time_data:
 
         self.p_E = self.p_Er + 1j * self.p_Ei
         self.s_E = self.s_Er + 1j * self.s_Ei
-                
-        
-        
-        
+
+
+
+
 
 class Animator:
     """A class that make simple 2D movies
-    
+
     """
 
     def __init__(self,fullwave_data,para_data,phase_data,plasma_mode='L',t_arr = None):
@@ -118,7 +118,7 @@ class Animator:
 
         else:
             self.t_arr = np.arange(self.nt)
-        
+
 
     def setup_fig(self,**Params):
         self.fig = plt.figure(**Params)
@@ -129,7 +129,7 @@ class Animator:
         self.sp1 = plt.subplot(gs[0])
         self.im_fw = plt.imshow(self.fullwave_data[0,...],extent = extent_fw,**Params)
         self.sp1.set_ylabel('Z(cm)')
-        
+
         self.sp2 = plt.subplot(gs[1])
         self.im_para = plt.imshow(self.para_data[0,...],extent = extent_para,**Params)
         self.sp2.set_yticks([])
@@ -174,12 +174,12 @@ class Animator:
             self.fig.savefig(wholename+'.png')
             Image.open(wholename+'.png').save(wholename+'.jpg','JPEG')
 
-        
-        
-    
-            
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
+
