@@ -95,8 +95,29 @@ class AlphaDiagnoser(object):
         self._dtheta = np.pi*2/(self.ntheta-1)
         self._dzeta = np.pi*2/(self.nzeta-1)
 
-    def _sp3d(self, psi, theta, zeta, ysp):
-        if(np.any(psi>1)):
+    def _sp3d(self, psi, theta, zeta, deriv, ysp):
+        """ Evaluate 3D spline function for given derivative
+
+        :param psi: psi value array
+        :type psi: 3 dimentional array of float
+        :param theta: theta value array
+        :type theta: 3 dimentional array of float
+        :param zeta: zeta value array
+        :type zeta: 3 dimentional array of float
+        :param int deriv: derivative flag, with the following convention
+                      0: function value
+                      1: derivative respect to psi
+                      2: derivative respect to theta
+                      3: derivative respect to zeta
+                      higher order derivatives are not supported.
+        :param ysp: spline coefficient array created by GTC, with shape
+                    (nzeta, ntheta, npsi, 27)
+        :type ysp: 4 dimentional array of float
+
+        """
+        if deriv > 3 or deriv < 0:
+            raise ValueError('Wrong derivative flag: {0}'.format(deriv))
+        if np.any(psi > 1):
             raise ValueError('psi value greater than 1, outside of plasma \
 boundary. Check psi values, they should be normalized psi_wall.')
         theta = np.remainder(theta, 2*np.pi)
@@ -110,25 +131,41 @@ boundary. Check psi values, they should be normalized psi_wall.')
         psi_re = psi_r*self._psi_separatrix
         # special care is needed for i==0 grid, the spline is done with respect
         # to sqrt(psi) in this cell
-        psi_re = np.where(i==0, np.sqrt(psi_re), psi_re)
+        psi_re = np.where(i == 0, np.sqrt(psi_re), psi_re)
 
         # obtain index and remainder in theta
         j = np.floor(theta/self._dtheta).astype(np.int)
-        theta_re= theta - j*self._dtheta
+        theta_re = theta - j*self._dtheta
 
         # obtain index and remainder in theta
         k = np.floor(zeta/self._dzeta).astype(np.int)
-        zeta_re= zeta - k*self._dzeta
+        zeta_re = zeta - k*self._dzeta
 
         # create the 3D spline vector
-        dx_vec = np.transpose([psi_re**p*theta_re**n*zeta_re**m for m in range(3)
-                           for n in range(3) for p in range(3)], (1,2,3,0))
+        if deriv == 0:
+            dx_vec = np.transpose([psi_re**p*theta_re**n*zeta_re**m for m in range(3)
+                                   for n in range(3) for p in range(3)], (1, 2, 3, 0))
+        elif deriv == 1:
+            dx_vec = np.transpose([p*psi_re**(max(0, p-1))*\
+                                   theta_re**n*zeta_re**m for m in range(3)
+                                   for n in range(3) for p in range(3)], (1, 2, 3, 0))
+        elif deriv == 2:
+            dx_vec = np.transpose([psi_re**p*n*theta_re**(max(0, n-1))*\
+                                   zeta_re**m for m in range(3)
+                                   for n in range(3) for p in range(3)], (1, 2, 3, 0))
+        elif deriv == 3:
+            dx_vec = np.transpose([psi_re**p*theta_re**n*\
+                                   m*zeta_re**(max(0,m-1)) for m in range(3)
+                                   for n in range(3) for p in range(3)], (1, 2, 3, 0))
+        else:
+            raise ValueError('Wrong derivative flag: {0}'.format(deriv))
 
-        return np.sum(ysp[k,j,i,:]*dx_vec, axis=-1)
 
-    def alpha_sp(self, psi, theta, zeta):
+        return np.sum(ysp[k, j, i, :]*dx_vec, axis=-1)
+
+    def alpha_sp(self, psi, theta, zeta, deriv=0):
         """evaluate alpha using GTC spline coefficients"""
-        return self._sp3d(psi, theta, zeta, self._raw_alpha)
+        return self._sp3d(psi, theta, zeta, deriv, self._raw_alpha)
 
     def fourier_analysis(self, psi, ntheta, nzeta):
         """ Evaluate alpha_mn(psi) based on the GTC alpha spline
@@ -148,7 +185,7 @@ boundary. Check psi values, they should be normalized psi_wall.')
         zeta_mesh, theta_mesh, psi_mesh = np.meshgrid(zeta_1d, theta_1d,
                                                       psi_1d, indexing='ij')
         # spline interpolate the alpha values on 3D mesh
-        alpha_arr = self._sp3d(psi_mesh, theta_mesh, zeta_mesh, self._raw_alpha)
+        alpha_arr = self.alpha_sp(psi_mesh, theta_mesh, zeta_mesh)
         # Calculate the Harmonics
         # Note that the convention was alpha = sum alpha_mn*exp(in zeta-im theta)
         # So the inversed relation is alpha_mn = 1/mn sum alpha*exp(-in zeta +
