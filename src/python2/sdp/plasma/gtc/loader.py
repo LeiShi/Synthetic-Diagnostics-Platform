@@ -712,6 +712,50 @@ Cartesian3D grids are supported.'))
         # The value *a* and its gradiant at this nearest point can by easily
         # obtained
         an = self.a_eq_interp(Zn,Rn)
+        # It is possible that (Zn,Rn) still gives an invalid point for our 
+        # interpolator due to roundoff error. The invalid points are indicated
+        # by the mask array of an
+        # so we fix the invalid Zn and Rn by apply a small inward move, the 
+        # direction of the inward will be determined by trial and correction
+        _Zn_out = Zn[an.mask]
+        _Rn_out = Rn[an.mask]
+        for i,_Zq in enumerate(_Zn_out):
+            _Rq = _Rn_out[i]
+            _dZ = 1e-7*_Zq
+            _dR = 1e-7*_Rq
+            _test = self.a_eq_interp(_Zq+_dZ, _Rq)
+            # if the result is not masked, then the point is good
+            if not _test.mask:
+                _Zn_out[i] = _Zq+_dZ
+                continue
+            
+            _test = self.a_eq_interp(_Zq-_dZ, _Rq)
+            # if the result is not masked, then the point is good
+            if not _test.mask:
+                _Zn_out[i] = _Zq-_dZ
+                continue
+            
+            _test = self.a_eq_interp(_Zq, _Rq+_dR)
+            # if the result is not masked, then the point is good
+            if not _test.mask:
+                _Rn_out[i] = _Rq+_dR
+                continue
+            
+            _test = self.a_eq_interp(_Zq, _Rq-_dR)
+            # if the result is not masked, then the point is good
+            if not _test.mask:
+                _Rn_out[i] = _Rq-_dR
+                continue
+        # After fixing all the points, assign the new values to the the Zn, Rn
+        # arrays
+        Zn[an.mask] = _Zn_out
+        Rn[an.mask] = _Rn_out
+        
+        # "an" values also need to be fixed
+        an[an.mask] = self.a_eq_interp(_Zn_out, _Rn_out)
+            
+        # Now, gradaZ_bdy and gradaR_bdy should not have any outside locations
+        # so we can directly evaluate them
         gradaZ_bdy,gradaR_bdy = self.a_eq_interp.gradient(Zn,Rn)
 
         # Now deal with points that didn't get a finite gradient from the
@@ -750,7 +794,15 @@ Cartesian3D grids are supported.'))
         self.BZ_on_grid[out_mask] = BZ_out
 
         # Outside B_phi is taken to be simply decaying as 1/R
-        Bphi_out = self.B0*self.R0/Rout
+        # An additional damping factor is needed because of the finite plasma 
+        # current that may cancel part of the external toroidal field. 
+        # Without this artificial factor, the magnetic field could 
+        # be non-monotonic accross the plasma boundary
+        # This factor is now taken as 0.9, since in tokamak the plasma 
+        # current induced magnetic field is normally smaller than 1/10 of the 
+        # external field
+        current_damping_factor = 0.01
+        Bphi_out = (1-current_damping_factor)*self.B0*self.R0/Rout
         self.Bphi_on_grid[out_mask] = Bphi_out
 
         # Outside B_total is now calculated from its three components.
@@ -801,7 +853,7 @@ Cartesian3D grids are supported.'))
         """
 
         gradient= gradZ**2+gradR**2
-        average_gradient = np.median(gradient)
+        average_gradient = gradient.mean()
 
         # check if the gradient is too small or too large.
         no_gradient_idx = \
