@@ -43,7 +43,7 @@ It is straightforward to [install Anaconda](https://www.continuum.io/downloads).
     
 2. Put SDP into Python path
 
-    In order to import SDP from Python interpreter, you need to put SDP into a directory Python recognizes. The most straightforward way is to add the full path of "src/python2/" directory to the [PYTHONPATH](https://docs.python.org/2/using/cmdline.html#envvar-PYTHONPATH) environment variable.   
+    In order to import SDP from Python interpreter, you need to put SDP into a directory Python recognizes. The most straightforward way is to add the full path of "src/python2/" directory to the [PYTHONPATH](https://docs.python.org/2/using/cmdline.html#envvar-PYTHONPATH) environment variable.   
     
     For example, in Windows, suppose your SDP source package is in "C:\SDP_source\". Then, you only need to add "C:\SDP_source\src\python2\" to the system's environment variable "PYTHONPATH". If no environment variable named "PYTHONPATH" exists, you should create one.
     
