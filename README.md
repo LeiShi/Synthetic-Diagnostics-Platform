@@ -39,7 +39,7 @@ It is straightforward to [install Anaconda](https://www.continuum.io/downloads).
 
 1. Obtain SDP source code
 
-    Right now, SDP is not fully open source. If you want to obtain the latest version of SDP, please contact the author: Lei Shi (FPSDP.main@gmail.com).
+    SDP is fully open source now! Feel free to checkout the repo and play with it. If you have any questions or suggestions, or want to contribute to SDP, please contact the author: Lei Shi (FPSDP.main@gmail.com).
     
 2. Put SDP into Python path
 
